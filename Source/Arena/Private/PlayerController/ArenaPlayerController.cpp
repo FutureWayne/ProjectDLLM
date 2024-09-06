@@ -9,10 +9,18 @@
 
 void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
 {
+	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+	{
+		ArenaASC->AbilityInputTagPressed(InputTag);
+	}
 }
 
 void AArenaPlayerController::AbilityInputTagReleased(FGameplayTag InputTag)
 {
+	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+	{
+		ArenaASC->AbilityInputTagReleased(InputTag);
+	}
 }
 
 void AArenaPlayerController::AbilityInputTagHeld(FGameplayTag InputTag)
@@ -32,6 +40,21 @@ UArenaAbilitySystemComponent* AArenaPlayerController::GetArenaAbilitySystemCompo
 {
 	const AArenaPlayerState* ArenaPS = GetArenaPlayerState();
 	return ArenaPS ? ArenaPS->GetArenaAbilitySystemComponent() : nullptr;
+}
+
+void AArenaPlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)
+{
+	Super::PreProcessInput(DeltaTime, bGamePaused);
+}
+
+void AArenaPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
+{
+	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+	{
+		ArenaASC->ProcessAbilityInput(DeltaTime, bGamePaused);
+	}
+	
+	Super::PostProcessInput(DeltaTime, bGamePaused);
 }
 
 void AArenaPlayerController::BeginPlay()
