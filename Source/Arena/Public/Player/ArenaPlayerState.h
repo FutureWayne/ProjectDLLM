@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "ArenaPlayerState.generated.h"
 
@@ -22,11 +23,15 @@ public:
 
 	// Implement IAbilitySystemInterface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerState")
+	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const { return AbilitySystemComponent; };
+	
 	UArenaHealthSet* GetArenaHealthSet() const;
 
 protected:
 	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UArenaAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UArenaHealthSet> ArenaHealthSet;
