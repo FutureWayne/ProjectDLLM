@@ -3,7 +3,7 @@
 
 #include "Character/BlasterCharacter.h"
 
-#include "EnhancedInputComponent.h"
+#include "ArenaGameplayTags.h"
 #include "EnhancedInputSubsystems.h"
 #include "BlasterComponent/CombatComponent.h"
 #include "Camera/CameraComponent.h"
@@ -11,8 +11,10 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Input/ArenaInputComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "PlayerController/ArenaPlayerController.h"
 #include "Weapon/Weapon.h"
 
 // Sets default values
@@ -373,49 +375,46 @@ void ABlasterCharacter::WalkButtonReleased()
 // Called to bind functionality to input
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	// Add Input Mapping Context
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
-	
-	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+	UArenaInputComponent* ArenaIC = Cast<UArenaInputComponent>(PlayerInputComponent);
+	AArenaPlayerController* ArenaPC = Cast<AArenaPlayerController>(GetController());
 
+	check(ArenaIC);
+	check(ArenaPC);
+
+	if (const UArenaInputConfig* InputConfig = ArenaPC->GetInputConfig())
+	{
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move, false);
+
+		// Jumping
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Started, this, &ACharacter::Jump, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Completed, this, &ACharacter::StopJumping, false);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::Look);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Look, ETriggerEvent::Triggered, this, &ABlasterCharacter::Look, false);
 
 		// Equipping
-		EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::EquipButtonPressed);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Equip, ETriggerEvent::Triggered, this, &ABlasterCharacter::EquipButtonPressed, false);
 
 		// Dropping
-		EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::DropButtonPressed);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Drop, ETriggerEvent::Triggered, this, &ABlasterCharacter::DropButtonPressed, false);
 
 		// Crouching
-		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchButtonPressed);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchButtonPressed, false);
 
 		// Aiming
-		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &ABlasterCharacter::AimButtonPressed);
-		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ABlasterCharacter::AimButtonReleased);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Started, this, &ABlasterCharacter::AimButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Completed, this, &ABlasterCharacter::AimButtonReleased, false);
 
 		// Firing
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ABlasterCharacter::FireButtonPressed);
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABlasterCharacter::FireButtonReleased);
-
-		// Walking
-		EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Started, this, &ABlasterCharacter::WalkButtonPressed);
-		EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Completed, this, &ABlasterCharacter::WalkButtonReleased);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Started, this, &ABlasterCharacter::FireButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Completed, this, &ABlasterCharacter::FireButtonReleased, false);
 	}
+	
+	// 	// Walking
+	// 	EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Started, this, &ABlasterCharacter::WalkButtonPressed);
+	// 	EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Completed, this, &ABlasterCharacter::WalkButtonReleased);
+	// }
 }
 
 void ABlasterCharacter::PostInitializeComponents()

@@ -29,10 +29,6 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UArenaHealthSet* GetArenaHealthSet() const;
-	
-	/** MappingContext */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputMappingContext* DefaultMappingContext;
 
 protected:
 	// Called when the game starts or when spawned
@@ -52,9 +48,6 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Abilities", Meta = (AllowPrivateAccess = "true"))

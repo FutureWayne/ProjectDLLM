@@ -19,6 +19,7 @@ void AArenaCharacter::PossessedBy(AController* NewController)
 
 	// Init ability actor info for the server
 	InitAbilityActorInfo();
+	AddCharacterAbilities();
 }
 
 void AArenaCharacter::OnRep_PlayerState()
@@ -27,6 +28,7 @@ void AArenaCharacter::OnRep_PlayerState()
 
 	// Init ability actor info for the client  
 	InitAbilityActorInfo();
+	AddCharacterAbilities();
 }
 
 void AArenaCharacter::InitAbilityActorInfo()

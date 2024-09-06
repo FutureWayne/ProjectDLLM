@@ -16,8 +16,20 @@ class ARENA_API UArenaAbilitySystemComponent : public UAbilitySystemComponent
 
 public:
 	void AddCharacterAbilities(const TArray<TSubclassOf<class UGameplayAbility>>& StartupAbilities);
+	
+	void AbilityInputTagPressed(const FGameplayTag& InputTag);
+	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 
-	void AbilityTagHeld(const FGameplayTag& InputTag);
-	void AbilityTagPressed(const FGameplayTag& InputTag);
-	void AbilityTagReleased(const FGameplayTag& InputTag);
+	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
+
+protected:
+	
+	// Handles to abilities that had their input pressed this frame.
+	TArray<FGameplayAbilitySpecHandle> InputPressedSpecHandles;
+
+	// Handles to abilities that had their input released this frame.
+	TArray<FGameplayAbilitySpecHandle> InputReleasedSpecHandles;
+
+	// Handles to abilities that have their input held.
+	TArray<FGameplayAbilitySpecHandle> InputHeldSpecHandles;
 };
