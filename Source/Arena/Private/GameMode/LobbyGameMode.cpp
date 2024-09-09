@@ -9,18 +9,25 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	int32 NumberOfPlayer = GameState.Get()->PlayerArray.Num();
-	if (NumberOfPlayer >= 2)
+	// Print current player count
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Current Player Count: %d"), GameState.Get()->PlayerArray.Num()));
+
+	if (GameState.Get()->PlayerArray.Num() >= 4)
 	{
-		if (UWorld* World = GetWorld())
-		{
-			bUseSeamlessTravel = true;
-			World->ServerTravel(FString("/Game/Maps/BlasterMap?listen"));
-		}
+		StartGame();
 	}
 }
 
 void ALobbyGameMode::Logout(AController* Exiting)
 {
 	Super::Logout(Exiting);
+}
+
+void ALobbyGameMode::StartGame()
+{
+	if (UWorld* World = GetWorld())
+	{
+		bUseSeamlessTravel = true;
+		World->ServerTravel(FString("/Game/Maps/BlasterMap?listen"));
+	}
 }
