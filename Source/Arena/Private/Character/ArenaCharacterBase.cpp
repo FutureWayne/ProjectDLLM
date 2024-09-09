@@ -10,9 +10,7 @@
 // Sets default values
 AArenaCharacterBase::AArenaCharacterBase()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
-	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.bCanEverTick = true;
 	
 	HealthComponent = CreateDefaultSubobject<UArenaHealthComponent>(TEXT("HealthComponent"));
 }
@@ -36,7 +34,6 @@ UArenaHealthSet* AArenaCharacterBase::GetArenaHealthSet() const
 void AArenaCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AArenaCharacterBase::AddCharacterAbilities() const
@@ -50,6 +47,5 @@ void AArenaCharacterBase::AddCharacterAbilities() const
 void AArenaCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 

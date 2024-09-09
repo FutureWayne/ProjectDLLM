@@ -4,7 +4,6 @@
 #include "Character/BlasterCharacter.h"
 
 #include "ArenaGameplayTags.h"
-#include "EnhancedInputSubsystems.h"
 #include "BlasterComponent/CombatComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -12,9 +11,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/ArenaInputComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/ArenaPlayerState.h"
+#include "Player/Team.h"
 #include "PlayerController/ArenaPlayerController.h"
+#include "PlayerStart/TeamPlayerStart.h"
 #include "Weapon/Weapon.h"
 
 // Sets default values
@@ -155,6 +158,55 @@ FVector ABlasterCharacter::GetHitTarget() const
 	return Combat->HitTarget;
 }
 
+void ABlasterCharacter::SetTeamColor(const ETeam Team) const
+{
+	if (GetMesh() == nullptr) return;
+
+	switch (Team)
+	{
+	case ETeam::ET_Attack:
+		GetMesh()->SetMaterial(0, RedMaterial1);
+		GetMesh()->SetMaterial(1, RedMaterial2);
+		break;
+	case ETeam::ET_Defense:
+		GetMesh()->SetMaterial(0, BlueMaterial1);
+		GetMesh()->SetMaterial(1, BlueMaterial2);
+		break;
+	case ETeam::ET_Neutral:
+		GetMesh()->SetMaterial(0, BlueMaterial1);
+		GetMesh()->SetMaterial(1, BlueMaterial2);
+		break;
+	default:
+		break;
+	}
+}
+
+void ABlasterCharacter::SetSpawnPoint()
+{
+	if (HasAuthority() && ArenaPlayerState->GetTeam() != ETeam::ET_Neutral)
+	{
+		TArray<AActor*> SpawnPoints;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), SpawnPoints);
+
+		TArray<ATeamPlayerStart*> TeamSpawnPoints;
+		for (auto SpawnPoint : SpawnPoints)
+		{
+			ATeamPlayerStart* TeamSpawnPoint = Cast<ATeamPlayerStart>(SpawnPoint);
+			if (TeamSpawnPoint && TeamSpawnPoint->Team == ArenaPlayerState->GetTeam())
+			{
+				TeamSpawnPoints.Add(TeamSpawnPoint);
+			}
+		}
+
+		if (TeamSpawnPoints.Num() > 0)
+		{
+			const int32 RandomIndex = FMath::RandRange(0, TeamSpawnPoints.Num() - 1);
+			SetActorLocation(TeamSpawnPoints[RandomIndex]->GetActorLocation());
+			SetActorRotation(TeamSpawnPoints[RandomIndex]->GetActorRotation());
+		}
+	}
+}
+
 // Called when the game starts or when spawned
 void ABlasterCharacter::BeginPlay()
 {
@@ -181,6 +233,15 @@ void ABlasterCharacter::Tick(float DeltaSeconds)
 	}
 	
 	//HideCharacterIfCameraClose();
+
+	if (ArenaPlayerState == nullptr)
+	{
+		if (Cast<AArenaPlayerState>(GetPlayerState()))
+		{
+			OnPlayerStateInitialized();
+		}
+	}
+	
 }
 
 void ABlasterCharacter::Move(const FInputActionValue& Value)
@@ -344,6 +405,14 @@ void ABlasterCharacter::SimProxiesTurn()
 	}
 
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
+}
+
+void ABlasterCharacter::OnPlayerStateInitialized()
+{
+	Super::OnPlayerStateInitialized();
+
+	SetTeamColor(ArenaPlayerState->GetTeam());
+	SetSpawnPoint();
 }
 
 void ABlasterCharacter::FireButtonPressed()

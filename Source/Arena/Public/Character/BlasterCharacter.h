@@ -9,6 +9,7 @@
 #include "Interfaces/InteractWithCrosshairInterface.h"
 #include "BlasterCharacter.generated.h"
 
+enum class ETeam : uint8;
 class UCombatComponent;
 class AWeapon;
 class USpringArmComponent;
@@ -41,16 +42,20 @@ public:
 	
 	FVector GetHitTarget() const;
 
+	void SetTeamColor(ETeam Team) const;
+	void SetSpawnPoint();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	/** Called for movement input */
+	/**
+	 * Input functions
+	 */
 	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
+	
 	void Look(const FInputActionValue& Value);
 
 	void EquipButtonPressed();
@@ -62,15 +67,17 @@ protected:
 	void AimButtonPressed();
 	void AimButtonReleased();
 
-	void CalculateAOPitch();
-	void AimOffset(float DeltaSeconds);
-	void SimProxiesTurn();
-
 	void FireButtonPressed();
 	void FireButtonReleased();
 
 	void WalkButtonPressed();
 	void WalkButtonReleased();
+
+	void CalculateAOPitch();
+	void AimOffset(float DeltaSeconds);
+	void SimProxiesTurn();
+
+	virtual void OnPlayerStateInitialized() override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -89,46 +96,6 @@ private:
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
-	// /** MappingContext */
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	// UInputMappingContext* DefaultMappingContext;
-
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
-
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* MoveAction;
-
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* LookAction;
-
-	/** Equip Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* EquipAction;
-
-	/** Drop Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* DropAction;
-
-	/** Crouch Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* CrouchAction;
-
-	/** Aim Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* AimAction;
-
-	/** Fire Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* FireAction;
-
-	/** Walk Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* WalkAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI, meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* OverheadWidget;
@@ -151,6 +118,22 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Health, VisibleAnywhere, Category = "PlayerStats")
 	float Health = 100.f;
+
+	/*
+	 * Team Colors
+	 */
+
+	UPROPERTY(EditAnywhere, Category = "TeamColors")
+	TObjectPtr<UMaterialInstance> RedMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = "TeamColors")
+	TObjectPtr<UMaterialInstance> RedMaterial2;
+
+	UPROPERTY(EditAnywhere, Category = "TeamColors")
+	TObjectPtr<UMaterialInstance> BlueMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = "TeamColors")
+	TObjectPtr<UMaterialInstance> BlueMaterial2;
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
