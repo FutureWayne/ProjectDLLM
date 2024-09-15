@@ -21,7 +21,7 @@ void AArenaMinion::BeginPlay()
 	Super::BeginPlay();
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
+	AddCharacterAbilities();
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
 }
