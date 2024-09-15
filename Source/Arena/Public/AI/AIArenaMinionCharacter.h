@@ -17,7 +17,16 @@ class ARENA_API AAIArenaMinionCharacter : public AArenaMinion
 public:
 	AAIArenaMinionCharacter();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float DetectRangeRadius = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	AActor* TowerTarget;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	UBehaviorTree* BehaviorTreeAsset;
+
+	void SetTowerTarget(AActor* Target);
+protected:
+	virtual void Tick(float DeltaTime) override;
 };

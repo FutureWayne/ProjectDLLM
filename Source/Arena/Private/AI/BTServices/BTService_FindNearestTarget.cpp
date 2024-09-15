@@ -6,18 +6,18 @@
 #include <Player/ArenaPlayerState.h>
 #include <PlayerController/ArenaPlayerController.h>
 #include "BehaviorTree/BlackboardComponent.h"
+#include <AI/AIArenaMinionCharacter.h>
 
 void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
-	const APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
-	//const FName TargetTag = OwningPawn->ActorHasTag(FName("Radiant")) ? FName("Dire") : FName("Radiant");
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("TargetTag: %s"), *TargetTag.ToString()));
+	APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
+
+	AAIArenaMinionCharacter* AICharacter = Cast<AAIArenaMinionCharacter>(OwningPawn);
 
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABlasterCharacter::StaticClass(), FoundActors);
-
 	float ClosestDistance = TNumericLimits<float>::Max();
 	AActor* ClosestActor = nullptr;
 	for (AActor* Actor : FoundActors)
@@ -36,11 +36,40 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 		}
 	}
 
+	float DetectRange = 0.0f;
+	AActor* TowerActor = nullptr;
+	if (AICharacter) 
+	{
+		DetectRange = AICharacter->DetectRangeRadius;
+		TowerActor = AICharacter->TowerTarget;
+	}
+
+	if (ClosestDistance > DetectRange)
+	{
+		if (TowerActor) 
+		{
+			ClosestActor = TowerActor;
+			ClosestDistance = FVector::Dist(OwningPawn->GetActorLocation(), TowerActor->GetActorLocation());
+		}
+		else 
+		{
+			ClosestActor = nullptr;
+			ClosestDistance = TNumericLimits<float>::Max();
+		}
+	}
+
 	const auto Blackboard = OwnerComp.GetBlackboardComponent();
 	if (Blackboard)
 	{
 		Blackboard->SetValueAsObject(TargetToFollowSelector.SelectedKeyName, ClosestActor);
-		Blackboard->SetValueAsVector(MoveToLocation.SelectedKeyName, ClosestActor->GetActorLocation());
+		if (ClosestActor) 
+		{
+			Blackboard->SetValueAsVector(MoveToLocation.SelectedKeyName, ClosestActor->GetActorLocation());
+		}
+		else
+		{
+			Blackboard->SetValueAsVector(MoveToLocation.SelectedKeyName, OwningPawn->GetActorLocation());
+		}
 		Blackboard->SetValueAsFloat(DistanceToTargetSelector.SelectedKeyName, ClosestDistance);
 	}
 }
