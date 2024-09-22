@@ -31,6 +31,15 @@ void AArenaCharacter::OnRep_PlayerState()
 	AddCharacterAbilities();
 }
 
+void AArenaCharacter::OnPlayerStateInitialized()
+{
+	AArenaPlayerState* PS = GetPlayerState<AArenaPlayerState>();
+	check(PS);
+
+	// Set the pointer to the player state
+	ArenaPlayerState = PS;
+}
+
 void AArenaCharacter::InitAbilityActorInfo()
 {
 	AArenaPlayerState* PS = GetPlayerState<AArenaPlayerState>();

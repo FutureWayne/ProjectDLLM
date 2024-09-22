@@ -6,6 +6,7 @@
 #include "Character/ArenaCharacterBase.h"
 #include "ArenaCharacter.generated.h"
 
+class AArenaPlayerState;
 /**
  * 
  */
@@ -19,6 +20,11 @@ public:
 
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
+
+protected:
+	TObjectPtr<AArenaPlayerState> ArenaPlayerState;
+
+	virtual void OnPlayerStateInitialized();
 
 private:
 	void InitAbilityActorInfo();

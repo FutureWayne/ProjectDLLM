@@ -6,6 +6,9 @@
 #include "Abilities/GameplayAbility.h"
 #include "ArenaGameplayAbility.generated.h"
 
+class UArenaAbilitySystemComponent;
+class AArenaCharacterBase;
+
 /**
  * EArenaAbilityActivationPolicy
  *
@@ -33,6 +36,14 @@ class ARENA_API UArenaGameplayAbility : public UGameplayAbility
 	GENERATED_BODY()
 	
 public:
+	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
+	AController* GetControllerFromActorInfo() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
+	AArenaCharacterBase* GetArenaCharacterFromActorInfo() const;
+
+	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponentFromActorInfo() const;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	FGameplayTag StartupInputTag;
 

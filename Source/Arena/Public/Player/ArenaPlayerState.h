@@ -6,6 +6,7 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "Team.h"
 #include "ArenaPlayerState.generated.h"
 
 class UArenaHealthSet;
@@ -20,6 +21,8 @@ class ARENA_API AArenaPlayerState : public APlayerState, public IAbilitySystemIn
 
 public:
 	AArenaPlayerState();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// Implement IAbilitySystemInterface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
@@ -29,10 +32,22 @@ public:
 	
 	UArenaHealthSet* GetArenaHealthSet() const;
 
+	void SetTeam(const ETeam NewTeam);
+
 protected:
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UArenaAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UArenaHealthSet> ArenaHealthSet;
+
+private:
+	UPROPERTY(ReplicatedUsing = OnRep_Team)
+	ETeam Team = ETeam::ET_Neutral;
+
+	UFUNCTION()
+	void OnRep_Team();
+
+public:
+	FORCEINLINE ETeam GetTeam() const { return Team; }
 };

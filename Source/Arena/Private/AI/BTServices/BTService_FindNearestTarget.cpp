@@ -26,8 +26,18 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 		UArenaHealthSet* ActorHealthSet = ArenaActor->GetArenaHealthSet();
 		if (!ActorHealthSet)
 		{
+			// TODO: Whether health is below 0? Or is it better to grab the health component?
 			continue;
 		}
+
+		// Check if the other actor is in the defense team
+		AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(ArenaActor->GetController()->PlayerState);
+		if (ArenaPlayerState && ArenaPlayerState->GetTeam() != ETeam::ET_Defense)
+		{
+			continue;
+		}
+
+		//Find the closest enemy
 		const float Distance = FVector::Dist(OwningPawn->GetActorLocation(), Actor->GetActorLocation());
 		if (Distance < ClosestDistance)
 		{
