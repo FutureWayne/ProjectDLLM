@@ -61,11 +61,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Arena|Health")
 	bool IsDeadOrDying() const { return (DeathState > EArenaDeathState::NotDead); }
 
+	// Begins the death sequence for the owner.
 	virtual void StartDeath();
 
+	// Ends the death sequence for the owner.
 	virtual void FinishDeath();
 
+	// Applies enough damage to kill the owner.
 	virtual void DamageSelfDestruct(bool bFellOutOfWorld = false);
+
+public:
 
 	UPROPERTY(BlueprintAssignable)
 	FArenaHealth_AttributeChanged OnHealthChanged;
@@ -80,8 +85,9 @@ public:
 	FArenaHealth_DeathEvent OnDeathFinished;
 
 protected:
-
 	virtual void OnUnregister() override;
+
+	void ClearGameplayTags();
 
 	virtual void HandleHealthChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleMaxHealthChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
@@ -89,7 +95,8 @@ protected:
 
 	UFUNCTION()
 	virtual void OnRep_DeathState(EArenaDeathState OldDeathState);
-	
+
+protected:
 	UPROPERTY()
 	TObjectPtr<UArenaAbilitySystemComponent> AbilitySystemComponent;
 
@@ -98,5 +105,4 @@ protected:
 
 	UPROPERTY(ReplicatedUsing = OnRep_DeathState)
 	EArenaDeathState DeathState;
-	
 };

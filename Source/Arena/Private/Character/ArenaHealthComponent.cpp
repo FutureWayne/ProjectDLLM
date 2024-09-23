@@ -109,13 +109,11 @@ void UArenaHealthComponent::StartDeath()
 
 	DeathState = EArenaDeathState::DeathStarted;
 
-	// TODO: Clear dying tag
-	/*
+	// Clear dying tag
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dying, 1);
 	}
-	*/
 
 	AActor* Owner = GetOwner();
 	check(Owner);
@@ -134,13 +132,11 @@ void UArenaHealthComponent::FinishDeath()
 
 	DeathState = EArenaDeathState::DeathFinished;
 
-	// TODO: Clear dying tag
-	/*
+	// Clear dying tag
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dead, 1);
 	}
-	*/
 
 	AActor* Owner = GetOwner();
 	check(Owner);
@@ -162,8 +158,17 @@ void UArenaHealthComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
+void UArenaHealthComponent::ClearGameplayTags()
+{
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dying, 0);
+		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dead, 0);
+	}
+}
+
 void UArenaHealthComponent::HandleHealthChanged(AActor* DamageInstigator, AActor* DamageCauser,
-	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+                                                const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
 {
 	OnHealthChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
 }

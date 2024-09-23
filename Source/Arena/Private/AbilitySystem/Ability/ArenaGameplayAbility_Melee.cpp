@@ -1,7 +1,7 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
 
-#include "AbilitySystem/Ability/ArenaMeleeAbility.h"
+#include "AbilitySystem/Ability/ArenaGameplayAbility_Melee.h"
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -9,7 +9,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 
-void UArenaMeleeAbility::TraceMeleeTarget()
+void UArenaGameplayAbility_Melee::TraceMeleeTarget()
 {
 	bool bHit;
 	TArray<FHitResult> HitResults;
