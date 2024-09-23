@@ -15,7 +15,7 @@ void UArenaAbilitySystemComponent::AddCharacterAbilities(const TArray<TSubclassO
 
 			if (const UArenaGameplayAbility* ArenaAbility = Cast<UArenaGameplayAbility>(AbilitySpec.Ability))
 			{
-				AbilitySpec.DynamicAbilityTags.AddTag(ArenaAbility->StartupInputTag);
+				AbilitySpec.DynamicAbilityTags.AddTag(ArenaAbility->GetStartupInputTag());
 				GiveAbility(AbilitySpec);
 			}
 		}
@@ -143,4 +143,131 @@ void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGa
 	//
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
+}
+
+void UArenaAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc,
+                                                         bool bReplicateCancelAbility)
+{
+	for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
+	{
+		if (!AbilitySpec.IsActive())
+		{
+			continue;
+		}
+
+		UArenaGameplayAbility* ArenaAbilityCDO = Cast<UArenaGameplayAbility>(AbilitySpec.Ability);
+		if (!ArenaAbilityCDO)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("CancelAbilitiesByFunc: Non-ArenaGameplayAbility %s was Granted to ASC. Skipping."), *AbilitySpec.Ability.GetName());
+			continue;
+		}
+
+		if (ArenaAbilityCDO->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+		{
+			// Cancel all spawned instances
+			TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
+			for (UGameplayAbility* Instance : Instances)
+			{
+				UArenaGameplayAbility* ArenaAbilityInstance = Cast<UArenaGameplayAbility>(Instance);
+
+				if (ShouldCancelFunc(ArenaAbilityInstance, AbilitySpec.Handle))
+				{
+					if (ArenaAbilityInstance->CanBeCanceled())
+					{
+						ArenaAbilityInstance->CancelAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), ArenaAbilityInstance->GetCurrentActivationInfo(), bReplicateCancelAbility);
+					}
+					else
+					{
+						UE_LOG(LogTemp, Error, TEXT("CancelAbilitiesByFunc: Can't cancel ability [%s] because CanBeCanceled is false."), *ArenaAbilityInstance->GetName());
+					}
+				}
+			}
+		}
+		else
+		{
+			// Cancel the non-instanced ability CDO
+			if (ShouldCancelFunc(ArenaAbilityCDO, AbilitySpec.Handle))
+			{
+				// Non-instanced abilities should always be cancelable
+				check(ArenaAbilityCDO->CanBeCanceled());
+				ArenaAbilityCDO->CancelAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), ArenaAbilityCDO->GetCurrentActivationInfo(), bReplicateCancelAbility);
+			}
+		}
+	}
+}
+
+bool UArenaAbilitySystemComponent::IsActivationGroupBlocked(EArenaAbilityActivationGroup Group) const
+{
+	bool bBlocked = false;
+
+	switch (Group)
+	{
+		case EArenaAbilityActivationGroup::Independent:
+			// Independent abilities are never blocked.
+			bBlocked = false;
+			break;
+
+		case EArenaAbilityActivationGroup::Exclusive_Replaceable:
+		case EArenaAbilityActivationGroup::Exclusive_Blocking:
+			bBlocked = ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::Exclusive_Blocking)] > 0;
+			break;
+
+		default:
+			checkf(false, TEXT("IsActivationGroupBlocked: Invalid ActivationGroup [%d]\n"), static_cast<uint8>(Group));
+			break;
+	}
+
+	return bBlocked;
+}
+
+void UArenaAbilitySystemComponent::AddAbilityToActivationGroup(EArenaAbilityActivationGroup Group,
+	UArenaGameplayAbility* ArenaAbility)
+{
+	check(ArenaAbility);
+	check(ActivationGroupCounts[static_cast<uint8>(Group)] < INT32_MAX);
+
+	ActivationGroupCounts[static_cast<uint8>(Group)]++;
+
+	constexpr bool bReplicateCancelAbility = false;
+	switch (Group)
+	{
+		case EArenaAbilityActivationGroup::Independent:
+			// Independent abilities do not cancel any other abilities.
+			break;
+
+		case EArenaAbilityActivationGroup::Exclusive_Replaceable:
+		case EArenaAbilityActivationGroup::Exclusive_Blocking:
+			CancelActivationGroupAbilities(EArenaAbilityActivationGroup::Exclusive_Replaceable, ArenaAbility, bReplicateCancelAbility);
+			break;
+
+		default:
+			checkf(false, TEXT("AddAbilityToActivationGroup: Invalid ActivationGroup [%d]\n"), static_cast<uint8>(Group));
+			break;
+	}
+
+	const int32 ExclusiveCount = ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::Exclusive_Blocking)] + ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::Exclusive_Replaceable)];
+	if (!ensure(ExclusiveCount <= 1))
+	{
+		UE_LOG(LogTemp, Error, TEXT("AddAbilityToActivationGroup: Multiple exclusive abilities are running."));
+	}
+}
+
+void UArenaAbilitySystemComponent::RemoveAbilityFromActivationGroup(EArenaAbilityActivationGroup Group,
+                                                                    const UArenaGameplayAbility* ArenaAbility)
+{
+	check(ArenaAbility);
+	check(ActivationGroupCounts[static_cast<uint8>(Group)] > 0);
+
+	ActivationGroupCounts[static_cast<uint8>(Group)]--;
+}
+
+void UArenaAbilitySystemComponent::CancelActivationGroupAbilities(EArenaAbilityActivationGroup Group,
+	UArenaGameplayAbility* IgnoreArenaAbility, bool bReplicateCancelAbility)
+{
+	auto ShouldCancelFunc = [this, Group, IgnoreArenaAbility](const UArenaGameplayAbility* ArenaAbility, FGameplayAbilitySpecHandle Handle)
+	{
+		return ((ArenaAbility != IgnoreArenaAbility) && (ArenaAbility->GetActivationGroup() == Group));
+	};
+
+	CancelAbilitiesByFunc(ShouldCancelFunc, bReplicateCancelAbility);
 }

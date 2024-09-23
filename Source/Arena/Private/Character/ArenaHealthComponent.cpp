@@ -241,6 +241,6 @@ void UArenaHealthComponent::OnRep_DeathState(EArenaDeathState OldDeathState)
 		}
 	}
 
-	ensureMsgf((DeathState == NewDeathState), TEXT("LyraHealthComponent: Death transition failed [%d] -> [%d] for owner [%s]."), (uint8)OldDeathState, (uint8)NewDeathState, *GetNameSafe(GetOwner()));
+	ensureMsgf((DeathState == NewDeathState), TEXT("ArenaHealthComponent: Death transition failed [%d] -> [%d] for owner [%s]."), (uint8)OldDeathState, (uint8)NewDeathState, *GetNameSafe(GetOwner()));
 }
 

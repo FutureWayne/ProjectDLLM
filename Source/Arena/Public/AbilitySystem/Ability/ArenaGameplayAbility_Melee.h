@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/ArenaGameplayAbility.h"
-#include "ArenaMeleeAbility.generated.h"
+#include "ArenaGameplayAbility_Melee.generated.h"
 
 /**
  * 

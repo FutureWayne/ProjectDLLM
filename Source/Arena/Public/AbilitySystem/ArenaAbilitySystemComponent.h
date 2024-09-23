@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "ArenaGameplayAbility.h"
 #include "ArenaAbilitySystemComponent.generated.h"
 
 /**
@@ -22,6 +23,14 @@ public:
 
 	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
 
+	typedef TFunctionRef<bool(const UArenaGameplayAbility* ArenaAbility, FGameplayAbilitySpecHandle Handle)> TShouldCancelAbilityFunc;
+	void CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc, bool bReplicateCancelAbility);
+
+	bool IsActivationGroupBlocked(EArenaAbilityActivationGroup Group) const;
+	void AddAbilityToActivationGroup(EArenaAbilityActivationGroup Group, UArenaGameplayAbility* ArenaAbility);
+	void RemoveAbilityFromActivationGroup(EArenaAbilityActivationGroup Group, const UArenaGameplayAbility* ArenaAbility);
+	void CancelActivationGroupAbilities(EArenaAbilityActivationGroup Group, UArenaGameplayAbility* IgnoreArenaAbility, bool bReplicateCancelAbility);
+
 protected:
 	
 	// Handles to abilities that had their input pressed this frame.
@@ -32,4 +41,7 @@ protected:
 
 	// Handles to abilities that have their input held.
 	TArray<FGameplayAbilitySpecHandle> InputHeldSpecHandles;
+	
+	// Number of abilities running in each activation group.
+	int32 ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::MAX)];
 };

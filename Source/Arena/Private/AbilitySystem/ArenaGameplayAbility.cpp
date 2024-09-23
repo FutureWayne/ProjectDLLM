@@ -3,9 +3,29 @@
 
 #include "AbilitySystem/ArenaGameplayAbility.h"
 
+#include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Character/ArenaCharacterBase.h"
 
+#define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				    \
+{																																						    \
+	if (!ensure(IsInstantiated()))																														    \
+	{																																					    \
+		UE_LOG(LogTemp, Error, TEXT("%s: " #FunctionName " cannot be called on a non-instanced ability. Check the instancing policy."), *GetPathName());	\
+		return ReturnValue;																																    \
+	}																																					    \
+}
+
+UArenaGameplayAbility::UArenaGameplayAbility(const FObjectInitializer& ObjectInitializer)
+{
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateNo;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+	NetSecurityPolicy = EGameplayAbilityNetSecurityPolicy::ClientOrServer;
+
+	ActivationPolicy = EArenaAbilityActivationPolicy::OnInputTriggered;
+	ActivationGroup = EArenaAbilityActivationGroup::Independent;
+}
 
 AController* UArenaGameplayAbility::GetControllerFromActorInfo() const
 {
@@ -45,4 +65,94 @@ AArenaCharacterBase* UArenaGameplayAbility::GetArenaCharacterFromActorInfo() con
 UArenaAbilitySystemComponent* UArenaGameplayAbility::GetArenaAbilitySystemComponentFromActorInfo() const
 {
 	return (CurrentActorInfo ? Cast<UArenaAbilitySystemComponent>(CurrentActorInfo->AbilitySystemComponent.Get()) : nullptr);
+}
+
+bool UArenaGameplayAbility::CanChangeActivationGroup(EArenaAbilityActivationGroup NewGroup) const
+{
+	if (!IsInstantiated() || !IsActive())
+	{
+		return false;
+	}
+
+	if (ActivationGroup == NewGroup)
+	{
+		return false;
+	}
+
+	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponentFromActorInfo();
+	check(ArenaASC);
+
+	if ((ActivationGroup != EArenaAbilityActivationGroup::Exclusive_Blocking) && ArenaASC->IsActivationGroupBlocked(ActivationGroup))
+	{
+		// This ability can't change groups if it's blocked (unless it is the one doing the blocking).
+		return false;
+	}
+
+	if ((NewGroup == EArenaAbilityActivationGroup::Exclusive_Replaceable) && !CanBeCanceled())
+	{
+		// This ability can't become replaceable if it can't be canceled.
+		return false;
+	}
+
+	return true;
+}
+
+bool UArenaGameplayAbility::ChangeActivationGroup(EArenaAbilityActivationGroup NewGroup)
+{
+	ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(ChangeActivationGroup, false);
+
+	if (!CanChangeActivationGroup(NewGroup))
+	{
+		return false;
+	}
+
+	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponentFromActorInfo();
+	check(ArenaASC);
+
+	ArenaASC->RemoveAbilityFromActivationGroup(ActivationGroup, this);
+	ArenaASC->AddAbilityToActivationGroup(NewGroup, this);
+
+	ActivationGroup = NewGroup;
+
+	return true;
+}
+
+bool UArenaGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags,
+	const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!ActorInfo || !ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		return false;
+	}
+
+	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
+	{
+		return false;
+	}
+
+	UArenaAbilitySystemComponent* ArenaASC = Cast<UArenaAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get());
+	check(ArenaASC);
+	if (ArenaASC->IsActivationGroupBlocked(ActivationGroup))
+	{
+		if (OptionalRelevantTags)
+		{
+			OptionalRelevantTags->AddTag(ArenaGameplayTags::Ability_ActivateFail_ActivationGroup);
+		}
+		return false;
+	}
+
+	return true;
+}
+
+void UArenaGameplayAbility::SetCanBeCanceled(bool bCanBeCanceled)
+{
+	// The ability can not block canceling if it's replaceable.
+	if (!bCanBeCanceled && (ActivationGroup == EArenaAbilityActivationGroup::Exclusive_Replaceable))
+	{
+		UE_LOG(LogTemp, Error, TEXT("SetCanBeCanceled: Ability [%s] can not block canceling because its activation group is replaceable."), *GetName());
+		return;
+	}
+
+	Super::SetCanBeCanceled(bCanBeCanceled);
 }
