@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/ArenaGameplayAbility.h"
-#include "ArenaMeleeAbility.generated.h"
+#include "ArenaGameplayAbility_Melee.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class ARENA_API UArenaMeleeAbility : public UArenaGameplayAbility
+UCLASS(Abstract)
+class ARENA_API UArenaGameplayAbility_Melee : public UArenaGameplayAbility
 {
 	GENERATED_BODY()
 	

@@ -38,8 +38,12 @@ void AArenaCharacterBase::BeginPlay()
 
 void AArenaCharacterBase::AddCharacterAbilities() const
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
-
 	ArenaASC->AddCharacterAbilities(StartupAbilities);
 }
 

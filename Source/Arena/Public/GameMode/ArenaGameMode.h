@@ -13,5 +13,10 @@ UCLASS()
 class ARENA_API AArenaGameMode : public AGameMode
 {
 	GENERATED_BODY()
-	
+
+public:
+	AArenaGameMode(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	UFUNCTION(BlueprintCallable)
+	void RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset = false);
 };

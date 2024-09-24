@@ -58,7 +58,7 @@ void UArenaHealthComponent::InitializeWithAbilitySystem(UArenaAbilitySystemCompo
 	HealthSet->OnMaxHealthChanged.AddUObject(this, &UArenaHealthComponent::HandleMaxHealthChanged);
 	HealthSet->OnOutOfHealth.AddUObject(this, &UArenaHealthComponent::HandleOutOfHealth);
 
-	AbilitySystemComponent->SetNumericAttributeBase(UArenaHealthSet::GetHealthAttribute(), HealthSet->GetHealth());
+	AbilitySystemComponent->SetNumericAttributeBase(UArenaHealthSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
 
 	OnHealthChanged.Broadcast(this, HealthSet->GetHealth(), HealthSet->GetHealth(), nullptr);
 	OnMaxHealthChanged.Broadcast(this, HealthSet->GetMaxHealth(), HealthSet->GetMaxHealth(), nullptr);
@@ -109,13 +109,11 @@ void UArenaHealthComponent::StartDeath()
 
 	DeathState = EArenaDeathState::DeathStarted;
 
-	// TODO: Clear dying tag
-	/*
+	// Apply dying tag
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dying, 1);
 	}
-	*/
 
 	AActor* Owner = GetOwner();
 	check(Owner);
@@ -134,13 +132,11 @@ void UArenaHealthComponent::FinishDeath()
 
 	DeathState = EArenaDeathState::DeathFinished;
 
-	// TODO: Clear dying tag
-	/*
+	// Clear dying tag
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dead, 1);
 	}
-	*/
 
 	AActor* Owner = GetOwner();
 	check(Owner);
@@ -162,8 +158,17 @@ void UArenaHealthComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
+void UArenaHealthComponent::ClearGameplayTags()
+{
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dying, 0);
+		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dead, 0);
+	}
+}
+
 void UArenaHealthComponent::HandleHealthChanged(AActor* DamageInstigator, AActor* DamageCauser,
-	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+                                                const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
 {
 	OnHealthChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
 }
@@ -241,6 +246,6 @@ void UArenaHealthComponent::OnRep_DeathState(EArenaDeathState OldDeathState)
 		}
 	}
 
-	ensureMsgf((DeathState == NewDeathState), TEXT("LyraHealthComponent: Death transition failed [%d] -> [%d] for owner [%s]."), (uint8)OldDeathState, (uint8)NewDeathState, *GetNameSafe(GetOwner()));
+	ensureMsgf((DeathState == NewDeathState), TEXT("ArenaHealthComponent: Death transition failed [%d] -> [%d] for owner [%s]."), (uint8)OldDeathState, (uint8)NewDeathState, *GetNameSafe(GetOwner()));
 }
 

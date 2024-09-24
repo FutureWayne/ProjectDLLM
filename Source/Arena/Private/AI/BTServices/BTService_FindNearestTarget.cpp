@@ -31,7 +31,13 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 		}
 
 		// Check if the other actor is in the defense team
-		AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(ArenaActor->GetController()->PlayerState);
+		AController* Controller = ArenaActor->GetController();
+		if (!Controller)
+		{
+			continue;
+		}
+		
+		AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(Controller->PlayerState);
 		if (ArenaPlayerState && ArenaPlayerState->GetTeam() != ETeam::ET_Defense)
 		{
 			continue;

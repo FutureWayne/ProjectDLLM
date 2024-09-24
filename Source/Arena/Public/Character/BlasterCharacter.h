@@ -138,7 +138,7 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, BlueprintCallable, Reliable)
 	void ServerDropButtonPressed();
 
 	UFUNCTION()
