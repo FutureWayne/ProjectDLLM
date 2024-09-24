@@ -109,7 +109,7 @@ void UArenaHealthComponent::StartDeath()
 
 	DeathState = EArenaDeathState::DeathStarted;
 
-	// Clear dying tag
+	// Apply dying tag
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(ArenaGameplayTags::Status_Death_Dying, 1);

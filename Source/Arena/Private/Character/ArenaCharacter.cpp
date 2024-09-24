@@ -6,11 +6,15 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/ArenaHealthComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Player/ArenaPlayerState.h"
 #include "UI/HUD/ArenaHUD.h"
 
 AArenaCharacter::AArenaCharacter()
 {
+	HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
+	HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
 }
 
 void AArenaCharacter::PossessedBy(AController* NewController)
@@ -31,6 +35,45 @@ void AArenaCharacter::OnRep_PlayerState()
 	AddCharacterAbilities();
 }
 
+void AArenaCharacter::OnDeathStarted(AActor* OwningActor)
+{
+	DisableMovementAndCollision();
+}
+
+void AArenaCharacter::OnDeathFinished(AActor* OwningActor)
+{
+	DestroyDueToDeath();
+}
+
+void AArenaCharacter::DisableMovementAndCollision()
+{
+	if (Controller)
+	{
+		Controller->SetIgnoreMoveInput(true);
+	}
+
+	UCapsuleComponent* CapsuleComp = GetCapsuleComponent();
+	check(CapsuleComp);
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CapsuleComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	check(MovementComp);
+	MovementComp->StopMovementImmediately();
+	MovementComp->DisableMovement();
+}
+
+void AArenaCharacter::DestroyDueToDeath()
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(0.1f);
+	}
+
+	SetActorHiddenInGame(true);
+}
+
 void AArenaCharacter::OnPlayerStateInitialized()
 {
 	AArenaPlayerState* PS = GetPlayerState<AArenaPlayerState>();
@@ -43,7 +86,10 @@ void AArenaCharacter::OnPlayerStateInitialized()
 void AArenaCharacter::InitAbilityActorInfo()
 {
 	AArenaPlayerState* PS = GetPlayerState<AArenaPlayerState>();
-	check(PS);
+	if (PS == nullptr)
+	{
+		return;
+	}
 
 	// PlayerState logically owns the AbilitySystemComponent and AttributeSet while the Character is the physical actor
 	PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);

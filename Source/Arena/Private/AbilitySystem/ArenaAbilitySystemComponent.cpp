@@ -5,6 +5,15 @@
 
 #include "AbilitySystem/ArenaGameplayAbility.h"
 
+UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
+{
+	InputPressedSpecHandles.Reset();
+	InputReleasedSpecHandles.Reset();
+	InputHeldSpecHandles.Reset();
+
+	FMemory::Memset(ActivationGroupCounts, 0, sizeof(ActivationGroupCounts));
+}
+
 void UArenaAbilitySystemComponent::AddCharacterAbilities(const TArray<TSubclassOf<UGameplayAbility>>& StartupAbilities)
 {
 	for (TSubclassOf<UGameplayAbility> AbilityClass : StartupAbilities)
@@ -270,4 +279,27 @@ void UArenaAbilitySystemComponent::CancelActivationGroupAbilities(EArenaAbilityA
 	};
 
 	CancelAbilitiesByFunc(ShouldCancelFunc, bReplicateCancelAbility);
+}
+
+void UArenaAbilitySystemComponent::NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle,
+	UGameplayAbility* Ability)
+{
+	Super::NotifyAbilityActivated(Handle, Ability);
+
+	if (UArenaGameplayAbility* ArenaAbility = Cast<UArenaGameplayAbility>(Ability))
+	{
+		AddAbilityToActivationGroup(ArenaAbility->GetActivationGroup(), ArenaAbility);
+	}
+}
+
+
+void UArenaAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability,
+	bool bWasCancelled)
+{
+	Super::NotifyAbilityEnded(Handle, Ability, bWasCancelled);
+
+	if (UArenaGameplayAbility* ArenaAbility = Cast<UArenaGameplayAbility>(Ability))
+	{
+		RemoveAbilityFromActivationGroup(ArenaAbility->GetActivationGroup(), ArenaAbility);
+	}
 }

@@ -16,6 +16,8 @@ class ARENA_API UArenaAbilitySystemComponent : public UAbilitySystemComponent
 	GENERATED_BODY()
 
 public:
+	UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	
 	void AddCharacterAbilities(const TArray<TSubclassOf<class UGameplayAbility>>& StartupAbilities);
 	
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
@@ -31,6 +33,10 @@ public:
 	void RemoveAbilityFromActivationGroup(EArenaAbilityActivationGroup Group, const UArenaGameplayAbility* ArenaAbility);
 	void CancelActivationGroupAbilities(EArenaAbilityActivationGroup Group, UArenaGameplayAbility* IgnoreArenaAbility, bool bReplicateCancelAbility);
 
+protected:
+	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability) override;
+	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, bool bWasCancelled) override;
+	
 protected:
 	
 	// Handles to abilities that had their input pressed this frame.
