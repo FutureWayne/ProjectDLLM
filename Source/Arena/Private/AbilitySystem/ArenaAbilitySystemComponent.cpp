@@ -255,7 +255,7 @@ void UArenaAbilitySystemComponent::AddAbilityToActivationGroup(EArenaAbilityActi
 	}
 
 	const int32 ExclusiveCount = ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::Exclusive_Blocking)] + ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::Exclusive_Replaceable)];
-	if (!ensure(ExclusiveCount <= 1))
+	if (ExclusiveCount > 1)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AddAbilityToActivationGroup: Multiple exclusive abilities are running."));
 	}

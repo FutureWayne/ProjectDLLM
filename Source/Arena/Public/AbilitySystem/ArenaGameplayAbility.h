@@ -76,11 +76,26 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Arena|Ability", Meta = (ExpandBoolAsExecs = "ReturnValue"))
 	bool ChangeActivationGroup(EArenaAbilityActivationGroup NewGroup);
 
+	void TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) const;
+
 protected:
 	//~UGameplayAbility interface
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const override;
 	virtual void SetCanBeCanceled(bool bCanBeCanceled) override;
+	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 	//~End of UGameplayAbility interface
+
+	/** Called when this ability is granted to the ability system component. */
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnAbilityAdded")
+	void K2_OnAbilityAdded();
+
+	/** Called when this ability is removed from the ability system component. */
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnAbilityRemoved")
+	void K2_OnAbilityRemoved();
+
+	/** Called when the ability system is initialized with a pawn avatar. */
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnPawnAvatarSet")
+	void K2_OnPawnAvatarSet();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")

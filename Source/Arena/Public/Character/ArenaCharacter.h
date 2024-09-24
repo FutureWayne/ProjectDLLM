@@ -34,6 +34,10 @@ protected:
 	void DisableMovementAndCollision();
 	void DestroyDueToDeath();
 
+	// Called when the death sequence for the character has completed
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
+	void K2_OnDeathFinished();
+
 protected:
 	TObjectPtr<AArenaPlayerState> ArenaPlayerState;
 

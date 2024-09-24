@@ -58,7 +58,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Arena|Health")
 	EArenaDeathState GetDeathState() const { return DeathState; }
 
-	UFUNCTION(BlueprintCallable, Category = "Arena|Health")
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Arena|Health", Meta = (ExpandBoolAsExecs = "ReturnValue"))
 	bool IsDeadOrDying() const { return (DeathState > EArenaDeathState::NotDead); }
 
 	// Begins the death sequence for the owner.

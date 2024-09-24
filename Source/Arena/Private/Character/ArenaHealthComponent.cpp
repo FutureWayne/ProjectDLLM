@@ -58,7 +58,7 @@ void UArenaHealthComponent::InitializeWithAbilitySystem(UArenaAbilitySystemCompo
 	HealthSet->OnMaxHealthChanged.AddUObject(this, &UArenaHealthComponent::HandleMaxHealthChanged);
 	HealthSet->OnOutOfHealth.AddUObject(this, &UArenaHealthComponent::HandleOutOfHealth);
 
-	AbilitySystemComponent->SetNumericAttributeBase(UArenaHealthSet::GetHealthAttribute(), HealthSet->GetHealth());
+	AbilitySystemComponent->SetNumericAttributeBase(UArenaHealthSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
 
 	OnHealthChanged.Broadcast(this, HealthSet->GetHealth(), HealthSet->GetHealth(), nullptr);
 	OnMaxHealthChanged.Broadcast(this, HealthSet->GetMaxHealth(), HealthSet->GetMaxHealth(), nullptr);

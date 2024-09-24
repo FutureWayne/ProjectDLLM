@@ -23,7 +23,7 @@ void AArenaCharacter::PossessedBy(AController* NewController)
 
 	// Init ability actor info for the server
 	InitAbilityActorInfo();
-	AddCharacterAbilities();
+	
 }
 
 void AArenaCharacter::OnRep_PlayerState()
@@ -32,7 +32,6 @@ void AArenaCharacter::OnRep_PlayerState()
 
 	// Init ability actor info for the client  
 	InitAbilityActorInfo();
-	AddCharacterAbilities();
 }
 
 void AArenaCharacter::OnDeathStarted(AActor* OwningActor)
@@ -65,6 +64,8 @@ void AArenaCharacter::DisableMovementAndCollision()
 
 void AArenaCharacter::DestroyDueToDeath()
 {
+	K2_OnDeathFinished();
+	
 	if (GetLocalRole() == ROLE_Authority)
 	{
 		DetachFromControllerPendingDestroy();
@@ -106,4 +107,6 @@ void AArenaCharacter::InitAbilityActorInfo()
 
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
+
+	AddCharacterAbilities();
 }
