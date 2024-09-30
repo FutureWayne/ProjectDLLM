@@ -34,6 +34,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AIArenaMinion")
 	void SetTowerTarget(AActor* Target);
+
 protected:
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = UI, meta = (AllowPrivateAccess = "true"))
+	class UWidgetComponent* OverheadWidget;
 };
