@@ -13,6 +13,11 @@
 #include "UI/HUD/ArenaHUD.h"
 #include "UI/Widget/AgentChooseWidget.h"
 #include "UI/Widget/CharacterOverlay.h"
+#include "UI/Widget/CooldownWidget.h"
+
+AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
+{
+}
 
 void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
 {
@@ -30,13 +35,6 @@ void AArenaPlayerController::AbilityInputTagReleased(FGameplayTag InputTag)
 	}
 }
 
-void AArenaPlayerController::AbilityInputTagHeld(FGameplayTag InputTag)
-{
-}
-
-AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
-{
-}
 
 AArenaPlayerState* AArenaPlayerController::GetArenaPlayerState() const
 {
@@ -47,6 +45,77 @@ UArenaAbilitySystemComponent* AArenaPlayerController::GetArenaAbilitySystemCompo
 {
 	const AArenaPlayerState* ArenaPS = GetArenaPlayerState();
 	return ArenaPS ? ArenaPS->GetArenaAbilitySystemComponent() : nullptr;
+}
+
+void AArenaPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ArenaHUD = Cast<AArenaHUD>(GetHUD());
+	ServerCheckMatchState();
+
+	check(DefaultMappingContext);
+
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+	{
+		Subsystem->AddMappingContext(DefaultMappingContext, 0);
+	}
+}
+
+void AArenaPlayerController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	SetHUDTime();
+	CheckTimeSync(DeltaSeconds);
+}
+
+void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AArenaPlayerController, MatchState);
+}
+
+void AArenaPlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)
+{
+	Super::PreProcessInput(DeltaTime, bGamePaused);
+}
+
+void AArenaPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
+{
+	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+	{
+		ArenaASC->ProcessAbilityInput(DeltaTime, bGamePaused);
+	}
+	
+	Super::PostProcessInput(DeltaTime, bGamePaused);
+}
+
+void AArenaPlayerController::ReceivedPlayer()
+{
+	Super::ReceivedPlayer();
+
+	// Sync with server time
+	if (IsLocalController())
+	{
+		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
+	}
+}
+
+void AArenaPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+}
+
+void AArenaPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	UArenaInputComponent* ArenaInputComponent = CastChecked<UArenaInputComponent>(InputComponent);
+	check(ArenaInputComponent);
+	
+	ArenaInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased);
 }
 
 void AArenaPlayerController::ServerRequestServerTime_Implementation(float TimeOfClientRequest)
@@ -104,95 +173,35 @@ void AArenaPlayerController::SetHUDAgentChooseCountdown(float CountdownTime)
 	}
 }
 
+void AArenaPlayerController::SetHUDCooldownCountdown(float CountdownTime)
+{
+	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
+	if (ArenaHUD && ArenaHUD->CooldownWidget && ArenaHUD->CooldownWidget->CooldownTimeCountdown)
+	{
+		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
+
+		FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+		ArenaHUD->CooldownWidget->CooldownTimeCountdown->SetText(FText::FromString(TimeString));
+	}
+}
+
 void AArenaPlayerController::OnMatchStateSet(const FName NewMatchState)
 {
-	if (HasAuthority())
-	{
-		MatchState = NewMatchState;
-	}
+	MatchState = NewMatchState;
 	
 	if (NewMatchState == MatchState::WaitingToStart)
 	{
-		SetIgnoreMoveInput(true);
-		SetIgnoreLookInput(true);
+		HandleMatchWaitingToStart();
 	}
 	else if (NewMatchState == MatchState::InProgress)
 	{
 		HandleMatchStart();
-		SetIgnoreMoveInput(false);
-		SetIgnoreLookInput(false);
 	}
-}
-
-void AArenaPlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)
-{
-	Super::PreProcessInput(DeltaTime, bGamePaused);
-}
-
-void AArenaPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
-{
-	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+	else if (NewMatchState == MatchState::Cooldown)
 	{
-		ArenaASC->ProcessAbilityInput(DeltaTime, bGamePaused);
+		HandleCooldown();
 	}
-	
-	Super::PostProcessInput(DeltaTime, bGamePaused);
-}
-
-void AArenaPlayerController::ReceivedPlayer()
-{
-	Super::ReceivedPlayer();
-
-	// Sync with server time
-	if (IsLocalController())
-	{
-		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
-	}
-}
-
-void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AArenaPlayerController, MatchState);
-}
-
-void AArenaPlayerController::BeginPlay()
-{
-	Super::BeginPlay();
-
-	ArenaHUD = Cast<AArenaHUD>(GetHUD());
-	ServerCheckMatchState();
-
-	check(DefaultMappingContext);
-
-	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
-	{
-		Subsystem->AddMappingContext(DefaultMappingContext, 0);
-	}
-}
-
-void AArenaPlayerController::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	SetHUDTime();
-	CheckTimeSync(DeltaSeconds);
-}
-
-void AArenaPlayerController::PlayerTick(float DeltaTime)
-{
-	Super::PlayerTick(DeltaTime);
-}
-
-void AArenaPlayerController::SetupInputComponent()
-{
-	Super::SetupInputComponent();
-
-	UArenaInputComponent* ArenaInputComponent = CastChecked<UArenaInputComponent>(InputComponent);
-	check(ArenaInputComponent);
-	
-	ArenaInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased);
 }
 
 void AArenaPlayerController::CheckTimeSync(float DeltaTime)
@@ -217,6 +226,10 @@ void AArenaPlayerController::SetHUDTime()
 	{
 		TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
 	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
+	}
 	
 	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
 	if (CountdownInt != SecondsLeft)
@@ -229,6 +242,10 @@ void AArenaPlayerController::SetHUDTime()
 		{
 			SetHUDMatchCountdown(TimeLeft);
 		}
+		else if (MatchState == MatchState::Cooldown)
+		{
+			SetHUDCooldownCountdown(TimeLeft);
+		}
 	}
 
 	CountdownInt = SecondsLeft;
@@ -237,12 +254,31 @@ void AArenaPlayerController::SetHUDTime()
 
 void AArenaPlayerController::HandleMatchWaitingToStart()
 {
+	if (HasAuthority())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Server HandleMatchWaitingToStart"));
+	}
+
+	if (IsLocalPlayerController())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Client HandleMatchWaitingToStart"));
+	}
+	
+	
 	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
 
 	if (ArenaHUD)
 	{
+		if (ArenaHUD->CooldownWidget)
+		{
+			ArenaHUD->CooldownWidget->RemoveFromParent();
+		}
+		
 		ArenaHUD->AddAgentChooseWidget();
 	}
+	
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
 }
 
 void AArenaPlayerController::HandleMatchStart()
@@ -250,7 +286,27 @@ void AArenaPlayerController::HandleMatchStart()
 	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
 	if (ArenaHUD)
 	{
-		ArenaHUD->AgentChooseWidget->SetVisibility(ESlateVisibility::Hidden);
+		if (ArenaHUD->AgentChooseWidget)
+		{
+			ArenaHUD->AgentChooseWidget->RemoveFromParent();
+		}
+	}
+
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+}
+
+void AArenaPlayerController::HandleCooldown()
+{
+	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
+	if (ArenaHUD)
+	{
+		if (ArenaHUD->OverlayWidget)
+		{
+			ArenaHUD->OverlayWidget->RemoveFromParent();
+		}
+		
+		ArenaHUD->AddCooldownWidget();
 	}
 }
 
@@ -261,30 +317,24 @@ void AArenaPlayerController::ServerCheckMatchState_Implementation()
 	{
 		AgentChooseDuration = TeamsGameMode->AgentChoosingDuration;
 		MatchDuration = TeamsGameMode->MatchDuration;
+		CooldownDuration = TeamsGameMode->CooldownDuration;
 		LevelStartingTime = TeamsGameMode->LevelStartingTime;
+		
 		MatchState = TeamsGameMode->GetMatchState();
-		ClientJoinMidGame(MatchState, AgentChooseDuration, MatchDuration, LevelStartingTime);
-
-		ArenaHUD = Cast<AArenaHUD>(GetHUD());
-		if (ArenaHUD && MatchState == MatchState::WaitingToStart)
-		{
-			ArenaHUD->AddAgentChooseWidget();
-		}
+		ClientJoinMidGame(MatchState, AgentChooseDuration, MatchDuration, CooldownDuration, LevelStartingTime);
 	}
 }
 
-void AArenaPlayerController::ClientJoinMidGame_Implementation(FName StateOfMatch, float AgentChoose, float Match, float LevelStart)
+void AArenaPlayerController::ClientJoinMidGame_Implementation(FName StateOfMatch, float AgentChoose, float Match, float Cooldown, float LevelStart)
 {
 	AgentChooseDuration = AgentChoose;
 	MatchDuration = Match;
+	CooldownDuration = Cooldown;
 	LevelStartingTime = LevelStart;
 	MatchState = StateOfMatch;
-	OnMatchStateSet(StateOfMatch);
-
-	ArenaHUD = Cast<AArenaHUD>(GetHUD());
-	if (ArenaHUD && MatchState == MatchState::WaitingToStart)
+	if (!HasAuthority())
 	{
-		ArenaHUD->AddAgentChooseWidget();
+		OnMatchStateSet(StateOfMatch);
 	}
 }
 
@@ -292,13 +342,14 @@ void AArenaPlayerController::OnRep_MatchState()
 {
 	if (MatchState == MatchState::WaitingToStart)
 	{
-		SetIgnoreMoveInput(true);
-		SetIgnoreLookInput(true);
+		HandleMatchWaitingToStart();
 	}
 	else if (MatchState == MatchState::InProgress)
 	{
 		HandleMatchStart();
-		SetIgnoreMoveInput(false);
-		SetIgnoreLookInput(false);
+	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		HandleCooldown();
 	}
 }

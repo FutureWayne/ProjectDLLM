@@ -6,6 +6,11 @@
 #include "GameMode/ArenaGameMode.h"
 #include "TeamsGameMode.generated.h"
 
+namespace MatchState
+{
+	extern ARENA_API const FName Cooldown; // Display winner and cooldown timer
+}
+
 /**
  * 
  */
@@ -20,11 +25,14 @@ public:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameMode")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
 	float AgentChoosingDuration = 10.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GameMode")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
 	float MatchDuration = 120.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
+	float CooldownDuration = 10.0f;
 
 	float LevelStartingTime = 0.0f;
 

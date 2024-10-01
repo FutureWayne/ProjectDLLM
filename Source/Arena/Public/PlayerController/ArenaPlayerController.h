@@ -21,18 +21,34 @@ class ARENA_API AArenaPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	AArenaPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	/*
+	 * Ability Input
+	 */ 
 	void AbilityInputTagPressed(FGameplayTag InputTag);
 	void AbilityInputTagReleased(FGameplayTag InputTag);
-	void AbilityInputTagHeld(FGameplayTag InputTag);
-	UArenaInputConfig* GetInputConfig() { return InputConfig; };
-
-	AArenaPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerController")
 	AArenaPlayerState* GetArenaPlayerState() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerController")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const;
+
+	void OnMatchStateSet(FName NewMatchState);
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	// ~APlayerController interface
+	virtual void PreProcessInput(const float DeltaTime, const bool bGamePaused) override;
+	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
+	virtual void ReceivedPlayer() override;
+	virtual void PlayerTick(float DeltaTime) override;
+	virtual void SetupInputComponent() override;
+	// ~APlayerController interface
 
 	/**
 	 * Sync Time between Server and Client
@@ -48,24 +64,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Time Sync")
 	float GetServerTime();
+
+	/*
+	 * Match State Countdown
+	 */
 	
 	void SetHUDMatchCountdown(float CountdownTime);
 	void SetHUDAgentChooseCountdown(float CountdownTime);
-
-	void OnMatchStateSet(FName NewMatchState);
-
-protected:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	// ~APlayerController interface
-	virtual void PreProcessInput(const float DeltaTime, const bool bGamePaused) override;
-	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
-	virtual void ReceivedPlayer() override;
-	virtual void SetupInputComponent() override;
-	virtual void PlayerTick(float DeltaTime) override;
-	// ~APlayerController interface
+	void SetHUDCooldownCountdown(float CountdownTime);
 
 private:
 	UPROPERTY()
@@ -98,6 +104,7 @@ private:
 	float LevelStartingTime = 0.f;
 	float AgentChooseDuration = 0.f;
 	float MatchDuration = 0.f;
+	float CooldownDuration = 0.f;
 	
 	int32 CountdownInt = 0;
 
@@ -114,13 +121,17 @@ private:
 
 	void HandleMatchWaitingToStart();
 	void HandleMatchStart();
+	void HandleCooldown();
 
 	UFUNCTION(Server, Reliable)
 	void ServerCheckMatchState();
 
 	UFUNCTION(Client, Reliable)
-	void ClientJoinMidGame(FName StateOfMatch, float AgentChoose, float Match, float LevelStart);
+	void ClientJoinMidGame(FName StateOfMatch, float AgentChoose, float Match, float Cooldown, float LevelStart);
 
 	UFUNCTION()
 	void OnRep_MatchState();
+
+public:
+	FORCEINLINE UArenaInputConfig* GetInputConfig() { return InputConfig; };
 };

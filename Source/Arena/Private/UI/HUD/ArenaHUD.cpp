@@ -5,6 +5,7 @@
 
 #include "UI/Widget/AgentChooseWidget.h"
 #include "UI/Widget/CharacterOverlay.h"
+#include "UI/Widget/CooldownWidget.h"
 #include "UI/WidgetController/OverlayWidgetController.h"
 
 UOverlayWidgetController* AArenaHUD::GetOverlayWidgetController(const FWidgetControllerParams& InWidgetControllerParams)
@@ -26,8 +27,9 @@ void AArenaHUD::InitOverlay(APlayerController* PlayerController, APlayerState* P
 	
 	const FWidgetControllerParams WidgetControllerParams(PlayerController, PlayerState, AbilitySystemComponent, AttributeSet);
 	UOverlayWidgetController* WidgetController = GetOverlayWidgetController(WidgetControllerParams);
-	
-	OverlayWidget = CreateWidget<UCharacterOverlay>(GetWorld(), OverlayWidgetClass);
+
+	auto Player = PlayerController->GetPawn();
+	OverlayWidget = CreateWidget<UCharacterOverlay>(PlayerController, OverlayWidgetClass);
 	OverlayWidget->SetWidgetController(WidgetController);
 	WidgetController->BroadCastInitialValues();
 	WidgetController->BindCallbacksToDependencies();
@@ -39,6 +41,13 @@ void AArenaHUD::AddAgentChooseWidget()
 	checkf(AgentChooseWidgetClass, TEXT("AgentChooseWidgetClass is not set in %s"), *GetName());
 	AgentChooseWidget = CreateWidget<UAgentChooseWidget>(GetWorld(), AgentChooseWidgetClass);
 	AgentChooseWidget->AddToViewport();
+}
+
+void AArenaHUD::AddCooldownWidget()
+{
+	checkf(CooldownWidgetClass, TEXT("CooldownWidgetClass is not set in %s"), *GetName());
+	CooldownWidget = CreateWidget<UCooldownWidget>(GetWorld(), CooldownWidgetClass);
+	CooldownWidget->AddToViewport();
 }
 
 void AArenaHUD::BeginPlay()

@@ -8,9 +8,14 @@
 #include "Player/ArenaPlayerState.h"
 #include "PlayerController/ArenaPlayerController.h"
 
+namespace MatchState
+{
+	const FName Cooldown = FName(TEXT("Cooldown"));
+}
+
 ATeamsGameMode::ATeamsGameMode()
 {
-	bDelayedStart = true;
+	bDelayedStart = false;
 }
 
 void ATeamsGameMode::Tick(float DeltaSeconds)
@@ -25,6 +30,23 @@ void ATeamsGameMode::Tick(float DeltaSeconds)
 			StartMatch();
 		}
 	}
+	else if (MatchState == MatchState::InProgress)
+	{
+		CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.0f)
+		{
+			SetMatchState(MatchState::Cooldown);
+		}
+	}
+	else if (MatchState == MatchState::Cooldown)
+	{
+		CountdownTime = AgentChoosingDuration + MatchDuration + CooldownDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.0f)
+		{
+			RestartGame();
+		}
+	}
+	
 }
 
 void ATeamsGameMode::BeginPlay()
