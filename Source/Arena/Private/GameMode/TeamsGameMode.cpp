@@ -6,6 +6,33 @@
 #include "GameState/ArenaGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/ArenaPlayerState.h"
+#include "PlayerController/ArenaPlayerController.h"
+
+ATeamsGameMode::ATeamsGameMode()
+{
+	bDelayedStart = true;
+}
+
+void ATeamsGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		CountdownTime = AgentChoosingDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		if (CountdownTime <= 0.0f)
+		{
+			StartMatch();
+		}
+	}
+}
+
+void ATeamsGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	LevelStartingTime = GetWorld()->GetTimeSeconds();
+}
 
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -75,6 +102,19 @@ void ATeamsGameMode::HandleMatchHasStarted()
 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 				}
 			}
+		}
+	}
+}
+
+void ATeamsGameMode::OnMatchStateSet()
+{
+	Super::OnMatchStateSet();
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		if (AArenaPlayerController* ArenaPC = Cast<AArenaPlayerController>(*It))
+		{
+			ArenaPC->OnMatchStateSet(MatchState);
 		}
 	}
 }

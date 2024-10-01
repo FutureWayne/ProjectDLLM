@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "ArenaPlayerController.generated.h"
 
+class AArenaHUD;
 class UArenaInputConfig;
 class UInputMappingContext;
 class UArenaAbilitySystemComponent;
@@ -47,21 +48,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Time Sync")
 	float GetServerTime();
+	
+	void SetHUDMatchCountdown(float CountdownTime);
+	void SetHUDAgentChooseCountdown(float CountdownTime);
 
+	void OnMatchStateSet(FName NewMatchState);
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	// ~APlayerController interface
 	virtual void PreProcessInput(const float DeltaTime, const bool bGamePaused) override;
 	virtual void PostProcessInput(const float DeltaTime, const bool bGamePaused) override;
 	virtual void ReceivedPlayer() override;
-	// ~APlayerController interface
-
-protected:
-	virtual void BeginPlay() override;
-
-	virtual void Tick(float DeltaSeconds) override;
-
-	virtual void PlayerTick(float DeltaTime) override;
-
 	virtual void SetupInputComponent() override;
+	virtual void PlayerTick(float DeltaTime) override;
+	// ~APlayerController interface
 
 private:
 	UPROPERTY()
@@ -73,6 +77,8 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaInputConfig> InputConfig;
+
+	TObjectPtr<AArenaHUD> ArenaHUD;
 
 	/*
 	 * Server - Client Time Sync
@@ -86,6 +92,35 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Arena|Time Sync")
 	float TimeSyncFrequency = 5.f;
 
+	/*
+	 * Countdown
+	 */
+	float LevelStartingTime = 0.f;
+	float AgentChooseDuration = 0.f;
+	float MatchDuration = 0.f;
+	
+	int32 CountdownInt = 0;
+
+	/*
+	 * Match State
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_MatchState)
+	FName MatchState;
+
 private:
 	void CheckTimeSync(float DeltaTime);
+	
+	void SetHUDTime();
+
+	void HandleMatchWaitingToStart();
+	void HandleMatchStart();
+
+	UFUNCTION(Server, Reliable)
+	void ServerCheckMatchState();
+
+	UFUNCTION(Client, Reliable)
+	void ClientJoinMidGame(FName StateOfMatch, float AgentChoose, float Match, float LevelStart);
+
+	UFUNCTION()
+	void OnRep_MatchState();
 };

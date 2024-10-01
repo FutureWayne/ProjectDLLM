@@ -3,7 +3,8 @@
 
 #include "UI/HUD/ArenaHUD.h"
 
-#include "UI/Widget/ArenaUserWidget.h"
+#include "UI/Widget/AgentChooseWidget.h"
+#include "UI/Widget/CharacterOverlay.h"
 #include "UI/WidgetController/OverlayWidgetController.h"
 
 UOverlayWidgetController* AArenaHUD::GetOverlayWidgetController(const FWidgetControllerParams& InWidgetControllerParams)
@@ -26,11 +27,18 @@ void AArenaHUD::InitOverlay(APlayerController* PlayerController, APlayerState* P
 	const FWidgetControllerParams WidgetControllerParams(PlayerController, PlayerState, AbilitySystemComponent, AttributeSet);
 	UOverlayWidgetController* WidgetController = GetOverlayWidgetController(WidgetControllerParams);
 	
-	OverlayWidget = CreateWidget<UArenaUserWidget>(GetWorld(), OverlayWidgetClass);
+	OverlayWidget = CreateWidget<UCharacterOverlay>(GetWorld(), OverlayWidgetClass);
 	OverlayWidget->SetWidgetController(WidgetController);
 	WidgetController->BroadCastInitialValues();
 	WidgetController->BindCallbacksToDependencies();
 	OverlayWidget->AddToViewport();
+}
+
+void AArenaHUD::AddAgentChooseWidget()
+{
+	checkf(AgentChooseWidgetClass, TEXT("AgentChooseWidgetClass is not set in %s"), *GetName());
+	AgentChooseWidget = CreateWidget<UAgentChooseWidget>(GetWorld(), AgentChooseWidgetClass);
+	AgentChooseWidget->AddToViewport();
 }
 
 void AArenaHUD::BeginPlay()

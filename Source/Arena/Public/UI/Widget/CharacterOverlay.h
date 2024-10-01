@@ -16,4 +16,6 @@ class ARENA_API UCharacterOverlay : public UArenaUserWidget
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MatchCountdownText;
 };
