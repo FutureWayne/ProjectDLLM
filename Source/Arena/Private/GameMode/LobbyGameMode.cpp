@@ -12,6 +12,10 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 	// Print current player count
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Current Player Count: %d"), GameState.Get()->PlayerArray.Num()));
 
+	// Start the game after 30 seconds of delay
+	FTimerHandle TimerHandle;
+	GetWorldTimerManager().SetTimer(TimerHandle, this, &ALobbyGameMode::StartGame, 30.0f, false);
+	
 	if (GameState.Get()->PlayerArray.Num() >= 4)
 	{
 		StartGame();

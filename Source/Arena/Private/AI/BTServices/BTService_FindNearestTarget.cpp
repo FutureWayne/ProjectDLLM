@@ -8,6 +8,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include <AI/AIArenaMinionCharacter.h>
 #include "AbilitySystem/ArenaHealthSet.h"
+#include "Character/ArenaHealthComponent.h"
 
 void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
@@ -24,31 +25,21 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 	for (AActor* Actor : FoundActors)
 	{
 		AArenaCharacter* ArenaActor = Cast<AArenaCharacter>(Actor);
-		UArenaHealthSet* ActorHealthSet = ArenaActor->GetArenaHealthSet();
-		if (!ActorHealthSet)
-		{
-			continue;
-		}
 
-		if (ActorHealthSet->GetHealth() <= 0)
+		UArenaHealthComponent* ActorHealthComponent = UArenaHealthComponent::FindHealthComponent(Actor);
+		if (!ActorHealthComponent || ActorHealthComponent->IsDeadOrDying())
 		{
 			continue;
 		}
 		
 		// Check if the other actor is in the defense team
-		AController* Controller = ArenaActor->GetController();
-		if (!Controller)
+		const AController* Controller = ArenaActor->GetController();
+		if (!Controller || !Controller->PlayerState)
 		{
 			continue;
 		}
 
-		if (!Controller->PlayerState)
-		{
-			continue;
-		}
-		
-		AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(Controller->PlayerState);
-		if (ArenaPlayerState)
+		if (AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(Controller->PlayerState))
 		{
 			ETeam ArenaPlayerTeam = ArenaPlayerState->GetTeam();
 			if (ArenaPlayerTeam != ETeam::ET_Defense)

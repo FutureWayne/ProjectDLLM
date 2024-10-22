@@ -107,6 +107,6 @@ void AArenaCharacter::InitAbilityActorInfo()
 
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
-
+	
 	AddCharacterAbilities();
 }

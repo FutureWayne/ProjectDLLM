@@ -6,6 +6,7 @@
 #include <Character/BlasterCharacter.h>
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 
 AAIArenaMinionCharacter::AAIArenaMinionCharacter()
 {
@@ -19,6 +20,9 @@ AAIArenaMinionCharacter::AAIArenaMinionCharacter()
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
 		GetCharacterMovement()->RotationRate = FRotator(0.0f, 400.0f, 0.0f);
 	}
+
+	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
+	OverheadWidget->SetupAttachment(RootComponent);
 }
 
 void AAIArenaMinionCharacter::OnDeathStarted(AActor* OwningActor)
