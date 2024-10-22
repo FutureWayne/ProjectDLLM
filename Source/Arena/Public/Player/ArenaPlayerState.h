@@ -49,5 +49,6 @@ private:
 	void OnRep_Team();
 
 public:
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE ETeam GetTeam() const { return Team; }
 };

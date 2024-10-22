@@ -305,6 +305,11 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 		return;
 	}
 
+	if (EquippedWeapon)
+	{
+		DropWeapon();
+	}
+
 	EquippedWeapon = WeaponToEquip;
 	EquippedWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
 	EquippedWeapon->GetWeaponMesh()->SetSimulatePhysics(false);
