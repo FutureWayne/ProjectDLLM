@@ -23,7 +23,7 @@ void AArenaPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AArenaPlayerState, Team);
+	DOREPLIFETIME(AArenaPlayerState, MyTeamID);
 }
 
 UAbilitySystemComponent* AArenaPlayerState::GetAbilitySystemComponent() const
@@ -36,20 +36,20 @@ UArenaHealthSet* AArenaPlayerState::GetArenaHealthSet() const
 	return ArenaHealthSet;
 }
 
-void AArenaPlayerState::SetTeam(const ETeam NewTeam)
+void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
-	Team = NewTeam;
+	MyTeamID = NewTeamID;
 	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
 	{
-		BlasterCharacter->SetTeamColor(NewTeam);
+		BlasterCharacter->SetTeamColor(GetTeam());
 	}
 }
 
-void AArenaPlayerState::OnRep_Team()
+void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
 {
 	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
 	{
-		BlasterCharacter->SetTeamColor(Team);
+		BlasterCharacter->SetTeamColor(GetTeam());
 	}
 }
 

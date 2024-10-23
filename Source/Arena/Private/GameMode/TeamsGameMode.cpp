@@ -66,16 +66,21 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 	{
 		if (AArenaPlayerState* ArenaPS = NewPlayer->GetPlayerState<AArenaPlayerState>())
 		{
-			if (ArenaGS->AttackTeam.Num() == 0)
+			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+			if (ensure(TeamSubsystem))
 			{
-				ArenaPS->SetTeam(ETeam::ET_Attack);
-				ArenaGS->AttackTeam.AddUnique(ArenaPS);
+				if (ArenaGS->AttackTeam.Num() == 0)
+				{
+					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+					ArenaGS->AttackTeam.AddUnique(ArenaPS);
+				}
+				else
+				{
+					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+				}
 			}
-			else
-			{
-				ArenaPS->SetTeam(ETeam::ET_Defense);
-				ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-			}
+			
 		}
 	}
 }
@@ -110,19 +115,25 @@ void ATeamsGameMode::HandleMatchHasStarted()
 	{
 		for (auto PlayerState : ArenaGS->PlayerArray)
 		{
-			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Neutral)
+			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
 			{
-				// Assign one player to attack and the rest to defense
-				if (ArenaGS->AttackTeam.Num() == 0)
+				UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+				if (ensure(TeamSubsystem))
 				{
-					ArenaPS->SetTeam(ETeam::ET_Attack);
-					ArenaGS->AttackTeam.AddUnique(ArenaPS);
+					// Assign one player to attack and the rest to defense
+					if (ArenaGS->AttackTeam.Num() == 0)
+					{
+						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+						ArenaGS->AttackTeam.AddUnique(ArenaPS);
+					}
+					else
+					{
+						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+					}
 				}
-				else
-				{
-					ArenaPS->SetTeam(ETeam::ET_Defense);
-					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-				}
+					
+				
 			}
 		}
 	}
