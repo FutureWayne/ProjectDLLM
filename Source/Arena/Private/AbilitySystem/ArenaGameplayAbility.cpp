@@ -6,6 +6,7 @@
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Character/ArenaCharacterBase.h"
+#include "PlayerController/ArenaPlayerController.h"
 
 #define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				    \
 {																																						    \
@@ -65,6 +66,11 @@ AArenaCharacterBase* UArenaGameplayAbility::GetArenaCharacterFromActorInfo() con
 UArenaAbilitySystemComponent* UArenaGameplayAbility::GetArenaAbilitySystemComponentFromActorInfo() const
 {
 	return (CurrentActorInfo ? Cast<UArenaAbilitySystemComponent>(CurrentActorInfo->AbilitySystemComponent.Get()) : nullptr);
+}
+
+AArenaPlayerController* UArenaGameplayAbility::GetArenaPlayerControllerFromActorInfo() const
+{
+	return (CurrentActorInfo ? Cast<AArenaPlayerController>(CurrentActorInfo->PlayerController.Get()) : nullptr);
 }
 
 bool UArenaGameplayAbility::CanChangeActivationGroup(EArenaAbilityActivationGroup NewGroup) const

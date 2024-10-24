@@ -142,7 +142,7 @@ void UArenaHealthSet::PostAttributeChange(const FGameplayAttribute& Attribute, f
 			ArenaASC->ApplyModToAttribute(GetHealthAttribute(), EGameplayModOp::Override, NewValue);
 		}
 	}
-
+	
 	if (bOutOfHealth && (GetHealth() > 0.0f))
 	{
 		bOutOfHealth = false;
@@ -153,11 +153,13 @@ void UArenaHealthSet::ClampAttribute(const FGameplayAttribute& Attribute, float&
 {
 	if (Attribute == GetHealthAttribute())
 	{
+		NewValue = FMath::Floor(NewValue);
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
 	}
 
 	else if (Attribute == GetMaxHealthAttribute())
 	{
+		NewValue = FMath::Floor(NewValue);
 		NewValue = FMath::Max(NewValue, 1.0f);
 	}
 }
