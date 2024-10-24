@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "ArenaGameplayAbility.generated.h"
 
+class AArenaPlayerController;
 class UArenaAbilitySystemComponent;
 class AArenaCharacterBase;
 
@@ -67,6 +68,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponentFromActorInfo() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
+	AArenaPlayerController* GetArenaPlayerControllerFromActorInfo() const;
 
 	// Returns true if the requested activation group is a valid transition.
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Arena|Ability", Meta = (ExpandBoolAsExecs = "ReturnValue"))
