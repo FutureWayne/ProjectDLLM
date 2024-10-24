@@ -15,7 +15,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
-#include "Player/Team.h"
 #include "PlayerController/ArenaPlayerController.h"
 #include "PlayerStart/TeamPlayerStart.h"
 #include "Weapon/Weapon.h"
@@ -183,7 +182,7 @@ void ABlasterCharacter::SetTeamColor(const ETeam Team) const
 
 void ABlasterCharacter::SetSpawnPoint()
 {
-	if (HasAuthority() && ArenaPlayerState->GetTeam() != ETeam::ET_Neutral)
+	if (HasAuthority() && ArenaPlayerState->GetTeam() != ETeam::ET_Max)
 	{
 		TArray<AActor*> SpawnPoints;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), SpawnPoints);

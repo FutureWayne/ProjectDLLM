@@ -4,18 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "GenericTeamAgentInterface.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
-#include "Team.h"
+#include "Teams/ArenaTeamInfo.h"
+#include "Teams/ArenaTeamSubsystem.h"
 #include "ArenaPlayerState.generated.h"
 
+enum class ETeam : uint8;
 class UArenaHealthSet;
 
 /**
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerState : public APlayerState, public IAbilitySystemInterface
+class ARENA_API AArenaPlayerState : public APlayerState, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -32,7 +35,17 @@ public:
 	
 	UArenaHealthSet* GetArenaHealthSet() const;
 
-	void SetTeam(const ETeam NewTeam);
+	// ~IGenericTeamAgentInterface
+	virtual FGenericTeamId GetGenericTeamId() const override { return MyTeamID; }
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	// ~ End IGenericTeamAgentInterface
+
+	/** Returns the ETeam of the team the player belongs to. */
+	UFUNCTION(BlueprintCallable)
+	ETeam GetTeam() const
+	{
+		return GenericTeamIdToTeam(MyTeamID);
+	}
 
 protected:
 	UPROPERTY(VisibleAnywhere)
@@ -40,15 +53,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UArenaHealthSet> ArenaHealthSet;
+	
+private:
+	UFUNCTION()
+	void OnRep_MyTeamID(FGenericTeamId OldTeamID);
 
 private:
-	UPROPERTY(ReplicatedUsing = OnRep_Team)
-	ETeam Team = ETeam::ET_Neutral;
-
-	UFUNCTION()
-	void OnRep_Team();
-
-public:
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE ETeam GetTeam() const { return Team; }
+	UPROPERTY(ReplicatedUsing = OnRep_MyTeamID)
+	FGenericTeamId MyTeamID;
 };

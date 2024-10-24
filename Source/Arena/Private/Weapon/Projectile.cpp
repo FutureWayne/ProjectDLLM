@@ -11,6 +11,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Teams/ArenaTeamSubsystem.h"
 
 // Sets default values
 AProjectile::AProjectile()
@@ -52,12 +53,38 @@ void AProjectile::BeginPlay()
 	{
 		CollisionBox->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 	}
+
+	// Ignore collision with the owner
+	if (AActor* OwnerActor = GetOwner())
+	{
+		CollisionBox->IgnoreActorWhenMoving(OwnerActor, true);
+	}
 }
 
 void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent,
 	FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetOwner()))
+	if (!HasAuthority())
+	{
+		Destroy();
+		return;
+	}
+
+	// Check whether hit actor is in the same team
+	UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+	if (!ensure(TeamSubsystem))
+	{
+		Destroy();
+		return;
+	}
+	
+	if (!TeamSubsystem->CanCauseDamage(GetOwner(), OtherActor))
+	{
+		Destroy();
+		return;
+	}
+	
+	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor))
 	{
 		BlasterCharacter->PlayHitReactMontage();
 	}
