@@ -14,23 +14,6 @@ UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitiali
 	FMemory::Memset(ActivationGroupCounts, 0, sizeof(ActivationGroupCounts));
 }
 
-void UArenaAbilitySystemComponent::AddCharacterAbilities(const TArray<TSubclassOf<UGameplayAbility>>& StartupAbilities)
-{
-	for (TSubclassOf<UGameplayAbility> AbilityClass : StartupAbilities)
-	{
-		if (AbilityClass)
-		{
-			FGameplayAbilitySpec AbilitySpec(AbilityClass, 1);
-
-			if (const UArenaGameplayAbility* ArenaAbility = Cast<UArenaGameplayAbility>(AbilitySpec.Ability))
-			{
-				AbilitySpec.DynamicAbilityTags.AddTag(ArenaAbility->GetStartupInputTag());
-				GiveAbility(AbilitySpec);
-			}
-		}
-	}
-}
-
 void UArenaAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
 {
 	if (!InputTag.IsValid())

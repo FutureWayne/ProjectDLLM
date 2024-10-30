@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "ArenaCharacterBase.generated.h"
 
+class UArenaAbilitySet;
 class UGameplayAbility;
 class UInputMappingContext;
 class UArenaAbilitySystemComponent;
@@ -34,8 +35,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void AddCharacterAbilities() const;
-
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
@@ -45,12 +44,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaHealthComponent> HealthComponent;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArenaAbilitySet> AbilitySet;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-private:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Abilities", Meta = (AllowPrivateAccess = "true"))
-	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
 	
 };
