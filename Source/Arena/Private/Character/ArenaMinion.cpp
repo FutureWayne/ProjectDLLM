@@ -3,6 +3,7 @@
 
 #include "Character/ArenaMinion.h"
 
+#include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/ArenaHealthComponent.h"
@@ -34,7 +35,12 @@ void AArenaMinion::BeginPlay()
 	Super::BeginPlay();
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-	AddCharacterAbilities();
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
+
+	check(AbilitySet);
+	UArenaAbilitySet* SetPtr = AbilitySet.Get();
+	SetPtr->GiveToAbilitySystem(ArenaASC, nullptr);
 }
+
+	

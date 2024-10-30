@@ -4,6 +4,7 @@
 #include "Character/ArenaCharacter.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -107,6 +108,7 @@ void AArenaCharacter::InitAbilityActorInfo()
 
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
-	
-	AddCharacterAbilities();
+
+	check(AbilitySet);
+	AbilitySet->GiveToAbilitySystem(ArenaASC, nullptr);
 }

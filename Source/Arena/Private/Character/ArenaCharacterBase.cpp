@@ -36,17 +36,6 @@ void AArenaCharacterBase::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AArenaCharacterBase::AddCharacterAbilities() const
-{
-	if (!HasAuthority())
-	{
-		return;
-	}
-	
-	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
-	ArenaASC->AddCharacterAbilities(StartupAbilities);
-}
-
 // Called every frame
 void AArenaCharacterBase::Tick(float DeltaTime)
 {
