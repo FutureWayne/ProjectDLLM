@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "ArenaCharacterBase.generated.h"
 
+class UCameraComponent;
 class UArenaAbilitySet;
 class UGameplayAbility;
 class UInputMappingContext;
@@ -46,6 +47,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaAbilitySet> AbilitySet;
+
+	/** Follow camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* CameraComponent;
 
 public:	
 	// Called every frame
