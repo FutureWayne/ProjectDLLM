@@ -36,9 +36,9 @@ void UCombatComponent::BeginPlay()
 
 	if (OwningCharacter)
 	{
-		if (OwningCharacter->GetFollowCamera())
+		if (OwningCharacter->GetCameraComponent())
 		{
-			DefaultFOV = OwningCharacter->GetFollowCamera()->FieldOfView;
+			DefaultFOV = OwningCharacter->GetCameraComponent()->FieldOfView;
 			CurrentFOV = DefaultFOV;
 		}
 	}
@@ -140,9 +140,9 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 		CurrentFOV = FMath::FInterpTo(CurrentFOV, DefaultFOV, DeltaTime, ZoomInterpSpeed);
 	}
 
-	if (OwningCharacter && OwningCharacter->GetFollowCamera())
+	if (OwningCharacter && OwningCharacter->GetCameraComponent())
 	{
-		OwningCharacter->GetFollowCamera()->SetFieldOfView(CurrentFOV);
+		OwningCharacter->GetCameraComponent()->SetFieldOfView(CurrentFOV);
 	}
 }
 

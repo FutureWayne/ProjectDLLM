@@ -102,9 +102,6 @@ protected:
 	void K2_OnPawnAvatarSet();
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	FGameplayTag StartupInputTag;
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability")
 	EArenaAbilityActivationPolicy ActivationPolicy;
 
@@ -114,5 +111,4 @@ protected:
 public:
 	FORCEINLINE EArenaAbilityActivationPolicy GetActivationPolicy() const { return ActivationPolicy; }
 	FORCEINLINE EArenaAbilityActivationGroup GetActivationGroup() const { return ActivationGroup; }
-	FORCEINLINE FGameplayTag GetStartupInputTag() const { return StartupInputTag; }
 };

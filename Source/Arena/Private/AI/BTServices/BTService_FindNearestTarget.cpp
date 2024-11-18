@@ -4,10 +4,8 @@
 #include "Kismet/GameplayStatics.h"
 #include <Character/BlasterCharacter.h>
 #include <Player/ArenaPlayerState.h>
-#include <PlayerController/ArenaPlayerController.h>
 #include "BehaviorTree/BlackboardComponent.h"
 #include <AI/AIArenaMinionCharacter.h>
-#include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/ArenaHealthComponent.h"
 
 void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
