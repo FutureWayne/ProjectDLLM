@@ -75,6 +75,14 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category=Teams, meta=(ExpandEnumAsExecs=ReturnValue))
 	EArenaTeamComparison CompareTeams(const UObject* A, const UObject* B, ETeam& TeamA, ETeam& TeamB) const;
 
+	// Returns the team this object belongs to, or INDEX_NONE if it is not part of a team
+	UFUNCTION(BlueprintCallable, Category=Teams, meta=(Keywords="GetTeamFromObject", DefaultToSelf="Agent", AdvancedDisplay="bLogIfNotSet"))
+	static void FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId, FLinearColor& TeamColor, bool bLogIfNotSet = false);
+	
+	// Returns the team color for the actor
+	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category=Teams, meta=(Keywords="Get"))
+	FLinearColor FindTeamColorFromActor(const UObject* TestObject) const;
+
 	// Compare the teams of two actors and returns a value indicating if they are on same teams, different teams, or one/both are invalid
 	EArenaTeamComparison CompareTeams(const UObject* A, const UObject* B) const;
 
@@ -84,4 +92,6 @@ public:
 private:
 	UPROPERTY()
 	TMap<ETeam, AArenaTeamInfo*> TeamMap;
+
+	static const TMap<ETeam, FLinearColor> TeamColorMap;
 };

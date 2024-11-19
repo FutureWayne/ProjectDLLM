@@ -6,8 +6,16 @@
 #include "AbilitySystemGlobals.h"
 #include "Player/ArenaPlayerState.h"
 
+// Define and initialize the static const TMap
+const TMap<ETeam, FLinearColor> UArenaTeamSubsystem::TeamColorMap = {
+	{ ETeam::ET_Neutral, FLinearColor::Gray },
+	{ ETeam::ET_Attack, FLinearColor::Red },
+	{ ETeam::ET_Defense, FLinearColor::Blue }
+};
+
 UArenaTeamSubsystem::UArenaTeamSubsystem()
 {
+	
 }
 
 void UArenaTeamSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -165,6 +173,51 @@ EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const U
 	{
 		return TeamA == TeamB ? EArenaTeamComparison::OnSameTeam : EArenaTeamComparison::DifferentTeams;
 	}
+}
+
+void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId,
+	FLinearColor& TeamColor, bool bLogIfNotSet)
+{
+	bIsPartOfTeam = false;
+	TeamId = static_cast<int32>(ETeam::ET_Max);
+	TeamColor = FLinearColor::White;
+
+	if (UWorld* World = GEngine->GetWorldFromContextObject(Agent, EGetWorldErrorMode::LogAndReturnNull))
+	{
+		if (UArenaTeamSubsystem* TeamSubsystem = World->GetSubsystem<UArenaTeamSubsystem>())
+		{
+			TeamId = static_cast<int32>(TeamSubsystem->FindTeamFromObject(Agent));
+			if (TeamId != static_cast<int32>(ETeam::ET_Max))
+			{
+				bIsPartOfTeam = true;
+
+				TeamColor = TeamSubsystem->FindTeamColorFromActor(Agent);
+
+				if ((TeamColor == FLinearColor::White) && bLogIfNotSet)
+				{
+					UE_LOG(LogTemp, Log, TEXT("FindTeamFromObject(%s) called too early (found team %d but no display asset set yet"), *Agent->GetPathName(), TeamId);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("FindTeamFromObject(%s) failed: Team subsystem does not exist yet"), *Agent->GetPathName());
+		}
+	}
+}
+
+FLinearColor UArenaTeamSubsystem::FindTeamColorFromActor(const UObject* TestObject) const
+{
+	ETeam Team = FindTeamFromObject(TestObject);
+	if (Team != ETeam::ET_Max)
+	{
+		if (const FLinearColor* TeamColor = TeamColorMap.Find(Team))
+		{
+			return *TeamColor;
+		}
+	}
+
+	return FLinearColor::White;
 }
 
 EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const UObject* B) const
