@@ -83,7 +83,7 @@ void UMultiplayerSessionSubsystem::FindSessions(int32 MaxSearchResults)
 	}
 }
 
-void UMultiplayerSessionSubsystem::JoinSession(const FOnlineSessionSearchResult& SearchResult)
+void UMultiplayerSessionSubsystem::JoinSession(FOnlineSessionSearchResult& SearchResult)
 {
 	if (!SessionInterface.IsValid())
 	{
@@ -92,6 +92,8 @@ void UMultiplayerSessionSubsystem::JoinSession(const FOnlineSessionSearchResult&
 
 	OnJoinSessionCompleteDelegateHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
 
+	SearchResult.Session.SessionSettings.bUseLobbiesIfAvailable = true;
+	
 	const ULocalPlayer* LocalPlayer = GetGameInstance()->GetFirstGamePlayer();
 	if (!SessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, SearchResult))
 	{
