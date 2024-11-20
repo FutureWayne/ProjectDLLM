@@ -72,8 +72,11 @@ Plugins/*/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
 .idea
 Content/Assets/
 Content/Characters/
+Content/Audio/
 /Windows/
 *.zip
+
