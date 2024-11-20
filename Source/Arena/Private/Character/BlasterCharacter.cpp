@@ -451,15 +451,15 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	if (const UArenaInputConfig* InputConfig = ArenaPC->GetInputConfig())
 	{
-		// Moving
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move, false);
-
-		// Jumping
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Started, this, &ACharacter::Jump, false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Completed, this, &ACharacter::StopJumping, false);
-
-		// Looking
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Look, ETriggerEvent::Triggered, this, &ABlasterCharacter::Look, false);
+		// // Moving
+		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ABlasterCharacter::Move, false);
+		//
+		// // Jumping
+		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Started, this, &ACharacter::Jump, false);
+		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Completed, this, &ACharacter::StopJumping, false);
+		//
+		// // Looking
+		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Look, ETriggerEvent::Triggered, this, &ABlasterCharacter::Look, false);
 
 		// Equipping
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Equip, ETriggerEvent::Triggered, this, &ABlasterCharacter::EquipButtonPressed, false);
@@ -467,8 +467,8 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		// Dropping
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Drop, ETriggerEvent::Triggered, this, &ABlasterCharacter::DropButtonPressed, false);
 
-		// Crouching
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchButtonPressed, false);
+		// // Crouching
+		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchButtonPressed, false);
 
 		// Aiming
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Started, this, &ABlasterCharacter::AimButtonPressed, false);
@@ -478,11 +478,6 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Started, this, &ABlasterCharacter::FireButtonPressed, false);
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Completed, this, &ABlasterCharacter::FireButtonReleased, false);
 	}
-	
-	// 	// Walking
-	// 	EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Started, this, &ABlasterCharacter::WalkButtonPressed);
-	// 	EnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Completed, this, &ABlasterCharacter::WalkButtonReleased);
-	// }
 }
 
 void ABlasterCharacter::PostInitializeComponents()

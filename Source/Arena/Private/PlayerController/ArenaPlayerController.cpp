@@ -35,7 +35,6 @@ void AArenaPlayerController::AbilityInputTagReleased(FGameplayTag InputTag)
 	}
 }
 
-
 AArenaPlayerState* AArenaPlayerController::GetArenaPlayerState() const
 {
 	return CastChecked<AArenaPlayerState>(PlayerState, ECastCheckedType::NullAllowed);
@@ -213,7 +212,6 @@ void AArenaPlayerController::CheckTimeSync(float DeltaTime)
 		TimeSyncRunningTime = 0.f;
 	}
 }
-
 
 void AArenaPlayerController::SetHUDTime()
 {
