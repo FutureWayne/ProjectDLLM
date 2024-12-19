@@ -206,6 +206,11 @@ void ABlasterCharacter::SetSpawnPoint()
 	}
 }
 
+USkeletalMeshComponent* ABlasterCharacter::GetDisplayMesh_Implementation()
+{
+	return GetMesh();
+}
+
 // Called when the game starts or when spawned
 void ABlasterCharacter::BeginPlay()
 {

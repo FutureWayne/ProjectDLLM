@@ -318,9 +318,9 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	EquippedWeapon->ShowPickupWidget(false);
 	EquippedWeapon->SetOwner(OwningCharacter);
 	
-	if (const USkeletalMeshSocket* WeaponSocket = OwningCharacter->GetMesh()->GetSocketByName(FName("weapon_r")))
+	if (const USkeletalMeshSocket* WeaponSocket = OwningCharacter->GetDisplayMesh()->GetSocketByName(FName("weapon_r")))
 	{
-		WeaponSocket->AttachActor(EquippedWeapon, OwningCharacter->GetMesh());
+		WeaponSocket->AttachActor(EquippedWeapon, OwningCharacter->GetDisplayMesh());
 	}
 	
 	OwningCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;

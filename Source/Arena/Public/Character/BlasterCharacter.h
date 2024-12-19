@@ -33,7 +33,10 @@ public:
 	virtual void OnRep_ReplicatedMovement() override;
 
 	void SetOverlappingWeapon(AWeapon* Weapon);
+
+	UFUNCTION(BlueprintCallable)
 	bool IsWeaponEquipped() const;
+	
 	bool IsAiming() const;
 	AWeapon* GetEquippedWeapon() const;
 	
@@ -44,6 +47,9 @@ public:
 
 	void SetTeamColor(ETeam Team) const;
 	void SetSpawnPoint();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	USkeletalMeshComponent* GetDisplayMesh();
 
 protected:
 	// Called when the game starts or when spawned

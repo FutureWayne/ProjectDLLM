@@ -4,6 +4,7 @@
 #include "Teams/ArenaTeamSubsystem.h"
 
 #include "AbilitySystemGlobals.h"
+#include "EngineUtils.h"
 #include "Player/ArenaPlayerState.h"
 
 // Define and initialize the static const TMap
@@ -42,6 +43,17 @@ void UArenaTeamSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UArenaTeamSubsystem::Deinitialize()
 {
+	// Destroy any existing TeamInfo actors
+	UWorld* World = GetWorld();
+	for (TActorIterator<AArenaTeamInfo> It(World); It; ++It)
+	{
+		AArenaTeamInfo* ExistingTeamInfo = *It;
+		if (ExistingTeamInfo)
+		{
+			ExistingTeamInfo->Destroy();
+		}
+	}
+	
 	Super::Deinitialize();
 }
 
