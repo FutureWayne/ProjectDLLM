@@ -68,9 +68,9 @@ ABlasterCharacter::ABlasterCharacter()
 	Combat->SetIsReplicated(true);
 
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
-
-	NetUpdateFrequency = 66.0f;
-	MinNetUpdateFrequency = 33.0f;
+	
+	SetNetUpdateFrequency(66.0f);
+	SetMinNetUpdateFrequency(33.0f);
 }
 
 void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

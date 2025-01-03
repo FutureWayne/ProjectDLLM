@@ -187,19 +187,19 @@ EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const U
 	}
 }
 
-void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId,
+void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, ETeam& TeamId,
 	FLinearColor& TeamColor, bool bLogIfNotSet)
 {
 	bIsPartOfTeam = false;
-	TeamId = static_cast<int32>(ETeam::ET_Max);
+	TeamId = ETeam::ET_Max;
 	TeamColor = FLinearColor::White;
 
 	if (UWorld* World = GEngine->GetWorldFromContextObject(Agent, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		if (UArenaTeamSubsystem* TeamSubsystem = World->GetSubsystem<UArenaTeamSubsystem>())
 		{
-			TeamId = static_cast<int32>(TeamSubsystem->FindTeamFromObject(Agent));
-			if (TeamId != static_cast<int32>(ETeam::ET_Max))
+			TeamId = (TeamSubsystem->FindTeamFromObject(Agent));
+			if (TeamId != ETeam::ET_Max)
 			{
 				bIsPartOfTeam = true;
 

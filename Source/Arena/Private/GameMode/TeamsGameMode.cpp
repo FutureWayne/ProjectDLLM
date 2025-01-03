@@ -3,6 +3,7 @@
 
 #include "GameMode/TeamsGameMode.h"
 
+#include "Character/BlasterCharacter.h"
 #include "GameState/ArenaGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/ArenaPlayerState.h"
@@ -149,5 +150,26 @@ void ATeamsGameMode::OnMatchStateSet()
 		{
 			ArenaPC->OnMatchStateSet(MatchState);
 		}
+	}
+}
+
+UClass* ATeamsGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	bool bIsPartOfTeam = false;
+	ETeam TeamId = ETeam::ET_Max;
+	FLinearColor TeamColor = FLinearColor::White;
+
+	UArenaTeamSubsystem::FindTeamFromObject(InController, bIsPartOfTeam, TeamId, TeamColor);
+	if (TeamId == ETeam::ET_Attack)
+	{
+		return AttackerCharacterClass;
+	}
+	else if (TeamId == ETeam::ET_Defense)
+	{
+		return DefenderCharacterClass;
+	}
+	else
+	{
+		return Super::GetDefaultPawnClassForController_Implementation(InController);
 	}
 }

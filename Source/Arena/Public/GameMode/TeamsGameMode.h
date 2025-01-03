@@ -6,6 +6,8 @@
 #include "GameMode/ArenaGameMode.h"
 #include "TeamsGameMode.generated.h"
 
+class ABlasterCharacter;
+
 namespace MatchState
 {
 	extern ARENA_API const FName Cooldown; // Display winner and cooldown timer
@@ -34,6 +36,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
 	float CooldownDuration = 10.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Classes")
+	TSubclassOf<ABlasterCharacter> AttackerCharacterClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Classes")
+	TSubclassOf<ABlasterCharacter> DefenderCharacterClass;
+
 	float LevelStartingTime = 0.0f;
 
 protected:
@@ -42,6 +50,7 @@ protected:
 	virtual void Logout(AController* Exiting) override;
 	virtual void HandleMatchHasStarted() override;
 	virtual void OnMatchStateSet() override;
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 	/* End AGameMode interface */
 
 private:
