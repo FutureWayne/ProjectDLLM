@@ -23,7 +23,7 @@ void UArenaAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& In
 
 	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
-		if (AbilitySpec.Ability && AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag))
+		if (AbilitySpec.Ability && AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
 		{
 			InputPressedSpecHandles.AddUnique(AbilitySpec.Handle);
 			InputHeldSpecHandles.AddUnique(AbilitySpec.Handle);
@@ -40,7 +40,7 @@ void UArenaAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& I
 
 	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
-		if (AbilitySpec.Ability && AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag))
+		if (AbilitySpec.Ability && AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
 		{
 			InputReleasedSpecHandles.AddUnique(AbilitySpec.Handle);
 			InputHeldSpecHandles.Remove(AbilitySpec.Handle);
@@ -286,3 +286,32 @@ void UArenaAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle
 		RemoveAbilityFromActivationGroup(ArenaAbility->GetActivationGroup(), ArenaAbility);
 	}
 }
+
+void UArenaAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& Spec)
+{
+	Super::AbilitySpecInputPressed(Spec);
+	
+	if (Spec.IsActive())
+	{
+		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
+		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+		
+		// Invoke the InputPressed event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
+		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, OriginalPredictionKey);
+	}
+}
+
+void UArenaAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spec)
+{
+	Super::AbilitySpecInputReleased(Spec);
+
+	if (Spec.IsActive())
+	{
+		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
+		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+		
+		// Invoke the InputReleased event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
+		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, OriginalPredictionKey);
+	}
+}
+
