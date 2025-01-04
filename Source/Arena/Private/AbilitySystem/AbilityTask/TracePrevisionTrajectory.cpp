@@ -2,8 +2,6 @@
 
 
 #include "AbilitySystem/AbilityTask/TracePrevisionTrajectory.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/GameplayStaticsTypes.h"
 
@@ -14,18 +12,14 @@ UTracePrevisionTrajectory::UTracePrevisionTrajectory(const FObjectInitializer& O
 	bTickingTask = true;
 }
 
-UTracePrevisionTrajectory* UTracePrevisionTrajectory::StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetVelocityDelegate
-                                                                   LaunchVelocityDelegate, UNiagaraSystem* TossAimTrailEffect)
+UTracePrevisionTrajectory* UTracePrevisionTrajectory::StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetDirectionDelegate
+                                                                   LaunchVelocityDelegate, float InLaunchSpeed)
 {
 	UTracePrevisionTrajectory* Task = NewAbilityTask<UTracePrevisionTrajectory>(OwningAbility);
 	Task->GetStartLocation = StartLocationDelegate;
-	Task->GetLaunchVelocity = LaunchVelocityDelegate;
+	Task->GetLaunchDirection = LaunchVelocityDelegate;
+	Task->LaunchSpeed = InLaunchSpeed;
 	Task->OwnerActor = OwningAbility->GetCurrentActorInfo()->AvatarActor.Get();
-
-	if (TossAimTrailEffect)
-	{
-		Task->TrailEffectComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(TossAimTrailEffect, Task->OwnerActor->GetRootComponent(), NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, true);
-	}
 	
 	return Task;
 }
@@ -45,10 +39,12 @@ void UTracePrevisionTrajectory::TickTask(float DeltaTime)
 	{
 		// Get the updated StartLocation and LaunchVelocity from the delegates
 		FVector StartLocation = GetStartLocation.Execute();
-		FVector LaunchVelocity = GetLaunchVelocity.Execute();
+		FRotator LaunchDirection = GetLaunchDirection.Execute();
 
 		TArray<AActor*> ActorsToIgnore;
 		ActorsToIgnore.Add(OwnerActor.Get());
+
+		FVector LaunchVelocity = LaunchDirection.Vector() * LaunchSpeed;
 		
 		// Use PredictProjectilePath to calculate the trajectory
 		FPredictProjectilePathParams PathParams;
@@ -70,16 +66,11 @@ void UTracePrevisionTrajectory::TickTask(float DeltaTime)
 		}
 
 		// Broadcast the trajectory points
-		OnTrajectoryUpdated.Broadcast(TrajectoryPoints, TrailEffectComponent);
+		OnTrajectoryUpdated.Broadcast(TrajectoryPoints);
 	}
 }
 
 void UTracePrevisionTrajectory::OnDestroy(bool bInOwnerFinished)
 {
 	Super::OnDestroy(bInOwnerFinished);
-
-	if (TrailEffectComponent)
-	{
-		TrailEffectComponent->Deactivate();
-	}
 }

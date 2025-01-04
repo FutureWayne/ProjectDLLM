@@ -6,13 +6,10 @@
 #include "Abilities/Tasks/AbilityTask.h"
 #include "TracePrevisionTrajectory.generated.h"
 
-class UNiagaraSystem;
-class UNiagaraComponent;
-
 // Delegate definitions
 DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetLocationDelegate);
-DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVelocityDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnTrajectoryUpdated, const TArray<FVector>&, TrajectoryPoints, UNiagaraComponent*, TrailEffectComponent);
+DECLARE_DYNAMIC_DELEGATE_RetVal(FRotator, FGetDirectionDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTrajectoryUpdated, const TArray<FVector>&, TrajectoryPoints);
 
 /**
  * 
@@ -27,7 +24,7 @@ public:
 	
 	// Factory method to start the task with dynamic delegates
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (DisplayName = "Trace Prevision Trajectory", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true"))
-	static UTracePrevisionTrajectory* StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetVelocityDelegate LaunchVelocityDelegate, UNiagaraSystem* TossAimTrailEffect);
+	static UTracePrevisionTrajectory* StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetDirectionDelegate LaunchDirectionDelegate, float LaunchSpeed);
 
 	// Event triggered when the trajectory is updated
 	UPROPERTY(BlueprintAssignable)
@@ -41,10 +38,8 @@ protected:
 private:
 	// Delegates for retrieving StartLocation and LaunchVelocity
 	FGetLocationDelegate GetStartLocation;
-	FGetVelocityDelegate GetLaunchVelocity;
-
-	UPROPERTY()
-	TObjectPtr<UNiagaraComponent> TrailEffectComponent;
+	FGetDirectionDelegate GetLaunchDirection;
+	float LaunchSpeed;
 
 	UPROPERTY()
 	TObjectPtr<AActor> OwnerActor;
