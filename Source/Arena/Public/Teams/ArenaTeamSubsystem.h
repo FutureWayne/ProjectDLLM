@@ -77,7 +77,7 @@ public:
 
 	// Returns the team this object belongs to, or INDEX_NONE if it is not part of a team
 	UFUNCTION(BlueprintCallable, Category=Teams, meta=(Keywords="GetTeamFromObject", DefaultToSelf="Agent", AdvancedDisplay="bLogIfNotSet"))
-	static void FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId, FLinearColor& TeamColor, bool bLogIfNotSet = false);
+	static void FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, ETeam& TeamId, FLinearColor& TeamColor, bool bLogIfNotSet = false);
 	
 	// Returns the team color for the actor
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category=Teams, meta=(Keywords="Get"))
