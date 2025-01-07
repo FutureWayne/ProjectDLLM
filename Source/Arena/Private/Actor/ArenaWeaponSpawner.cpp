@@ -25,6 +25,7 @@ AArenaWeaponSpawner::AArenaWeaponSpawner()
 
 	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	CoolDownTime = 30.0f;
 	CheckExistingOverlapDelay = 0.25f;

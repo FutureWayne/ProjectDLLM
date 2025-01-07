@@ -7,7 +7,7 @@
 #include "Equipment/ArenaEquipmentInstance.h"
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
-#include "Inventory/InventoryFragment_EquippedItem.h"
+#include "Inventory/InventoryFragment_EquippableItem.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaQuickBarComponent)
@@ -166,7 +166,7 @@ void UArenaQuickBarComponent::EquipItemInSlot()
 
 	if (UArenaInventoryItemInstance* SlotItem = Slots[ActiveSlotIndex])
 	{
-		if (const UInventoryFragment_EquippedItem* EquipInfo = SlotItem->FindFragmentByClass<UInventoryFragment_EquippedItem>())
+		if (const UInventoryFragment_EquippableItem* EquipInfo = SlotItem->FindFragmentByClass<UInventoryFragment_EquippableItem>())
 		{
 			TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
 			if (EquipDef != nullptr)
