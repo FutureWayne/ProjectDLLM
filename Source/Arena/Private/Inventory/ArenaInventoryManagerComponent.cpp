@@ -125,13 +125,7 @@ void FArenaInventoryList::RemoveEntry(UArenaInventoryItemInstance* ItemInstance)
 
 void FArenaInventoryList::BroadcastChangeMessage(FArenaInventoryEntry& Entry, int32 OldCount, int32 NewCount)
 {
-	FArenaInventoryChangeMessage Message;
-	Message.InventoryOwner = OwnerComponent;
-	Message.Instance = Entry.Instance;
-	Message.NewCount = NewCount;
-	Message.Delta = NewCount - OldCount;
-
-	//UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(OwnerComponent->GetWorld());
+	
 }
 
 //////////////////////////////////////////////////////////////////////
