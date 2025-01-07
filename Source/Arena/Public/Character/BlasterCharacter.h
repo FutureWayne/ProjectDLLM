@@ -166,6 +166,9 @@ private:
 
 	void HideCharacterIfCameraClose();
 
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArenaEquipmentManagerComponent> EquipmentManagerComponent;
+
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }

@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "ArenaPlayerController.generated.h"
 
+class UArenaInventoryManagerComponent;
 class AArenaHUD;
 class UArenaInputConfig;
 class UInputMappingContext;
@@ -113,6 +114,9 @@ private:
 	 */
 	UPROPERTY(ReplicatedUsing = OnRep_MatchState)
 	FName MatchState;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArenaInventoryManagerComponent> InventoryManagerComponent;
 
 private:
 	void CheckTimeSync(float DeltaTime);

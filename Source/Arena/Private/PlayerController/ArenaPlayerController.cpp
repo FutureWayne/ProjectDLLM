@@ -8,6 +8,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameMode/TeamsGameMode.h"
 #include "Input/ArenaInputComponent.h"
+#include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
 #include "UI/HUD/ArenaHUD.h"
@@ -17,6 +18,7 @@
 
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
 {
+	InventoryManagerComponent = CreateDefaultSubobject<UArenaInventoryManagerComponent>(TEXT("InventoryManagerComponent"));
 }
 
 void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)

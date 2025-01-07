@@ -8,6 +8,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/ArenaInputComponent.h"
@@ -68,6 +69,8 @@ ABlasterCharacter::ABlasterCharacter()
 	Combat->SetIsReplicated(true);
 
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
+
+	EquipmentManagerComponent = CreateDefaultSubobject<UArenaEquipmentManagerComponent>(TEXT("EquipmentManagerComponent"));
 	
 	SetNetUpdateFrequency(66.0f);
 	SetMinNetUpdateFrequency(33.0f);
