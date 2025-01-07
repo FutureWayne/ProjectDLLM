@@ -6,6 +6,7 @@
 #include "Character/ArenaCharacterBase.h"
 #include "ArenaCharacter.generated.h"
 
+class UArenaEquipmentManagerComponent;
 class AArenaPlayerState;
 /**
  * 

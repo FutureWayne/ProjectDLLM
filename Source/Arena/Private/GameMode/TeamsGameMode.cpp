@@ -47,7 +47,6 @@ void ATeamsGameMode::Tick(float DeltaSeconds)
 			RestartGame();
 		}
 	}
-	
 }
 
 void ATeamsGameMode::BeginPlay()
@@ -133,8 +132,6 @@ void ATeamsGameMode::HandleMatchHasStarted()
 						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 					}
 				}
-					
-				
 			}
 		}
 	}

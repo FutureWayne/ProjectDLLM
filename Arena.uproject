@@ -14,7 +14,8 @@
 				"GameplayAbilities",
 				"CoreUObject",
 				"EnhancedInput",
-				"AIModule"
+				"AIModule",
+				"ModularGameplay"
 			]
 		}
 	],
@@ -56,6 +57,10 @@
 		},
 		{
 			"Name": "MotionWarping",
+			"Enabled": true
+		},
+		{
+			"Name": "ModularGameplay",
 			"Enabled": true
 		}
 	]
