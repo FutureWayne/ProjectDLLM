@@ -193,6 +193,8 @@ UArenaEquipmentManagerComponent* UArenaQuickBarComponent::FindEquipmentManager()
 			return Pawn->FindComponentByClass<UArenaEquipmentManagerComponent>();
 		}
 	}
+
+	return nullptr;
 }
 
 void UArenaQuickBarComponent::OnRep_Slots()

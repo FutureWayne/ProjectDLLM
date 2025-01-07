@@ -2,8 +2,6 @@
 
 
 #include "AbilitySystem/ArenaAbilitySet.h"
-
-#include "GameplayAbilitySpecHandle.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 
 void FArenaAbilitySet_GrantedHandles::AddAbilitySpecHandle(const FGameplayAbilitySpecHandle& Handle)

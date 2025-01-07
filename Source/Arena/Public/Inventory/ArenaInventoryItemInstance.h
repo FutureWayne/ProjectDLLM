@@ -52,7 +52,7 @@ public:
 	template <typename ResultClass>
 	const ResultClass* FindFragmentByClass() const
 	{
-		return static_cast<ResultClass*>(FindFragmentByClass(ResultClass::StaticClass()));
+		return (ResultClass*)(FindFragmentByClass(ResultClass::StaticClass()));
 	}
 
 private:

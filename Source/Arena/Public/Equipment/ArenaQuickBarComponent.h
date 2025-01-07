@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ControllerComponent.h"
 #include "ArenaQuickBarComponent.generated.h"
 
+class UArenaInventoryItemInstance;
 class UArenaEquipmentInstance;
 class UArenaEquipmentManagerComponent;
-class UArenaInventoryItemInstance;
 
 /**
  * 
