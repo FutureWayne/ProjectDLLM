@@ -5,9 +5,12 @@
 
 #include "NativeGameplayTags.h"
 #include "Engine/ActorChannel.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Inventory/ArenaInventoryItemDefinition.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaInventoryManagerComponent)
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Inventory_Message_StackChanged, "Arena.Inventory.Message.StackChanged");
 
@@ -125,7 +128,14 @@ void FArenaInventoryList::RemoveEntry(UArenaInventoryItemInstance* ItemInstance)
 
 void FArenaInventoryList::BroadcastChangeMessage(FArenaInventoryEntry& Entry, int32 OldCount, int32 NewCount)
 {
-	
+	FArenaInventoryChangeMessage Message;
+	Message.InventoryOwner = OwnerComponent;
+	Message.Instance = Entry.Instance;
+	Message.NewCount = NewCount;
+	Message.Delta = NewCount - OldCount;
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(OwnerComponent->GetWorld());
+	MessageSystem.BroadcastMessage(TAG_Arena_Inventory_Message_StackChanged, Message);
 }
 
 //////////////////////////////////////////////////////////////////////

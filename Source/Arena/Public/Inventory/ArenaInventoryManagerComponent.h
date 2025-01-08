@@ -12,6 +12,24 @@ class UArenaInventoryItemDefinition;
 class UArenaInventoryManagerComponent;
 class UArenaInventoryItemInstance;
 
+/** A message when an item is added to the inventory */
+USTRUCT(BlueprintType)
+struct FArenaInventoryChangeMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<UActorComponent> InventoryOwner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TObjectPtr<UArenaInventoryItemInstance> Instance = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 NewCount = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 Delta = 0;
+};
 
 /** A single entry in an inventory */
 USTRUCT(BlueprintType)

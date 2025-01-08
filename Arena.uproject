@@ -65,7 +65,11 @@
 		},
 		{
 			"Name": "GameplayMessageRouter",
-			"Enabled": false
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
 		}
 	]
 }

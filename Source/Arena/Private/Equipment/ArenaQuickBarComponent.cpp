@@ -8,9 +8,14 @@
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Inventory/InventoryFragment_EquippableItem.h"
+#include "NativeGameplayTags.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaQuickBarComponent)
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_QuickBar_Message_SlotsChanged, "Arena.QuickBar.Message.SlotsChanged");
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_QuickBar_Message_ActiveIndexChanged, "Arena.QuickBar.Message.ActiveIndexChanged");
 
 UArenaQuickBarComponent::UArenaQuickBarComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -199,8 +204,20 @@ UArenaEquipmentManagerComponent* UArenaQuickBarComponent::FindEquipmentManager()
 
 void UArenaQuickBarComponent::OnRep_Slots()
 {
+	FArenaQuickBarSlotsChangedMessage Message;
+	Message.Owner = GetOwner();
+	Message.Slots = Slots;
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
+	MessageSystem.BroadcastMessage(TAG_Arena_QuickBar_Message_SlotsChanged, Message);
 }
 
 void UArenaQuickBarComponent::OnRep_ActiveSlotIndex()
 {
+	FArenaQuickBarActiveIndexChangedMessage Message;
+	Message.Owner = GetOwner();
+	Message.ActiveIndex = ActiveSlotIndex;
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
+	MessageSystem.BroadcastMessage(TAG_Arena_QuickBar_Message_ActiveIndexChanged, Message);
 }

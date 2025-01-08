@@ -8,9 +8,30 @@ public class Arena : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities", "AIModule" });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			"GameplayAbilities",
+			"AIModule"
+		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "GameplayTags", "GameplayTasks", "ModularGameplay", "Niagara", "NetCore", "GameplayMessageRuntime" });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"GameplayTags",
+			"GameplayTasks",
+			"ModularGameplay",
+			"Niagara",
+			"NetCore",
+			"GameplayMessageRuntime",
+			"Slate",
+			"SlateCore",
+			"UMG",
+			"CommonUI"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

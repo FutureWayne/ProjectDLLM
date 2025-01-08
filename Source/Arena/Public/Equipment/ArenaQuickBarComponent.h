@@ -79,3 +79,29 @@ private:
 	TObjectPtr<UArenaEquipmentInstance> EquippedItem;
 	
 };
+
+
+USTRUCT(BlueprintType)
+struct FArenaQuickBarSlotsChangedMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TArray<TObjectPtr<UArenaInventoryItemInstance>> Slots;
+};
+
+
+USTRUCT(BlueprintType)
+struct FArenaQuickBarActiveIndexChangedMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 ActiveIndex = 0;
+};
