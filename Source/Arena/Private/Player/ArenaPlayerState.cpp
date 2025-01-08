@@ -16,7 +16,7 @@ AArenaPlayerState::AArenaPlayerState()
 
 	ArenaHealthSet = CreateDefaultSubobject<UArenaHealthSet>(TEXT("HealthSet"));
 	
-	NetUpdateFrequency = 100.0f;
+	SetNetUpdateFrequency(100.0f);
 }
 
 void AArenaPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

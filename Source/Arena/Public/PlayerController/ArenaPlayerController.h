@@ -7,6 +7,7 @@
 #include "GameFramework/PlayerController.h"
 #include "ArenaPlayerController.generated.h"
 
+class UArenaQuickBarComponent;
 class UArenaInventoryManagerComponent;
 class AArenaHUD;
 class UArenaInputConfig;
@@ -117,6 +118,9 @@ private:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaInventoryManagerComponent> InventoryManagerComponent;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArenaQuickBarComponent> QuickBarComponent;
 
 private:
 	void CheckTimeSync(float DeltaTime);

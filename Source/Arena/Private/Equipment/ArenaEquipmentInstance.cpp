@@ -3,6 +3,7 @@
 
 #include "Equipment/ArenaEquipmentInstance.h"
 
+#include "Character/BlasterCharacter.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
@@ -57,9 +58,9 @@ void UArenaEquipmentInstance::SpawnEquipmentActors(const TArray<FArenaEquipmentA
 	if (APawn* OwningPawn = GetPawn())
 	{
 		USceneComponent* AttachTarget = OwningPawn->GetRootComponent();
-		if (ACharacter* Char = Cast<ACharacter>(OwningPawn))
+		if (ABlasterCharacter* Char = Cast<ABlasterCharacter>(OwningPawn))
 		{
-			AttachTarget = Char->GetMesh();
+			AttachTarget = Char->GetDisplayMesh();
 		}
 
 		for (const FArenaEquipmentActorToSpawn& SpawnInfo : ActorsToSpawn)

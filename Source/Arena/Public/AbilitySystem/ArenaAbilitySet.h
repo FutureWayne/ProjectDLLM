@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
+
 #include "ArenaAbilitySet.generated.h"
 
 class UGameplayEffect;
 class UArenaGameplayAbility;
 class UAttributeSet;
 class UArenaAbilitySystemComponent;
-struct FGameplayAbilitySpecHandle;
-struct FActiveGameplayEffectHandle;
 
 
 /**

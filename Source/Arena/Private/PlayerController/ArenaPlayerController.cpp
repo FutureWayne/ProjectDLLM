@@ -5,6 +5,7 @@
 
 #include "EnhancedInputSubsystems.h"
 #include "Components/TextBlock.h"
+#include "Equipment/ArenaQuickBarComponent.h"
 #include "GameFramework/GameMode.h"
 #include "GameMode/TeamsGameMode.h"
 #include "Input/ArenaInputComponent.h"
@@ -19,6 +20,7 @@
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
 {
 	InventoryManagerComponent = CreateDefaultSubobject<UArenaInventoryManagerComponent>(TEXT("InventoryManagerComponent"));
+	QuickBarComponent = CreateDefaultSubobject<UArenaQuickBarComponent>(TEXT("QuickBarComponent"));
 }
 
 void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)

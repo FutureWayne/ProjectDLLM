@@ -41,6 +41,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Inventory)
 	bool HasStatTag(FGameplayTag Tag) const;
 
+	UFUNCTION(BlueprintCallable, Category=Inventory)
 	TSubclassOf<UArenaInventoryItemDefinition> GetItemDef() const
 	{
 		return ItemDef;
@@ -52,7 +53,7 @@ public:
 	template <typename ResultClass>
 	const ResultClass* FindFragmentByClass() const
 	{
-		return static_cast<ResultClass*>(FindFragmentByClass(ResultClass::StaticClass()));
+		return (ResultClass*)(FindFragmentByClass(ResultClass::StaticClass()));
 	}
 
 private:
