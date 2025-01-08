@@ -18,6 +18,4 @@ class ARENA_API UInventoryFragment_EquippableItem : public UArenaInventoryItemFr
 public:
 	UPROPERTY(EditAnywhere, Category=Arena)
 	TSubclassOf<UArenaEquipmentDefinition> EquipmentDefinition;
-	
-	
 };
