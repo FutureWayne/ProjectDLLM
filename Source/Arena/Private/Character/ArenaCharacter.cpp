@@ -110,5 +110,5 @@ void AArenaCharacter::InitAbilityActorInfo()
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
 
 	check(AbilitySet);
-	AbilitySet->GiveToAbilitySystem(ArenaASC, nullptr);
+	PS->AddAbilitySet(AbilitySet);
 }

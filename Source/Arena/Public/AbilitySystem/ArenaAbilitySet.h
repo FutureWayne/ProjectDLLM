@@ -96,6 +96,8 @@ public:
 
 	void TakeFromAbilitySystem(UArenaAbilitySystemComponent* ArenaASC);
 
+	void RemoveAbilitiesFromAbilitySystem(UArenaAbilitySystemComponent* ArenaASC);
+
 protected:
 	// Handles to granted abilities.
 	UPROPERTY()
