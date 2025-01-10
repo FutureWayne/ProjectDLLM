@@ -17,4 +17,7 @@ class ARENA_API UInventoryFragment_GrenadeDef : public UArenaInventoryItemFragme
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	TSubclassOf<AActor> GrenadeClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	int32 BurstShotCount = 1;
 };
