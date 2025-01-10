@@ -7,6 +7,12 @@
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Misc/DataValidation.h"
 
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaGameplayAbility_FromEquip)
+
 UArenaGameplayAbility_FromEquip::UArenaGameplayAbility_FromEquip(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 }
@@ -31,6 +37,7 @@ UArenaInventoryItemInstance* UArenaGameplayAbility_FromEquip::GetAssociatedItem(
 	return nullptr;
 }
 
+#if WITH_EDITOR
 EDataValidationResult UArenaGameplayAbility_FromEquip::IsDataValid(FDataValidationContext& Context) const
 {
 	EDataValidationResult Result = Super::IsDataValid(Context);
@@ -43,3 +50,4 @@ EDataValidationResult UArenaGameplayAbility_FromEquip::IsDataValid(FDataValidati
 
 	return Result;
 }
+#endif

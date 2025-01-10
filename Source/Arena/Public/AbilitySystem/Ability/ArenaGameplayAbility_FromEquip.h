@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "AbilitySystem/ArenaGameplayAbility.h"
 #include "ArenaGameplayAbility_FromEquip.generated.h"
 
 class UArenaInventoryItemInstance;
 class UArenaEquipmentInstance;
+
 /**
  * 
  */
@@ -18,8 +18,7 @@ class ARENA_API UArenaGameplayAbility_FromEquip : public UArenaGameplayAbility
 
 public:
 	UArenaGameplayAbility_FromEquip(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-
+	
 	UFUNCTION(BlueprintCallable, Category="Arena|Ability")
 	UArenaEquipmentInstance* GetAssociatedEquipment() const;
 
