@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Inventory/ArenaInventoryItemDefinition.h"
 #include "InventoryFragment_GrenadeDef.generated.h"
 
@@ -15,6 +16,9 @@ class ARENA_API UInventoryFragment_GrenadeDef : public UArenaInventoryItemFragme
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
 	TSubclassOf<AActor> GrenadeClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
+	int32 BurstShotCount = 1;
 };

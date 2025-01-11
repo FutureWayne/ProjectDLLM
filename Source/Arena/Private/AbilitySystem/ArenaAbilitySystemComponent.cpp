@@ -154,35 +154,26 @@ void UArenaAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbil
 			continue;
 		}
 
-		if (ArenaAbilityCDO->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		ensureMsgf(AbilitySpec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced, TEXT("CancelAbilitiesByFunc: All Abilities should be Instanced (NonInstanced is being deprecated due to usability issues)."));
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+			
+		// Cancel all the spawned instances.
+		TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
+		for (UGameplayAbility* AbilityInstance : Instances)
 		{
-			// Cancel all spawned instances
-			TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
-			for (UGameplayAbility* Instance : Instances)
-			{
-				UArenaGameplayAbility* ArenaAbilityInstance = Cast<UArenaGameplayAbility>(Instance);
+			UArenaGameplayAbility* ArenaAbilityInstance = CastChecked<UArenaGameplayAbility>(AbilityInstance);
 
-				if (ShouldCancelFunc(ArenaAbilityInstance, AbilitySpec.Handle))
-				{
-					if (ArenaAbilityInstance->CanBeCanceled())
-					{
-						ArenaAbilityInstance->CancelAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), ArenaAbilityInstance->GetCurrentActivationInfo(), bReplicateCancelAbility);
-					}
-					else
-					{
-						UE_LOG(LogTemp, Error, TEXT("CancelAbilitiesByFunc: Can't cancel ability [%s] because CanBeCanceled is false."), *ArenaAbilityInstance->GetName());
-					}
-				}
-			}
-		}
-		else
-		{
-			// Cancel the non-instanced ability CDO
-			if (ShouldCancelFunc(ArenaAbilityCDO, AbilitySpec.Handle))
+			if (ShouldCancelFunc(ArenaAbilityInstance, AbilitySpec.Handle))
 			{
-				// Non-instanced abilities should always be cancelable
-				check(ArenaAbilityCDO->CanBeCanceled());
-				ArenaAbilityCDO->CancelAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), ArenaAbilityCDO->GetCurrentActivationInfo(), bReplicateCancelAbility);
+				if (ArenaAbilityInstance->CanBeCanceled())
+				{
+					ArenaAbilityInstance->CancelAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), ArenaAbilityInstance->GetCurrentActivationInfo(), bReplicateCancelAbility);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("CancelAbilitiesByFunc: Can't cancel ability [%s] because CanBeCanceled is false."), *ArenaAbilityInstance->GetName());
+				}
 			}
 		}
 	}
@@ -293,8 +284,10 @@ void UArenaAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec&
 	
 	if (Spec.IsActive())
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
 		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		
 		// Invoke the InputPressed event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
 		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, OriginalPredictionKey);
@@ -307,8 +300,10 @@ void UArenaAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec
 
 	if (Spec.IsActive())
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
 		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		
 		// Invoke the InputReleased event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
 		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, OriginalPredictionKey);
