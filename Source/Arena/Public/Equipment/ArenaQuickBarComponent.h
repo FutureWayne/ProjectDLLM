@@ -20,7 +20,7 @@ class ARENA_API UArenaQuickBarComponent : public UControllerComponent
 public:
 	UArenaQuickBarComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	UFUNCTION(Blueprintable, Category="Arena")
+	UFUNCTION(BlueprintCallable, Category="Arena")
 	void CycleActiveSlotForward();
 
 	UFUNCTION(BlueprintCallable, Category="Arena")

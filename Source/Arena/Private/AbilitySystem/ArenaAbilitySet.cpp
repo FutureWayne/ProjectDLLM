@@ -60,6 +60,26 @@ void FArenaAbilitySet_GrantedHandles::TakeFromAbilitySystem(UArenaAbilitySystemC
 	GrantedAttributeSets.Reset();
 }
 
+void FArenaAbilitySet_GrantedHandles::RemoveAbilitiesFromAbilitySystem(UArenaAbilitySystemComponent* ArenaASC)
+{
+	check(ArenaASC);
+
+	if (!ArenaASC->IsOwnerActorAuthoritative())
+	{
+		return;
+	}
+
+	for (const FGameplayAbilitySpecHandle& Handle : AbilitySpecHandles)
+	{
+		if (Handle.IsValid())
+		{
+			ArenaASC->ClearAbility(Handle);
+		}
+	}
+
+	AbilitySpecHandles.Reset();
+}
+
 UArenaAbilitySet::UArenaAbilitySet(const FObjectInitializer& ObjectInitializer)
 {
 }
