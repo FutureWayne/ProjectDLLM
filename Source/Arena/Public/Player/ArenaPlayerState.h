@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "Teams/ArenaTeamInfo.h"
@@ -35,6 +36,8 @@ public:
 	
 	UArenaHealthSet* GetArenaHealthSet() const;
 
+	void AddAbilitySet(const UArenaAbilitySet* AbilitySet);
+
 	// ~IGenericTeamAgentInterface
 	virtual FGenericTeamId GetGenericTeamId() const override { return MyTeamID; }
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
@@ -61,4 +64,6 @@ private:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_MyTeamID)
 	FGenericTeamId MyTeamID;
+
+	FArenaAbilitySet_GrantedHandles AbilitySetHandles;
 };

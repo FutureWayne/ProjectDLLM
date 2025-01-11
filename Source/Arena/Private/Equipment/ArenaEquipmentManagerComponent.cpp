@@ -77,7 +77,10 @@ UArenaEquipmentInstance* FArenaEquipmentList::AddEntry(const TSubclassOf<UArenaE
 	
 	for (const TObjectPtr<const UArenaAbilitySet>& AbilitySet : EquipmentCDO->AbilitySetsToGrant)
 	{
-		AbilitySet->GiveToAbilitySystem(ASC, /*inout*/ &NewEntry.GrantedHandles, Result);
+		if (AbilitySet)
+		{
+			AbilitySet->GiveToAbilitySystem(ASC, /*inout*/ &NewEntry.GrantedHandles, Result);
+		}
 	}
 
 	Result->SpawnEquipmentActors(EquipmentCDO->ActorsToSpawn);

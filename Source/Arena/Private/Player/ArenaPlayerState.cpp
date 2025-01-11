@@ -3,6 +3,7 @@
 
 #include "Player/ArenaPlayerState.h"
 
+#include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/BlasterCharacter.h"
@@ -35,6 +36,19 @@ UArenaHealthSet* AArenaPlayerState::GetArenaHealthSet() const
 {
 	return ArenaHealthSet;
 }
+
+void AArenaPlayerState::AddAbilitySet(const UArenaAbilitySet* AbilitySet)
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+
+	// Remove any existing abilities
+	AbilitySetHandles.RemoveAbilitiesFromAbilitySystem(AbilitySystemComponent);
+	AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &AbilitySetHandles);
+}
+
 
 void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
