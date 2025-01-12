@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameplayTagContainer.h"
 #include "Inventory/ArenaInventoryItemDefinition.h"
 #include "InventoryFragment_GrenadeDef.generated.h"
 
@@ -21,4 +20,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
 	int32 BurstShotCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
+	float ProjectileSpeed = 2500.f;
 };
