@@ -5,7 +5,12 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
+#include "ArenaGameplayTags.h"
 #include "Net/UnrealNetwork.h"
+
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_Damage, "Gameplay.Damage");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageImmunity, "Gameplay.DamageImmunity");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageSelfDestruct, "Gameplay.Damage.SelfDestruct");
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaHealthSet)
 
@@ -63,7 +68,14 @@ bool UArenaHealthSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& D
 	{
 		if (Data.EvaluatedData.Magnitude > 0.0f)
 		{
-			// TODO: Handle Cheat and Damage Immunity tags
+			const bool bIsDamageFromSelfDestruct = Data.EffectSpec.GetDynamicAssetTags().HasTagExact(TAG_Gameplay_DamageSelfDestruct);
+
+			if (Data.Target.HasMatchingGameplayTag(TAG_Gameplay_DamageImmunity) && !bIsDamageFromSelfDestruct)
+			{
+				// Do not take away any health.
+				Data.EvaluatedData.Magnitude = 0.0f;
+				return false;
+			}
 		}
 	}
 
