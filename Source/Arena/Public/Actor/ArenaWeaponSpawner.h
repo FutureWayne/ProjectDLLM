@@ -93,4 +93,6 @@ public:
 	void OnRep_WeaponAvailability();
 
 	static int32 GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass, FGameplayTag StatTag);
+	
+	void SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition);
 };

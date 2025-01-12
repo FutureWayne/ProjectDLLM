@@ -238,3 +238,8 @@ int32 AArenaWeaponSpawner::GetDefaultStatFromItemDef(const TSubclassOf<UArenaInv
 
 	return 0;
 }
+
+void AArenaWeaponSpawner::SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition)
+{
+	WeaponDefinition = NewWeaponDefinition;
+}
