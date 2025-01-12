@@ -88,15 +88,18 @@ UArenaInventoryItemInstance* FArenaInventoryList::AddEntry(const TSubclassOf<UAr
 	AActor* OwningActor = OwnerComponent->GetOwner();
 	check(OwningActor->HasAuthority());
 
+	APlayerController* PlayerController = Cast<APlayerController>(OwnerComponent->GetOwner());
+	APawn* OwnerPawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+
 	FArenaInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 	NewEntry.Instance = NewObject<UArenaInventoryItemInstance>(OwnerComponent->GetOwner());
 	NewEntry.Instance->SetItemDef(ItemDef);
 	const UArenaInventoryItemDefinition* ItemCDO = GetDefault<UArenaInventoryItemDefinition>(ItemDef);
-	for (const UArenaInventoryItemFragment* Fragment : ItemCDO->Fragments)
+	for (UArenaInventoryItemFragment* Fragment : ItemCDO->Fragments)
 	{
 		if (Fragment != nullptr)
 		{
-			Fragment->OnInstanceCreated(NewEntry.Instance);
+			Fragment->OnInstanceCreated(NewEntry.Instance, OwnerPawn);
 		}
 	}
 
@@ -115,11 +118,23 @@ void FArenaInventoryList::AddEntry(UArenaInventoryItemInstance* ItemInstance)
 
 void FArenaInventoryList::RemoveEntry(UArenaInventoryItemInstance* ItemInstance)
 {
+	APlayerController* PlayerController = Cast<APlayerController>(OwnerComponent->GetOwner());
+	APawn* OwnerPawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+	
 	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{
 		FArenaInventoryEntry& Entry = *EntryIt;
 		if (Entry.Instance == ItemInstance)
 		{
+			TSubclassOf<UArenaInventoryItemDefinition> ItemDef = ItemInstance->GetItemDef();
+			for (UArenaInventoryItemFragment* Fragment : GetDefault<UArenaInventoryItemDefinition>(ItemDef)->Fragments)
+			{
+				if (Fragment != nullptr)
+				{
+					Fragment->OnInstanceRemoved(ItemInstance, OwnerPawn);
+				}
+			}
+			
 			EntryIt.RemoveCurrent();
 			MarkArrayDirty();
 		}
@@ -139,7 +154,7 @@ void FArenaInventoryList::BroadcastChangeMessage(FArenaInventoryEntry& Entry, in
 }
 
 //////////////////////////////////////////////////////////////////////
-// ULyraInventoryManagerComponent
+// UArenaInventoryManagerComponent
 
 UArenaInventoryManagerComponent::UArenaInventoryManagerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

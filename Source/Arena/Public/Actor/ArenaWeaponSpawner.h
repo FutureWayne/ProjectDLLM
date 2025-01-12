@@ -32,7 +32,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, ReplicatedUsing = OnRep_WeaponDefinition, Category = "Arena|WeaponPickup")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_WeaponDefinition, Category = "Arena|WeaponPickup")
 	TObjectPtr<UArenaWeaponPickupDefinition> WeaponDefinition;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_WeaponAvailability, Category = "Arena|WeaponPickup")

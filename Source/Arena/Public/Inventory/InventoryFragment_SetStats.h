@@ -16,13 +16,14 @@ UCLASS()
 class ARENA_API UInventoryFragment_SetStats : public UArenaInventoryItemFragment
 {
 	GENERATED_BODY()
+
+public:
+	virtual void OnInstanceCreated(UArenaInventoryItemInstance* Instance, AActor* OwnerActor) override;
+
+	int32 GetItemStatByTag(FGameplayTag Tag) const;
 	
 protected:
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TMap<FGameplayTag, int32> InitialItemStats;
 
-public:
-	virtual void OnInstanceCreated(UArenaInventoryItemInstance* Instance) const override;
-
-	int32 GetItemStatByTag(FGameplayTag Tag) const;
 };

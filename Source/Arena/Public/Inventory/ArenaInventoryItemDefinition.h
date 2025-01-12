@@ -16,8 +16,10 @@ class ARENA_API UArenaInventoryItemFragment : public UObject
 {
 	GENERATED_BODY()
 
-public:
-	virtual void OnInstanceCreated(UArenaInventoryItemInstance* Instance) const {}
+public:	
+	virtual void OnInstanceCreated(UArenaInventoryItemInstance* Instance, AActor* OwnerActor) {}
+	
+	virtual void OnInstanceRemoved(UArenaInventoryItemInstance* Instance, AActor* OwnerActor) {}
 };
 
 //////////////////////////////////////////////////////////////////////
