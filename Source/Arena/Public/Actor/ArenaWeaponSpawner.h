@@ -54,8 +54,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
 	TObjectPtr<UCapsuleComponent> CollisionVolume;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	TObjectPtr<UStaticMeshComponent> PadMesh;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Arena|WeaponPickup")
 	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	FLinearColor PadColor;
 
 	FTimerHandle CoolDownTimerHandle;
 	FTimerHandle CheckOverlapsDelayTimerHandle;
@@ -95,6 +101,7 @@ public:
 	UFUNCTION()
 	void OnRep_WeaponDefinition();
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Arena|WeaponPickup")
 	static int32 GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass, FGameplayTag StatTag);
 	
 	void SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition);

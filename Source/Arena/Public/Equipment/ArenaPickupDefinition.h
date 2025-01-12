@@ -25,6 +25,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Pickup|Mesh")
 	TObjectPtr<UStaticMesh> DisplayMesh;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Pickup|Mesh")
+	FLinearColor PadColor;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Pickup")
 	int32 SpawnCoolDownSeconds;
 

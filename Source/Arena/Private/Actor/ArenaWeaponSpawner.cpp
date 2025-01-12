@@ -23,6 +23,9 @@ AArenaWeaponSpawner::AArenaWeaponSpawner()
 	CollisionVolume->InitCapsuleSize(80.0f, 80.0f);
 	CollisionVolume->OnComponentBeginOverlap.AddDynamic(this, &AArenaWeaponSpawner::OnOverlapBegin);
 
+	PadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PadMesh"));
+	PadMesh->SetupAttachment(RootComponent);
+
 	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -132,6 +135,11 @@ void AArenaWeaponSpawner::AttemptPickUpWeapon_Implementation(APawn* Pawn)
 
 void AArenaWeaponSpawner::StartCoolDown()
 {
+	if (CoolDownTime <= 0.0f)
+	{
+		Destroy();
+	}
+	
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().SetTimer(CoolDownTimerHandle, this, &AArenaWeaponSpawner::OnCoolDownTimerComplete, CoolDownTime);
@@ -230,6 +238,7 @@ void AArenaWeaponSpawner::OnRep_WeaponDefinition()
 		WeaponMesh->SetStaticMesh(WeaponDefinition->DisplayMesh);
 		WeaponMesh->SetRelativeLocation(WeaponDefinition->WeaponMeshOffset);
 		WeaponMesh->SetRelativeScale3D(WeaponDefinition->WeaponMeshScale);
+		PadColor = WeaponDefinition->PadColor;
 	}
 }
 
