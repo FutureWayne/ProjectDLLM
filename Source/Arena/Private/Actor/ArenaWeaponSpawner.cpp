@@ -38,6 +38,7 @@ void AArenaWeaponSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AArenaWeaponSpawner, bIsWeaponAvailable);
+	DOREPLIFETIME(AArenaWeaponSpawner, WeaponDefinition);
 }
 
 // Called when the game starts or when spawned
@@ -220,6 +221,16 @@ void AArenaWeaponSpawner::OnRep_WeaponAvailability()
 		StartCoolDown();
 		PlayPickupEffects();
 	}	
+}
+
+void AArenaWeaponSpawner::OnRep_WeaponDefinition()
+{
+	if (WeaponDefinition != nullptr && WeaponDefinition->DisplayMesh != nullptr)
+	{
+		WeaponMesh->SetStaticMesh(WeaponDefinition->DisplayMesh);
+		WeaponMesh->SetRelativeLocation(WeaponDefinition->WeaponMeshOffset);
+		WeaponMesh->SetRelativeScale3D(WeaponDefinition->WeaponMeshScale);
+	}
 }
 
 int32 AArenaWeaponSpawner::GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass,

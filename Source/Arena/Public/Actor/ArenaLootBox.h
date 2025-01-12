@@ -49,10 +49,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|LootBox")
 	TSubclassOf<AArenaWeaponSpawner> WeaponSpawnerClass;
 
-private:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|LootBox")
 	TObjectPtr<UBoxComponent> BoxComponent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|LootBox")
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
 };

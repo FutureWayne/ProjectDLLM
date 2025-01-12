@@ -31,6 +31,8 @@ AArenaLootBox::AArenaLootBox()
 
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(BoxComponent);
+
+	SetReplicates(true);
 }
 
 UArenaAbilitySystemComponent* AArenaLootBox::GetArenaAbilitySystemComponent() const

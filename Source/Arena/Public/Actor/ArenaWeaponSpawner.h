@@ -32,7 +32,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, ReplicatedUsing = OnRep_WeaponDefinition, Category = "Arena|WeaponPickup")
 	TObjectPtr<UArenaWeaponPickupDefinition> WeaponDefinition;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_WeaponAvailability, Category = "Arena|WeaponPickup")
@@ -91,6 +91,9 @@ public:
 
 	UFUNCTION()
 	void OnRep_WeaponAvailability();
+
+	UFUNCTION()
+	void OnRep_WeaponDefinition();
 
 	static int32 GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass, FGameplayTag StatTag);
 	
