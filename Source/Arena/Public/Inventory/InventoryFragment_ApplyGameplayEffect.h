@@ -26,4 +26,5 @@ protected:
 
 private:
 	FActiveGameplayEffectHandle ActiveGameplayEffectHandle;
+
 };

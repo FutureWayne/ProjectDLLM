@@ -32,9 +32,8 @@ void UInventoryFragment_ApplyGameplayEffect::OnInstanceRemoved(UArenaInventoryIt
 	}
 
 	UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerActor);
-	if (ASC)
+	if (ASC && ActiveGameplayEffectHandle.IsValid())
 	{
-		// Remove the Gameplay Effect from the owner actor
-		ASC->RemoveActiveGameplayEffect(ActiveGameplayEffectHandle);
+		ASC->RemoveActiveGameplayEffect(ActiveGameplayEffectHandle, 1);
 	}
 }

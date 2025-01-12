@@ -12,8 +12,10 @@
 #include "Teams/ArenaTeamSubsystem.h"
 #include "ArenaPlayerState.generated.h"
 
-enum class ETeam : uint8;
+class UArenaCombatSet;
 class UArenaHealthSet;
+
+enum class ETeam : uint8;
 
 /**
  * 
@@ -34,7 +36,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerState")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const { return AbilitySystemComponent; };
 	
-	UArenaHealthSet* GetArenaHealthSet() const;
+	UArenaHealthSet* GetArenaHealthSet() const { return ArenaHealthSet; }
+
+	UArenaCombatSet* GetArenaCombatSet() const { return ArenaCombatSet; }
 
 	void AddAbilitySet(const UArenaAbilitySet* AbilitySet);
 
@@ -56,6 +60,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UArenaHealthSet> ArenaHealthSet;
+
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UArenaCombatSet> ArenaCombatSet;
 	
 private:
 	UFUNCTION()

@@ -97,6 +97,7 @@ void AArenaCharacter::InitAbilityActorInfo()
 	PS->GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
 	AbilitySystemComponent = PS->GetAbilitySystemComponent();
 	ArenaHealthSet = PS->GetArenaHealthSet();
+	ArenaCombatSet = PS->GetArenaCombatSet();
 
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
