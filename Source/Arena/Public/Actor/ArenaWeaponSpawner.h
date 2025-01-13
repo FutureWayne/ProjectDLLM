@@ -103,6 +103,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Arena|WeaponPickup")
 	static int32 GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass, FGameplayTag StatTag);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|WeaponPickup")
+	void OnWeaponDefinitionChanged();
 	
 	void SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition);
 };
