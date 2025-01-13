@@ -90,7 +90,6 @@ void AArenaWeaponSpawner::OnConstruction(const FTransform& Transform)
 		WeaponMesh->SetRelativeLocation(WeaponDefinition->WeaponMeshOffset);
 		WeaponMesh->SetRelativeScale3D(WeaponDefinition->WeaponMeshScale);
 		PadColor = WeaponDefinition->PadColor;
-		OnWeaponDefinitionChanged();
 	}
 }
 
