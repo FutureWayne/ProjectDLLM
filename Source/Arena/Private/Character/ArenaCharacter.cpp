@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ArenaAbilitySet.h"
+#include "AbilitySystem/ArenaCombatSet.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -110,6 +111,10 @@ void AArenaCharacter::InitAbilityActorInfo()
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
 
+	ArenaCombatSet.Get()->OnSpeedBuffChanged.AddDynamic(this, &ThisClass::K2_OnSpeedBuffChanged);
+
 	check(AbilitySet);
 	PS->AddAbilitySet(AbilitySet);
+
+	K2_OnAbilityActorInfoInitialized();
 }

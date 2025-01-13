@@ -7,6 +7,8 @@
 #include "AbilitySystem/ArenaAttributeSet.h"
 #include "ArenaCombatSet.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FArenaCombat_AttributeChanged, float, OldValue, float, NewValue, AActor*, Instigator);
+
 /**
  * 
  */
@@ -21,8 +23,11 @@ public:
 	ATTRIBUTE_ACCESSORS(UArenaCombatSet, BurstCount);
 	ATTRIBUTE_ACCESSORS(UArenaCombatSet, SpeedBuff);
 
-	mutable FArenaAttributeEvent OnBurstCountChanged;
-	mutable FArenaAttributeEvent OnSpeedBuffChanged;
+	UPROPERTY(BlueprintAssignable)
+	FArenaCombat_AttributeChanged OnBurstCountChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FArenaCombat_AttributeChanged OnSpeedBuffChanged;
 
 protected:
 	UFUNCTION()
@@ -31,6 +36,7 @@ protected:
 	UFUNCTION()
 	void OnRep_SpeedBuff(const FGameplayAttributeData& OldSpeedBuff);
 
+	virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
 	
 	void ClampAttribute(const FGameplayAttribute& Attribute, float& NewValue) const;
 

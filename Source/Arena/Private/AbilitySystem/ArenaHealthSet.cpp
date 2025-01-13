@@ -137,6 +137,8 @@ void UArenaHealthSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute
 
 void UArenaHealthSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
+	Super::PreAttributeChange(Attribute, NewValue);
+	
 	ClampAttribute(Attribute, NewValue);
 }
 
@@ -146,12 +148,17 @@ void UArenaHealthSet::PostAttributeChange(const FGameplayAttribute& Attribute, f
 
 	if (Attribute == GetMaxHealthAttribute())
 	{
-		if (GetHealth() > NewValue)
-		{
-			UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
-			check(ArenaASC);
+		UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
+		check(ArenaASC);
 
+		// If the new max health is greater than the old max health, increase the current health to match.
+		// If the new max health is less than the old max health and current health is greater than new max health, clamp the current health to match.
+		if (NewValue > OldValue || GetHealth() > NewValue)
+		{
 			ArenaASC->ApplyModToAttribute(GetHealthAttribute(), EGameplayModOp::Override, NewValue);
+			
+			OnHealthChanged.Broadcast(nullptr, nullptr, nullptr, 0.0f, GetHealth(), GetHealth());
+			OnMaxHealthChanged.Broadcast(nullptr, nullptr, nullptr, 0.0f, GetMaxHealth(), NewValue);
 		}
 	}
 	

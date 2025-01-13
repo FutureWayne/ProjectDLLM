@@ -29,11 +29,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	UArenaHealthSet* GetArenaHealthSet() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	UArenaCombatSet* GetArenaCombatSet() const;
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	
-	UArenaHealthSet* GetArenaHealthSet() const;
-	UArenaCombatSet* GetArenaCombatSet() const;
 
 protected:
 	// Called when the game starts or when spawned
