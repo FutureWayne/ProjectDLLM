@@ -5,6 +5,7 @@
 
 #include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
+#include "AbilitySystem/ArenaCombatSet.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/BlasterCharacter.h"
 #include "Net/UnrealNetwork.h"
@@ -16,6 +17,7 @@ AArenaPlayerState::AArenaPlayerState()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	ArenaHealthSet = CreateDefaultSubobject<UArenaHealthSet>(TEXT("HealthSet"));
+	ArenaCombatSet = CreateDefaultSubobject<UArenaCombatSet>(TEXT("CombatSet"));
 	
 	SetNetUpdateFrequency(100.0f);
 }
@@ -30,11 +32,6 @@ void AArenaPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 UAbilitySystemComponent* AArenaPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
-}
-
-UArenaHealthSet* AArenaPlayerState::GetArenaHealthSet() const
-{
-	return ArenaHealthSet;
 }
 
 void AArenaPlayerState::AddAbilitySet(const UArenaAbilitySet* AbilitySet)

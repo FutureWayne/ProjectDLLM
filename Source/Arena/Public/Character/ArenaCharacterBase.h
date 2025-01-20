@@ -7,6 +7,7 @@
 #include "AbilitySystemInterface.h"
 #include "ArenaCharacterBase.generated.h"
 
+class UArenaCombatSet;
 class UCameraComponent;
 class UArenaAbilitySet;
 class UGameplayAbility;
@@ -14,8 +15,8 @@ class UInputMappingContext;
 class UArenaAbilitySystemComponent;
 class UArenaHealthComponent;
 class UArenaHealthSet;
-class UAbilitySystemComponent;
 class UAttributeSet;
+class UAbilitySystemComponent;
 
 UCLASS()
 class ARENA_API AArenaCharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -28,9 +29,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	UArenaHealthSet* GetArenaHealthSet() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	UArenaCombatSet* GetArenaCombatSet() const;
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	UArenaHealthSet* GetArenaHealthSet() const;
 
 protected:
 	// Called when the game starts or when spawned
@@ -41,6 +47,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UArenaHealthSet> ArenaHealthSet;
+
+	UPROPERTY()
+	TObjectPtr<UArenaCombatSet> ArenaCombatSet;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaHealthComponent> HealthComponent;

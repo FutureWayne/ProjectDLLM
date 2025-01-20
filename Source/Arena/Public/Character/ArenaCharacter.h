@@ -39,6 +39,12 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
 	void K2_OnDeathFinished();
 
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnSpeedBuffChanged"))
+	void K2_OnSpeedBuffChanged(float OldValue, float NewValue, AActor* EffectInstigator);
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnAbilityActorInfoInitialized"))
+	void K2_OnAbilityActorInfoInitialized();
+
 protected:
 	TObjectPtr<AArenaPlayerState> ArenaPlayerState;
 

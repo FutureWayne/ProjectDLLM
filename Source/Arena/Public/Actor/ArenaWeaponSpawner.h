@@ -32,7 +32,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	
 protected:
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_WeaponDefinition, Category = "Arena|WeaponPickup")
 	TObjectPtr<UArenaWeaponPickupDefinition> WeaponDefinition;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_WeaponAvailability, Category = "Arena|WeaponPickup")
@@ -54,8 +54,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
 	TObjectPtr<UCapsuleComponent> CollisionVolume;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	TObjectPtr<UStaticMeshComponent> PadMesh;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Arena|WeaponPickup")
 	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Arena|WeaponPickup")
+	FLinearColor PadColor;
 
 	FTimerHandle CoolDownTimerHandle;
 	FTimerHandle CheckOverlapsDelayTimerHandle;
@@ -92,5 +98,14 @@ public:
 	UFUNCTION()
 	void OnRep_WeaponAvailability();
 
+	UFUNCTION()
+	void OnRep_WeaponDefinition();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Arena|WeaponPickup")
 	static int32 GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass, FGameplayTag StatTag);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|WeaponPickup")
+	void OnWeaponDefinitionChanged();
+	
+	void SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition);
 };

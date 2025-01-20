@@ -6,7 +6,7 @@
 #include "Inventory/ArenaInventoryItemInstance.h"
 
 
-void UInventoryFragment_SetStats::OnInstanceCreated(UArenaInventoryItemInstance* Instance) const
+void UInventoryFragment_SetStats::OnInstanceCreated(UArenaInventoryItemInstance* Instance, AActor* OwnerActor)
 {
 	for (const auto& KVP : InitialItemStats)
 	{

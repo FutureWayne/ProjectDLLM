@@ -32,6 +32,6 @@ void ALobbyGameMode::StartGame()
 	if (UWorld* World = GetWorld())
 	{
 		bUseSeamlessTravel = true;
-		World->ServerTravel(FString("/Game/Maps/AnimationGym?listen"));
+		World->ServerTravel(FString("/Game/Maps/PVP_Map?listen"));
 	}
 }

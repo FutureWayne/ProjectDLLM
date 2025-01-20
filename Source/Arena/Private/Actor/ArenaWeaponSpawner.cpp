@@ -23,6 +23,9 @@ AArenaWeaponSpawner::AArenaWeaponSpawner()
 	CollisionVolume->InitCapsuleSize(80.0f, 80.0f);
 	CollisionVolume->OnComponentBeginOverlap.AddDynamic(this, &AArenaWeaponSpawner::OnOverlapBegin);
 
+	PadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PadMesh"));
+	PadMesh->SetupAttachment(RootComponent);
+
 	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	WeaponMesh->SetupAttachment(RootComponent);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -38,6 +41,7 @@ void AArenaWeaponSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AArenaWeaponSpawner, bIsWeaponAvailable);
+	DOREPLIFETIME(AArenaWeaponSpawner, WeaponDefinition);
 }
 
 // Called when the game starts or when spawned
@@ -85,6 +89,7 @@ void AArenaWeaponSpawner::OnConstruction(const FTransform& Transform)
 		WeaponMesh->SetStaticMesh(WeaponDefinition->DisplayMesh);
 		WeaponMesh->SetRelativeLocation(WeaponDefinition->WeaponMeshOffset);
 		WeaponMesh->SetRelativeScale3D(WeaponDefinition->WeaponMeshScale);
+		PadColor = WeaponDefinition->PadColor;
 	}
 }
 
@@ -131,6 +136,11 @@ void AArenaWeaponSpawner::AttemptPickUpWeapon_Implementation(APawn* Pawn)
 
 void AArenaWeaponSpawner::StartCoolDown()
 {
+	if (CoolDownTime <= 0.0f)
+	{
+		Destroy();
+	}
+	
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().SetTimer(CoolDownTimerHandle, this, &AArenaWeaponSpawner::OnCoolDownTimerComplete, CoolDownTime);
@@ -222,6 +232,18 @@ void AArenaWeaponSpawner::OnRep_WeaponAvailability()
 	}	
 }
 
+void AArenaWeaponSpawner::OnRep_WeaponDefinition()
+{
+	if (WeaponDefinition != nullptr && WeaponDefinition->DisplayMesh != nullptr)
+	{
+		WeaponMesh->SetStaticMesh(WeaponDefinition->DisplayMesh);
+		WeaponMesh->SetRelativeLocation(WeaponDefinition->WeaponMeshOffset);
+		WeaponMesh->SetRelativeScale3D(WeaponDefinition->WeaponMeshScale);
+		PadColor = WeaponDefinition->PadColor;
+		OnWeaponDefinitionChanged();
+	}
+}
+
 int32 AArenaWeaponSpawner::GetDefaultStatFromItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& WeaponItemClass,
                                                      const FGameplayTag StatTag)
 {
@@ -237,4 +259,9 @@ int32 AArenaWeaponSpawner::GetDefaultStatFromItemDef(const TSubclassOf<UArenaInv
 	}
 
 	return 0;
+}
+
+void AArenaWeaponSpawner::SetPickupDefinition(UArenaWeaponPickupDefinition* NewWeaponDefinition)
+{
+	WeaponDefinition = NewWeaponDefinition;
 }

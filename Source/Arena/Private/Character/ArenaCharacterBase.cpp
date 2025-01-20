@@ -30,6 +30,11 @@ UArenaHealthSet* AArenaCharacterBase::GetArenaHealthSet() const
 	return ArenaHealthSet;
 }
 
+UArenaCombatSet* AArenaCharacterBase::GetArenaCombatSet() const
+{
+	return ArenaCombatSet;
+}
+
 // Called when the game starts or when spawned
 void AArenaCharacterBase::BeginPlay()
 {
