@@ -3,23 +3,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GenericTeamAgentInterface.h"
 #include "Actor/ArenaEffectActor.h"
+#include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaTeamEffectActor.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ARENA_API AArenaTeamEffectActor : public AArenaEffectActor, public IGenericTeamAgentInterface
+class ARENA_API AArenaTeamEffectActor : public AArenaEffectActor, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
 public:
-	// ~ Begin IGenericTeamAgentInterface
+	// ~ Begin IArenaTeamAgentInterface
 	virtual FGenericTeamId GetGenericTeamId() const override { return MyTeamID; }
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
-	// ~ End IGenericTeamAgentInterface
+	// ~ End IArenaTeamAgentInterface
 
 	
 private:

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Info.h"
+#include "System/GameplayTagStack.h"
 #include "ArenaTeamInfo.generated.h"
 
 class UArenaTeamSubsystem;
@@ -47,6 +48,10 @@ private:
 
 	UFUNCTION()
 	void OnRep_Team();
+
+public:
+	UPROPERTY(Replicated)
+	FGameplayTagStackContainer TeamTags;
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Team)

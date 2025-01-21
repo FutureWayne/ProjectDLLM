@@ -6,7 +6,15 @@
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
+#include "Messages/ArenaVerbMessage.h"
+#include "Messages/ArenaVerbMessageHelpers.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaHealthComponent)
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Elimination_Message, "Arena.Elimination.Message");
 
 
 // Sets default values for this component's properties
@@ -199,6 +207,21 @@ void UArenaHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* 
 
 			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
 			AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+		}
+
+		// Send a standardized verb message that other systems can observe
+		{
+			FArenaVerbMessage Message;
+			Message.Verb = TAG_Arena_Elimination_Message;
+			Message.Instigator = DamageInstigator;
+			Message.InstigatorTags = *DamageEffectSpec->CapturedSourceTags.GetAggregatedTags();
+			Message.Target = UArenaVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
+			Message.TargetTags = *DamageEffectSpec->CapturedTargetTags.GetAggregatedTags();
+			//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
+			//@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
+
+			UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
+			MessageSystem.BroadcastMessage(Message.Verb, Message);
 		}
 	}
 #endif

@@ -19,6 +19,7 @@ void AArenaTeamInfo::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(ThisClass, Team, COND_InitialOnly);
+	DOREPLIFETIME(ThisClass, TeamTags);
 }
 
 void AArenaTeamInfo::BeginPlay()

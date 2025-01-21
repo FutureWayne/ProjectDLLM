@@ -263,3 +263,68 @@ bool UArenaTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObjec
 
 	return false;
 }
+
+void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount)
+{
+	auto FailureHandler = [&](const FString& ErrorMessage)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+	};
+
+	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
+	if (!ensure(TeamInfo))
+	{
+		FailureHandler(TEXT("failed to find team info"));
+		return;
+	}
+
+	if (!TeamInfo->HasAuthority())
+	{
+		FailureHandler(TEXT("failed because it was called on a client"));
+		return;
+	}
+	
+	TeamInfo->TeamTags.AddStack(Tag, StackCount);
+}
+
+void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount)
+{
+	auto FailureHandler = [&](const FString& ErrorMessage)
+	{
+		UE_LOG(LogTemp, Error, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+	};
+
+	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
+	if (!ensure(TeamInfo))
+	{
+		FailureHandler(TEXT("failed to find team info"));
+		return;
+	}
+
+	if (!TeamInfo->HasAuthority())
+	{
+		FailureHandler(TEXT("failed because it was called on a client"));
+		return;
+	}
+
+	TeamInfo->TeamTags.RemoveStack(Tag, StackCount);
+}
+
+int32 UArenaTeamSubsystem::GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) const
+{
+	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
+	if (TeamInfo)
+	{
+		return TeamInfo->TeamTags.GetStackCount(Tag);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("GetTeamTagStackCount(TeamId: %d, Tag: %s) failed to find team info"), TeamId, *Tag.ToString());
+		return 0;
+	}
+}
+
+bool UArenaTeamSubsystem::TeamHasTag(ETeam TeamId, FGameplayTag Tag) const
+{
+	return GetTeamTagStackCount(TeamId, Tag) > 0;
+}

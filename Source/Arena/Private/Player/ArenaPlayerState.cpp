@@ -49,11 +49,54 @@ void AArenaPlayerState::AddAbilitySet(const UArenaAbilitySet* AbilitySet)
 
 void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
-	MyTeamID = NewTeamID;
+	if (HasAuthority())
+	{
+		const FGenericTeamId OldTeamID = MyTeamID;
+
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MyTeamID, this);
+		MyTeamID = NewTeamID;
+		ConditionalBroadcastTeamChanged(this, OldTeamID, NewTeamID);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
+	}
+
+	
 	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
 	{
 		BlasterCharacter->SetTeamColor(GetTeam());
 	}
+}
+
+FGenericTeamId AArenaPlayerState::GetGenericTeamId() const
+{
+	return MyTeamID;
+}
+
+FOnArenaTeamIndexChangedDelegate* AArenaPlayerState::GetOnTeamIndexChangedDelegate()
+{
+	return &OnTeamChangedDelegate;
+}
+
+void AArenaPlayerState::AddStatTagStack(FGameplayTag Tag, int32 StackCount)
+{
+	StatTags.AddStack(Tag, StackCount);
+}
+
+void AArenaPlayerState::RemoveStatTagStack(FGameplayTag Tag, int32 StackCount)
+{
+	StatTags.RemoveStack(Tag, StackCount);
+}
+
+int32 AArenaPlayerState::GetStatTagStackCount(FGameplayTag Tag) const
+{
+	return StatTags.GetStackCount(Tag);
+}
+
+bool AArenaPlayerState::HasStatTag(FGameplayTag Tag) const
+{
+	return StatTags.ContainsTag(Tag);
 }
 
 void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
@@ -62,5 +105,7 @@ void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
 	{
 		BlasterCharacter->SetTeamColor(GetTeam());
 	}
+
+	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);
 }
 

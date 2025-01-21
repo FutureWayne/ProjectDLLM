@@ -4,21 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "ArenaTeamInfo.h"
-#include "GenericTeamAgentInterface.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "ArenaTeamSubsystem.generated.h"
 
 class AArenaPlayerState;
-
-inline ETeam GenericTeamIdToTeam(const FGenericTeamId ID)
-{
-	return (ID == FGenericTeamId::NoTeam) ? ETeam::ET_Max : static_cast<ETeam>(ID.GetId());
-}
-
-inline FGenericTeamId TeamToGenericTeamId(const ETeam Team)
-{
-	return (Team == ETeam::ET_Max) ? FGenericTeamId::NoTeam : FGenericTeamId(static_cast<uint8>(Team));
-}
 
 // Result of comparing the team affiliation for two actors
 UENUM(BlueprintType)
@@ -89,9 +78,24 @@ public:
 	// Returns true if the instigator can damage the target, taking into account the friendly fire settings
 	bool CanCauseDamage(const UObject* Instigator, const UObject* Target, bool bAllowDamageToSelf = true) const;
 
+	// Adds a specified number of stacks to the tag (does nothing if StackCount is below 1)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Teams)
+	void AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount);
+
+	// Removes a specified number of stacks from the tag (does nothing if StackCount is below 1)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Teams)
+	void RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount);
+
+	// Returns the stack count of the specified tag (or 0 if the tag is not present)
+	UFUNCTION(BlueprintCallable, Category=Teams)
+	int32 GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) const;
+
+	// Returns true if there is at least one stack of the specified tag
+	UFUNCTION(BlueprintCallable, Category=Teams)
+	bool TeamHasTag(ETeam TeamId, FGameplayTag Tag) const;
+
 private:
-	UPROPERTY()
-	TMap<ETeam, AArenaTeamInfo*> TeamMap;
+	TMap<ETeam, TObjectPtr<AArenaTeamInfo>> TeamMap;
 
 	static const TMap<ETeam, FLinearColor> TeamColorMap;
 };

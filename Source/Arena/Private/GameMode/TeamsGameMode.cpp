@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Player/ArenaPlayerState.h"
 #include "PlayerController/ArenaPlayerController.h"
+#include "Teams/ArenaTeamSubsystem.h"
 
 namespace MatchState
 {
