@@ -4,12 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
-#include "GenericTeamAgentInterface.h"
 #include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "Teams/ArenaTeamAgentInterface.h"
 #include "Teams/ArenaTeamInfo.h"
-#include "Teams/ArenaTeamSubsystem.h"
 #include "ArenaPlayerState.generated.h"
 
 class UArenaCombatSet;
@@ -21,7 +20,7 @@ enum class ETeam : uint8;
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerState : public APlayerState, public IAbilitySystemInterface, public IGenericTeamAgentInterface
+class ARENA_API AArenaPlayerState : public APlayerState, public IAbilitySystemInterface, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -42,10 +41,11 @@ public:
 
 	void AddAbilitySet(const UArenaAbilitySet* AbilitySet);
 
-	// ~IGenericTeamAgentInterface
-	virtual FGenericTeamId GetGenericTeamId() const override { return MyTeamID; }
+	//~IArenaTeamAgentInterface interface
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
-	// ~ End IGenericTeamAgentInterface
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual FOnArenaTeamIndexChangedDelegate* GetOnTeamIndexChangedDelegate() override;
+	//~End of IArenaTeamAgentInterface interface
 
 	/** Returns the ETeam of the team the player belongs to. */
 	UFUNCTION(BlueprintCallable)
@@ -53,6 +53,22 @@ public:
 	{
 		return GenericTeamIdToTeam(MyTeamID);
 	}
+
+	// Adds a specified number of stacks to the tag (does nothing if StackCount is below 1)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Teams)
+	void AddStatTagStack(FGameplayTag Tag, int32 StackCount);
+
+	// Removes a specified number of stacks from the tag (does nothing if StackCount is below 1)
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Teams)
+	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount);
+
+	// Returns the stack count of the specified tag (or 0 if the tag is not present)
+	UFUNCTION(BlueprintCallable, Category=Teams)
+	int32 GetStatTagStackCount(FGameplayTag Tag) const;
+
+	// Returns true if there is at least one stack of the specified tag
+	UFUNCTION(BlueprintCallable, Category=Teams)
+	bool HasStatTag(FGameplayTag Tag) const;
 
 protected:
 	UPROPERTY(VisibleAnywhere)
@@ -71,6 +87,12 @@ private:
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_MyTeamID)
 	FGenericTeamId MyTeamID;
+
+	UPROPERTY(Replicated)
+	FGameplayTagStackContainer StatTags;
+
+	UPROPERTY()
+	FOnArenaTeamIndexChangedDelegate OnTeamChangedDelegate;
 
 	FArenaAbilitySet_GrantedHandles AbilitySetHandles;
 };

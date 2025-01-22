@@ -15,5 +15,16 @@ void AArenaTeamEffectActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void AArenaTeamEffectActor::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
-	MyTeamID = NewTeamID;
+	if (HasAuthority())
+	{
+		const FGenericTeamId OldTeamID = MyTeamID;
+
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, MyTeamID, this);
+		MyTeamID = NewTeamID;
+		ConditionalBroadcastTeamChanged(this, OldTeamID, NewTeamID);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
+	}
 }

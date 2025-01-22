@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GenericTeamAgentInterface.h"
 #include "Character/ArenaCharacterBase.h"
+#include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaMinion.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ARENA_API AArenaMinion : public AArenaCharacterBase, public IGenericTeamAgentInterface
+class ARENA_API AArenaMinion : public AArenaCharacterBase, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
