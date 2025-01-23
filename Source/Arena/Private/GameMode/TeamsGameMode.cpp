@@ -32,22 +32,22 @@ void ATeamsGameMode::Tick(float DeltaSeconds)
 			StartMatch();
 		}
 	}
-	else if (MatchState == MatchState::InProgress)
-	{
-		CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			SetMatchState(MatchState::Cooldown);
-		}
-	}
-	else if (MatchState == MatchState::Cooldown)
-	{
-		CountdownTime = AgentChoosingDuration + MatchDuration + CooldownDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			RestartGame();
-		}
-	}
+	// else if (MatchState == MatchState::InProgress)
+	// {
+	// 	CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		SetMatchState(MatchState::Cooldown);
+	// 	}
+	// }
+	// else if (MatchState == MatchState::Cooldown)
+	// {
+	// 	CountdownTime = AgentChoosingDuration + MatchDuration + CooldownDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		RestartGame();
+	// 	}
+	// }
 }
 
 void ATeamsGameMode::BeginPlay()
@@ -60,9 +60,7 @@ void ATeamsGameMode::BeginPlay()
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-
-	// Sort the players into teams
-	// If there is player in attack team, assign new player to defense team
+	
 	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
 	{
 		if (AArenaPlayerState* ArenaPS = NewPlayer->GetPlayerState<AArenaPlayerState>())
@@ -70,7 +68,8 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
 			if (ensure(TeamSubsystem))
 			{
-				if (ArenaGS->AttackTeam.Num() == 0)
+				int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
+				if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
 				{
 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
@@ -111,31 +110,31 @@ void ATeamsGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
-	// Sort the players into teams
-	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
-	{
-		for (auto PlayerState : ArenaGS->PlayerArray)
-		{
-			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
-			{
-				UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-				if (ensure(TeamSubsystem))
-				{
-					// Assign one player to attack and the rest to defense
-					if (ArenaGS->AttackTeam.Num() == 0)
-					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
-						ArenaGS->AttackTeam.AddUnique(ArenaPS);
-					}
-					else
-					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
-						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-					}
-				}
-			}
-		}
-	}
+	// // Sort the players into teams
+	// if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
+	// {
+	// 	for (auto PlayerState : ArenaGS->PlayerArray)
+	// 	{
+	// 		if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
+	// 		{
+	// 			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+	// 			if (ensure(TeamSubsystem))
+	// 			{
+	// 				// Assign one player to attack and the rest to defense
+	// 				if (ArenaGS->AttackTeam.Num() == 0)
+	// 				{
+	// 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+	// 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
+	// 				}
+	// 				else
+	// 				{
+	// 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+	// 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 
 void ATeamsGameMode::OnMatchStateSet()
@@ -146,7 +145,7 @@ void ATeamsGameMode::OnMatchStateSet()
 	{
 		if (AArenaPlayerController* ArenaPC = Cast<AArenaPlayerController>(*It))
 		{
-			ArenaPC->OnMatchStateSet(MatchState);
+			//ArenaPC->OnMatchStateSet(MatchState);
 		}
 	}
 }

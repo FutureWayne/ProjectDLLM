@@ -1,10 +1,10 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
 
-#include "Phases/ArenaGamePhaseAbility.h"
+#include "AbilitySystem/Phases/ArenaGamePhaseAbility.h"
 
 #include "AbilitySystemComponent.h"
-#include "Phases/ArenaGamePhaseSubsystem.h"
+#include "AbilitySystem/Phases/ArenaGamePhaseSubsystem.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
