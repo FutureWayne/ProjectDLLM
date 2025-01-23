@@ -102,10 +102,10 @@ protected:
 	void K2_OnPawnAvatarSet();
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability Activation")
 	EArenaAbilityActivationPolicy ActivationPolicy;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability Activation")
 	EArenaAbilityActivationGroup ActivationGroup;
 
 public:

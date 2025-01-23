@@ -1,8 +1,8 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
 
-#include "Phases/ArenaGamePhaseSubsystem.h"
-#include "Phases/ArenaGamePhaseAbility.h"
+#include "AbilitySystem/Phases/ArenaGamePhaseSubsystem.h"
+#include "AbilitySystem/Phases/ArenaGamePhaseAbility.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameFramework/GameStateBase.h"
 
