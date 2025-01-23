@@ -149,18 +149,18 @@ float AArenaPlayerController::GetServerTime()
 
 void AArenaPlayerController::SetHUDMatchCountdown(float CountdownTime)
 {
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD)
-	{
-		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
-		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
-
-		if (ArenaHUD && ArenaHUD->OverlayWidget && ArenaHUD->OverlayWidget->MatchCountdownText)
-		{
-			FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-			ArenaHUD->OverlayWidget->MatchCountdownText->SetText(FText::FromString(TimeString));
-		}
-	}
+// 	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
+// 	if (ArenaHUD)
+// 	{
+// 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+// 		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
+//
+// 		if (ArenaHUD && ArenaHUD->OverlayWidget && ArenaHUD->OverlayWidget->MatchCountdownText)
+// 		{
+// 			FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+// 			ArenaHUD->OverlayWidget->MatchCountdownText->SetText(FText::FromString(TimeString));
+// 		}
+// 	}
 }
 
 void AArenaPlayerController::SetHUDAgentChooseCountdown(float CountdownTime)

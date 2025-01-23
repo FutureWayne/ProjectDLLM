@@ -24,14 +24,14 @@ void ATeamsGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (MatchState == MatchState::WaitingToStart)
-	{
-		CountdownTime = AgentChoosingDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			StartMatch();
-		}
-	}
+	// if (MatchState == MatchState::WaitingToStart)
+	// {
+	// 	CountdownTime = AgentChoosingDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+	// 	if (CountdownTime <= 0.0f)
+	// 	{
+	// 		StartMatch();
+	// 	}
+	// }
 	// else if (MatchState == MatchState::InProgress)
 	// {
 	// 	CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
@@ -54,7 +54,7 @@ void ATeamsGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	LevelStartingTime = GetWorld()->GetTimeSeconds();
+	//LevelStartingTime = GetWorld()->GetTimeSeconds();
 }
 
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)

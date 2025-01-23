@@ -28,7 +28,7 @@ public:
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
-	float AgentChoosingDuration = 10.0f;
+	float AgentChoosingDuration = 3.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Match State Duration")
 	float MatchDuration = 120.f;
