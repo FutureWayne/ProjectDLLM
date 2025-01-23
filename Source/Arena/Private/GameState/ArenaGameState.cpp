@@ -4,6 +4,8 @@
 #include "GameState/ArenaGameState.h"
 
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "Messages/ArenaVerbMessage.h"
 
 
 AArenaGameState::AArenaGameState(const FObjectInitializer& ObjectInitializer)
@@ -33,6 +35,19 @@ void AArenaGameState::PostInitializeComponents()
 UAbilitySystemComponent* AArenaGameState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+void AArenaGameState::MulticastMessageToClients_Implementation(const FArenaVerbMessage Message)
+{
+	if (GetNetMode() == NM_Client)
+	{
+		UGameplayMessageSubsystem::Get(this).BroadcastMessage(Message.Verb, Message);
+	}
+}
+
+void AArenaGameState::MulticastReliableMessageToClients_Implementation(const FArenaVerbMessage Message)
+{
+	MulticastMessageToClients_Implementation(Message);
 }
 
 void AArenaGameState::EndPlay(const EEndPlayReason::Type EndPlayReason)

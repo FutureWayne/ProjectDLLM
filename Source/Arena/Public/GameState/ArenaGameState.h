@@ -7,6 +7,7 @@
 #include "GameFramework/GameState.h"
 #include "ArenaGameState.generated.h"
 
+struct FArenaVerbMessage;
 class UArenaAbilitySystemComponent;
 class AArenaPlayerState;
 /**
@@ -38,6 +39,16 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Arena|GameState")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const { return AbilitySystemComponent; }
+
+	// Send a message that all clients will (probably) get
+	// (use only for client notifications like eliminations, server join messages, etc... that can handle being lost)
+	UFUNCTION(NetMulticast, Unreliable, BlueprintCallable, Category = "Arena|GameState")
+	void MulticastMessageToClients(const FArenaVerbMessage Message);
+
+	// Send a message that all clients will be guaranteed to get
+	// (use only for client notifications that cannot handle being lost)
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable, Category = "Arena|GameState")
+	void MulticastReliableMessageToClients(const FArenaVerbMessage Message);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Arena|GameState")

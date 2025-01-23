@@ -126,9 +126,7 @@ bool UArenaGameplayAbility::ChangeActivationGroup(EArenaAbilityActivationGroup N
 void UArenaGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilitySpec& Spec) const
 {
-	const bool bIsPredicting = (Spec.ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting);
-
-	if (ActorInfo && !Spec.IsActive() && !bIsPredicting && (ActivationPolicy == EArenaAbilityActivationPolicy::OnSpawn))
+	if (ActorInfo && !Spec.IsActive() && (ActivationPolicy == EArenaAbilityActivationPolicy::OnSpawn))
 	{
 		UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get();
 		const AActor* AvatarActor = ActorInfo->AvatarActor.Get();
@@ -195,4 +193,9 @@ void UArenaGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* Actor
 	Super::OnGiveAbility(ActorInfo, Spec);
 
 	TryActivateAbilityOnSpawn(ActorInfo, Spec);
+}
+
+void UArenaGameplayAbility::OnPawnAvatarSet()
+{
+	K2_OnPawnAvatarSet();
 }

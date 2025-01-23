@@ -57,6 +57,8 @@ class ARENA_API UArenaGameplayAbility : public UGameplayAbility
 {
 	GENERATED_BODY()
 	
+	friend class UArenaAbilitySystemComponent;
+	
 public:
 	UArenaGameplayAbility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -88,6 +90,8 @@ protected:
 	virtual void SetCanBeCanceled(bool bCanBeCanceled) override;
 	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 	//~End of UGameplayAbility interface
+
+	virtual void OnPawnAvatarSet();
 
 	/** Called when this ability is granted to the ability system component. */
 	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnAbilityAdded")
