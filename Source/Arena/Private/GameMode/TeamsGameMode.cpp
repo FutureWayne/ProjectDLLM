@@ -110,31 +110,32 @@ void ATeamsGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
-	// // Sort the players into teams
-	// if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
-	// {
-	// 	for (auto PlayerState : ArenaGS->PlayerArray)
-	// 	{
-	// 		if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
-	// 		{
-	// 			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-	// 			if (ensure(TeamSubsystem))
-	// 			{
-	// 				// Assign one player to attack and the rest to defense
-	// 				if (ArenaGS->AttackTeam.Num() == 0)
-	// 				{
-	// 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
-	// 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
-	// 				}
-	// 				else
-	// 				{
-	// 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
-	// 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+	// Sort the players into teams
+	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
+	{
+		TArray<APlayerState*> PlayerArray = ArenaGS->PlayerArray;
+		for (APlayerState* PlayerState : PlayerArray)
+		{
+			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState))
+			{
+				UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+				if (ensure(TeamSubsystem))
+				{
+					int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
+					if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
+					{
+						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+						ArenaGS->AttackTeam.AddUnique(ArenaPS);
+					}
+					else
+					{
+						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+					}
+				}
+			}
+		}
+	}
 }
 
 void ATeamsGameMode::OnMatchStateSet()
