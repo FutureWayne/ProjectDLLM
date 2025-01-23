@@ -6,6 +6,10 @@
 #include "AbilitySystem/ArenaGameplayAbility.h"
 #include "AbilitySystem/ArenaGlobalAbilitySystem.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaAbilitySystemComponent)
+
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_AbilityInputBlocked, "Gameplay.AbilityInputBlocked");
+
 UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 {
 	InputPressedSpecHandles.Reset();
@@ -108,7 +112,11 @@ void UArenaAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& I
 
 void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
-	// TODO: Clear ability input if has input blocked tag
+	if (HasMatchingGameplayTag(TAG_Gameplay_AbilityInputBlocked))
+	{
+		ClearAbilityInput();
+		return;
+	}
 
 	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
 	AbilitiesToActivate.Reset();
@@ -193,6 +201,13 @@ void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGa
 	//
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
+}
+
+void UArenaAbilitySystemComponent::ClearAbilityInput()
+{
+	InputPressedSpecHandles.Reset();
+	InputReleasedSpecHandles.Reset();
+	InputHeldSpecHandles.Reset();
 }
 
 void UArenaAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc,

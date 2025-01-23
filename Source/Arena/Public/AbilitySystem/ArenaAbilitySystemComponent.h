@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
 #include "ArenaGameplayAbility.h"
+#include "NativeGameplayTags.h"
 #include "ArenaAbilitySystemComponent.generated.h"
+
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_AbilityInputBlocked);
 
 /**
  * 
@@ -28,6 +31,7 @@ public:
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 
 	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
+	void ClearAbilityInput();
 
 	typedef TFunctionRef<bool(const UArenaGameplayAbility* ArenaAbility, FGameplayAbilitySpecHandle Handle)> TShouldCancelAbilityFunc;
 	void CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc, bool bReplicateCancelAbility);
