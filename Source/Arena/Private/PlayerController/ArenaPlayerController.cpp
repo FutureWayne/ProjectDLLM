@@ -219,39 +219,39 @@ void AArenaPlayerController::CheckTimeSync(float DeltaTime)
 
 void AArenaPlayerController::SetHUDTime()
 {
-	float TimeLeft = 0.0f;
-	if (MatchState == MatchState::WaitingToStart)
-	{
-		TimeLeft = AgentChooseDuration - GetServerTime() + LevelStartingTime;
-	}
-	else if (MatchState == MatchState::InProgress)
-	{
-		TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	}
-	else if (MatchState == MatchState::Cooldown)
-	{
-		TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	}
-	
-	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
-	if (CountdownInt != SecondsLeft)
-	{
-		if (MatchState == MatchState::WaitingToStart)
-		{
-			SetHUDAgentChooseCountdown(TimeLeft);
-		}
-		else if (MatchState == MatchState::InProgress)
-		{
-			SetHUDMatchCountdown(TimeLeft);
-		}
-		else if (MatchState == MatchState::Cooldown)
-		{
-			SetHUDCooldownCountdown(TimeLeft);
-		}
-	}
-
-	CountdownInt = SecondsLeft;
-	
+	// float TimeLeft = 0.0f;
+	// if (MatchState == MatchState::WaitingToStart)
+	// {
+	// 	TimeLeft = AgentChooseDuration - GetServerTime() + LevelStartingTime;
+	// }
+	// else if (MatchState == MatchState::InProgress)
+	// {
+	// 	TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
+	// }
+	// else if (MatchState == MatchState::Cooldown)
+	// {
+	// 	TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
+	// }
+	//
+	// uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
+	// if (CountdownInt != SecondsLeft)
+	// {
+	// 	if (MatchState == MatchState::WaitingToStart)
+	// 	{
+	// 		SetHUDAgentChooseCountdown(TimeLeft);
+	// 	}
+	// 	else if (MatchState == MatchState::InProgress)
+	// 	{
+	// 		SetHUDMatchCountdown(TimeLeft);
+	// 	}
+	// 	else if (MatchState == MatchState::Cooldown)
+	// 	{
+	// 		SetHUDCooldownCountdown(TimeLeft);
+	// 	}
+	// }
+	//
+	// CountdownInt = SecondsLeft;
+	//
 }
 
 void AArenaPlayerController::HandleMatchWaitingToStart()

@@ -54,12 +54,14 @@ void ATeamsGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//LevelStartingTime = GetWorld()->GetTimeSeconds();
+	LevelStartingTime = GetWorld()->GetTimeSeconds();
 }
 
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+
+	UE_LOG(LogTeam, Log, TEXT("PostLogin"));
 	
 	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
 	{
@@ -80,8 +82,19 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 				}
 			}
-			
+			else
+			{
+				UE_LOG(LogTeam, Error, TEXT("TeamSubsystem is not valid"));
+			}
 		}
+		else
+		{
+			UE_LOG(LogTeam, Error, TEXT("ArenaPlayerState is not valid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTeam, Error, TEXT("ArenaGameState is not valid"));
 	}
 }
 
@@ -113,28 +126,38 @@ void ATeamsGameMode::HandleMatchHasStarted()
 	// Sort the players into teams
 	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
 	{
-		TArray<APlayerState*> PlayerArray = ArenaGS->PlayerArray;
-		for (APlayerState* PlayerState : PlayerArray)
+		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+		if (ensure(TeamSubsystem))
 		{
-			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState))
+			for (auto PlayerState : ArenaGS->PlayerArray)
 			{
-				UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-				if (ensure(TeamSubsystem))
+				if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
 				{
-					int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
-					if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
+					if (ArenaGS->AttackTeam.Num() <= ArenaGS->DefenseTeam.Num())
 					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Attack);
 						ArenaGS->AttackTeam.AddUnique(ArenaPS);
 					}
 					else
 					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Defense);
 						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 					}
 				}
+				else
+				{
+					UE_LOG(LogTeam, Error, TEXT("PlayerState is not valid"));
+				}
 			}
 		}
+		else
+		{
+			UE_LOG(LogTeam, Error, TEXT("TeamSubsystem is not valid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTeam, Error, TEXT("ArenaGameState is not valid"));
 	}
 }
 
