@@ -64,60 +64,60 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 
 	UE_LOG(LogTemp, Error, TEXT("PostLogin"));
 	
-	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
-	{
-		if (AArenaPlayerState* ArenaPS = NewPlayer->GetPlayerState<AArenaPlayerState>())
-		{
-			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-			if (ensure(TeamSubsystem))
-			{
-				int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
-				if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
-				{
-					TeamSubsystem->ChangeTeamForActor(ArenaPS, 1);
-					ArenaGS->AttackTeam.AddUnique(ArenaPS);
-				}
-				else
-				{
-					TeamSubsystem->ChangeTeamForActor(ArenaPS, 2);
-					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("ArenaPlayerState is not valid"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
-	}
+	// if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
+	// {
+	// 	if (AArenaPlayerState* ArenaPS = NewPlayer->GetPlayerState<AArenaPlayerState>())
+	// 	{
+	// 		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+	// 		if (ensure(TeamSubsystem))
+	// 		{
+	// 			int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
+	// 			if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
+	// 			{
+	// 				TeamSubsystem->ChangeTeamForActor(ArenaPS, 1);
+	// 				ArenaGS->AttackTeam.AddUnique(ArenaPS);
+	// 			}
+	// 			else
+	// 			{
+	// 				TeamSubsystem->ChangeTeamForActor(ArenaPS, 2);
+	// 				ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+	// 			}
+	// 		}
+	// 		else
+	// 		{
+	// 			UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Error, TEXT("ArenaPlayerState is not valid"));
+	// 	}
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
+	// }
 }
 
 void ATeamsGameMode::Logout(AController* Exiting)
 {
 	Super::Logout(Exiting);
 
-	// Remove exiting player from the team
-	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
-	{
-		if (AArenaPlayerState* ArenaPS = Exiting->GetPlayerState<AArenaPlayerState>())
-		{
-			if (ArenaGS->AttackTeam.Contains(ArenaPS))
-			{
-				ArenaGS->AttackTeam.Remove(ArenaPS);
-			}
-			else if (ArenaGS->DefenseTeam.Contains(ArenaPS))
-			{
-				ArenaGS->DefenseTeam.Remove(ArenaPS);
-			}
-		}
-	}
+	// // Remove exiting player from the team
+	// if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
+	// {
+	// 	if (AArenaPlayerState* ArenaPS = Exiting->GetPlayerState<AArenaPlayerState>())
+	// 	{
+	// 		if (ArenaGS->AttackTeam.Contains(ArenaPS))
+	// 		{
+	// 			ArenaGS->AttackTeam.Remove(ArenaPS);
+	// 		}
+	// 		else if (ArenaGS->DefenseTeam.Contains(ArenaPS))
+	// 		{
+	// 			ArenaGS->DefenseTeam.Remove(ArenaPS);
+	// 		}
+	// 	}
+	// }
 }
 
 void ATeamsGameMode::HandleMatchHasStarted()
@@ -126,42 +126,42 @@ void ATeamsGameMode::HandleMatchHasStarted()
 
 	UE_LOG(LogTemp, Error, TEXT("HandleMatchHasStarted"));
 
-	// Sort the players into teams
-	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
-	{
-		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-		if (ensure(TeamSubsystem))
-		{
-			for (auto PlayerState : ArenaGS->PlayerArray)
-			{
-				if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeamId() == INDEX_NONE)
-				{
-					if (ArenaGS->AttackTeam.Num() <= ArenaGS->DefenseTeam.Num())
-					{
-						TeamSubsystem->ChangeTeamForActor(PlayerState, 1);
-						ArenaGS->AttackTeam.AddUnique(ArenaPS);
-					}
-					else
-					{
-						TeamSubsystem->ChangeTeamForActor(PlayerState, 2);
-						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
-					}
-				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("PlayerState is not valid"));
-				}
-			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
-	}
+	// // Sort the players into teams
+	// if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
+	// {
+	// 	UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+	// 	if (ensure(TeamSubsystem))
+	// 	{
+	// 		for (auto PlayerState : ArenaGS->PlayerArray)
+	// 		{
+	// 			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeamId() == INDEX_NONE)
+	// 			{
+	// 				if (ArenaGS->AttackTeam.Num() <= ArenaGS->DefenseTeam.Num())
+	// 				{
+	// 					TeamSubsystem->ChangeTeamForActor(PlayerState, 1);
+	// 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
+	// 				}
+	// 				else
+	// 				{
+	// 					TeamSubsystem->ChangeTeamForActor(PlayerState, 2);
+	// 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				UE_LOG(LogTemp, Error, TEXT("PlayerState is not valid"));
+	// 			}
+	// 		}
+	// 	}
+	// 	else
+	// 	{
+	// 		UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
+	// 	}
+	// }
+	// else
+	// {
+	// 	UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
+	// }
 }
 
 void ATeamsGameMode::OnMatchStateSet()
