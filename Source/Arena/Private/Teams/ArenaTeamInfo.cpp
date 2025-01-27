@@ -8,6 +8,8 @@
 #include "Teams/ArenaTeamSubsystem.h"
 
 AArenaTeamInfo::AArenaTeamInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, TeamId(INDEX_NONE)
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
@@ -32,6 +34,16 @@ void AArenaTeamInfo::BeginPlay()
 
 void AArenaTeamInfo::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (TeamId != INDEX_NONE)
+	{
+		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+		if (TeamSubsystem)
+		{
+			// EndPlay can happen at weird times where the subsystem has already been destroyed
+			TeamSubsystem->UnregisterTeamInfo(this);
+		}
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 

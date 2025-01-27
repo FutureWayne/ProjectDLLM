@@ -5,7 +5,6 @@
 
 #include "AbilitySystemGlobals.h"
 #include "ArenaLogChannel.h"
-#include "EngineUtils.h"
 #include "Player/ArenaPlayerState.h"
 #include "Logging/LogMacros.h"
 
@@ -26,35 +25,12 @@ void UArenaTeamSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	UWorld* World = GetWorld();
-
-	// Iterate ETeam enum and spawn a team info actor for each team
-	for (int32 i = 0; i < 3; ++i)
-	{
-		int32 TeamId = i;
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		AArenaTeamInfo* TeamInfo = World->SpawnActor<AArenaTeamInfo>(AArenaTeamInfo::StaticClass(), SpawnInfo);
-		if (TeamInfo)
-		{
-			TeamInfo->SetTeamId(TeamId);
-			RegisterTeamInfo(TeamInfo);
-		}
-	}
 }
 
 void UArenaTeamSubsystem::Deinitialize()
 {
 	// Destroy any existing TeamInfo actors
 	UWorld* World = GetWorld();
-	for (TActorIterator<AArenaTeamInfo> It(World); It; ++It)
-	{
-		AArenaTeamInfo* ExistingTeamInfo = *It;
-		if (ExistingTeamInfo)
-		{
-			ExistingTeamInfo->Destroy();
-		}
-	}
 	
 	Super::Deinitialize();
 }

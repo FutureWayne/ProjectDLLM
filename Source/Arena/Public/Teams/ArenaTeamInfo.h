@@ -7,6 +7,7 @@
 #include "System/GameplayTagStack.h"
 #include "ArenaTeamInfo.generated.h"
 
+class UArenaTeamCreationComponent;
 class UArenaTeamSubsystem;
 
 // UENUM(BlueprintType)
@@ -53,6 +54,8 @@ private:
 	void OnRep_TeamTags();
 
 public:
+	friend UArenaTeamCreationComponent;
+	
 	UPROPERTY(ReplicatedUsing = OnRep_TeamTags)
 	FGameplayTagStackContainer TeamTags;
 
