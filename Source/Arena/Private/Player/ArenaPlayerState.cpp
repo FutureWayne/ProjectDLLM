@@ -66,7 +66,7 @@ void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 	
 	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
 	{
-		BlasterCharacter->SetTeamColor(GetTeam());
+		BlasterCharacter->SetTeamColor(GetTeamId());
 	}
 }
 
@@ -104,7 +104,7 @@ void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
 {
 	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
 	{
-		BlasterCharacter->SetTeamColor(GetTeam());
+		BlasterCharacter->SetTeamColor(GetTeamId());
 	}
 
 	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);

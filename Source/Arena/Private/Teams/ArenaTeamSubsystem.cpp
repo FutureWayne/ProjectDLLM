@@ -4,17 +4,15 @@
 #include "Teams/ArenaTeamSubsystem.h"
 
 #include "AbilitySystemGlobals.h"
-#include "EngineUtils.h"
+#include "ArenaLogChannel.h"
 #include "Player/ArenaPlayerState.h"
 #include "Logging/LogMacros.h"
 
-DEFINE_LOG_CATEGORY(LogTeam);
-
 // Define and initialize the static const TMap
-const TMap<ETeam, FLinearColor> UArenaTeamSubsystem::TeamColorMap = {
-	{ ETeam::ET_Neutral, FLinearColor::Gray },
-	{ ETeam::ET_Attack, FLinearColor::Red },
-	{ ETeam::ET_Defense, FLinearColor::Blue }
+const TMap<int32, FLinearColor> UArenaTeamSubsystem::TeamColorMap = {
+	{ 0, FLinearColor::Gray },
+	{ 1, FLinearColor::Red },
+	{ 2, FLinearColor::Blue }
 };
 
 UArenaTeamSubsystem::UArenaTeamSubsystem()
@@ -27,35 +25,12 @@ void UArenaTeamSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	UWorld* World = GetWorld();
-
-	// Iterate ETeam enum and spawn a team info actor for each team
-	for (uint8 i = 0; i < static_cast<uint8>(ETeam::ET_Max); ++i)
-	{
-		ETeam Team = static_cast<ETeam>(i);
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-		AArenaTeamInfo* TeamInfo = World->SpawnActor<AArenaTeamInfo>(AArenaTeamInfo::StaticClass(), SpawnInfo);
-		if (TeamInfo)
-		{
-			TeamInfo->SetTeam(Team);
-			RegisterTeamInfo(TeamInfo);
-		}
-	}
 }
 
 void UArenaTeamSubsystem::Deinitialize()
 {
 	// Destroy any existing TeamInfo actors
 	UWorld* World = GetWorld();
-	for (TActorIterator<AArenaTeamInfo> It(World); It; ++It)
-	{
-		AArenaTeamInfo* ExistingTeamInfo = *It;
-		if (ExistingTeamInfo)
-		{
-			ExistingTeamInfo->Destroy();
-		}
-	}
 	
 	Super::Deinitialize();
 }
@@ -67,8 +42,8 @@ bool UArenaTeamSubsystem::RegisterTeamInfo(AArenaTeamInfo* TeamInfo)
 		return false;
 	}
 
-	const ETeam TeamId = TeamInfo->GetTeam();
-	if (ensure(TeamId != ETeam::ET_Max))
+	const int32 TeamId = TeamInfo->GetTeamId();
+	if (ensure(TeamId != INDEX_NONE))
 	{
 		TeamMap.Add(TeamId, TeamInfo);
 		return true;
@@ -84,8 +59,8 @@ bool UArenaTeamSubsystem::UnregisterTeamInfo(AArenaTeamInfo* TeamInfo)
 		return false;
 	}
 
-	const ETeam TeamId = TeamInfo->GetTeam();
-	if (ensure(TeamId != ETeam::ET_Max))
+	const int32 TeamId = TeamInfo->GetTeamId();
+	if (ensure(TeamId != INDEX_NONE))
 	{
 		TeamMap.Remove(TeamId);
 		return true;
@@ -94,12 +69,12 @@ bool UArenaTeamSubsystem::UnregisterTeamInfo(AArenaTeamInfo* TeamInfo)
 	return false;
 }
 
-ETeam UArenaTeamSubsystem::FindTeamFromObject(const UObject* TestObject) const
+int32 UArenaTeamSubsystem::FindTeamFromObject(const UObject* TestObject) const
 {
 	// See if it's directly a team agent
 	if (const IGenericTeamAgentInterface* TeamAgent = Cast<IGenericTeamAgentInterface>(TestObject))
 	{
-		return GenericTeamIdToTeam(TeamAgent->GetGenericTeamId());
+		return GenericTeamIdToInteger(TeamAgent->GetGenericTeamId());
 	}
 
 	if (const AActor* TestActor = Cast<AActor>(TestObject))
@@ -107,22 +82,22 @@ ETeam UArenaTeamSubsystem::FindTeamFromObject(const UObject* TestObject) const
 		// See if the instigator is a team actor
 		if (const IGenericTeamAgentInterface* TeamAgent = Cast<IGenericTeamAgentInterface>(TestActor->GetInstigator()))
 		{
-			return GenericTeamIdToTeam(TeamAgent->GetGenericTeamId());
+			return GenericTeamIdToInteger(TeamAgent->GetGenericTeamId());
 		}
 
 		// TeamInfo actors don't actually have the team interface, so they need a special case
 		if (const AArenaTeamInfo* TeamInfo = Cast<AArenaTeamInfo>(TestActor))
 		{
-			return TeamInfo->GetTeam();
+			return TeamInfo->GetTeamId();
 		}
 		
 		if (const AArenaPlayerState* ArenaPS = FindPlayerStateFromActor(TestActor))
 		{
-			return ArenaPS->GetTeam();
+			return ArenaPS->GetTeamId();
 		}
 	}
 
-	return ETeam::ET_Max;
+	return INDEX_NONE;
 }
 
 const AArenaPlayerState* UArenaTeamSubsystem::FindPlayerStateFromActor(const AActor* PossibleTeamActor) const
@@ -152,51 +127,58 @@ const AArenaPlayerState* UArenaTeamSubsystem::FindPlayerStateFromActor(const AAc
 	return nullptr;
 }
 
-bool UArenaTeamSubsystem::ChangeTeamForActor(AActor* ActorToChange, const ETeam NewTeam) const
+bool UArenaTeamSubsystem::ChangeTeamForActor(AActor* ActorToChange, const int32 NewTeamId) const
 {
-	UE_LOG(LogTeam, Log, TEXT("ChangeTeamForActor(%s, %d)"), *ActorToChange->GetPathName(), static_cast<uint8>(NewTeam));
+	UE_LOG(LogArenaTeams, Log, TEXT("ChangeTeamForActor(%s, %d)"), *ActorToChange->GetPathName(), static_cast<uint8>(NewTeamId));
 	
 	if (AArenaPlayerState* ArenaPS = const_cast<AArenaPlayerState*>(FindPlayerStateFromActor(ActorToChange)))
 	{
-		ArenaPS->SetGenericTeamId(TeamToGenericTeamId(NewTeam));
+		ArenaPS->SetGenericTeamId(IntegerToGenericTeamId(NewTeamId));
 		return true;
 	}
 	else if (IGenericTeamAgentInterface* TeamAgent = Cast<IGenericTeamAgentInterface>(ActorToChange))
 	{
-		TeamAgent->SetGenericTeamId(TeamToGenericTeamId(NewTeam));
+		TeamAgent->SetGenericTeamId(IntegerToGenericTeamId(NewTeamId));
 		return true;
 	}
 
 	return false;
 }
 
-void UArenaTeamSubsystem::FindTeamFromActor(const UObject* TestObject, bool& bIsPartOfTeam, ETeam& Team) const
+void UArenaTeamSubsystem::FindTeamFromActor(const UObject* TestObject, bool& bIsPartOfTeam, int32& TeamId) const
 {
-	Team = FindTeamFromObject(TestObject);
-	bIsPartOfTeam = Team != ETeam::ET_Max;
+	TeamId = FindTeamFromObject(TestObject);
+	bIsPartOfTeam = TeamId != INDEX_NONE;
 }
 
-EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const UObject* B, ETeam& TeamA,
-	ETeam& TeamB) const
+EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const UObject* B, int32& TeamIdA,
+	int32& TeamIdB) const
 {
-	TeamA = FindTeamFromObject(A);
-	TeamB = FindTeamFromObject(B);	
+	TeamIdA = FindTeamFromObject(A);
+	TeamIdB = FindTeamFromObject(B);	
 
-	if (TeamA == ETeam::ET_Max || TeamB == ETeam::ET_Max)
+	if (TeamIdA == INDEX_NONE || TeamIdB == INDEX_NONE)
 	{
 		return EArenaTeamComparison::InvalidArgument;
 	}
 	else
 	{
-		return TeamA == TeamB ? EArenaTeamComparison::OnSameTeam : EArenaTeamComparison::DifferentTeams;
+		return TeamIdA == TeamIdB ? EArenaTeamComparison::OnSameTeam : EArenaTeamComparison::DifferentTeams;
 	}
 }
 
-void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, ETeam& TeamId,
+EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const UObject* B) const
+{
+	int32 TeamIdA;
+	int32 TeamIdB;
+	return CompareTeams(A, B, /*out*/ TeamIdA, /*out*/ TeamIdB);
+}
+
+void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId,
 	FLinearColor& TeamColor, bool bLogIfNotSet)
 {
 	bIsPartOfTeam = false;
-	TeamId = ETeam::ET_Max;
+	TeamId = INDEX_NONE;
 	TeamColor = FLinearColor::White;
 
 	if (UWorld* World = GEngine->GetWorldFromContextObject(Agent, EGetWorldErrorMode::LogAndReturnNull))
@@ -204,7 +186,7 @@ void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPart
 		if (UArenaTeamSubsystem* TeamSubsystem = World->GetSubsystem<UArenaTeamSubsystem>())
 		{
 			TeamId = (TeamSubsystem->FindTeamFromObject(Agent));
-			if (TeamId != ETeam::ET_Max)
+			if (TeamId != INDEX_NONE)
 			{
 				bIsPartOfTeam = true;
 
@@ -212,35 +194,29 @@ void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPart
 
 				if ((TeamColor == FLinearColor::White) && bLogIfNotSet)
 				{
-					UE_LOG(LogTeam, Log, TEXT("FindTeamFromObject(%s) called too early (found team %d but no display asset set yet"), *Agent->GetPathName(), TeamId);
+					UE_LOG(LogArenaTeams, Log, TEXT("FindTeamFromObject(%s) called too early (found team %d but no display asset set yet"), *Agent->GetPathName(), TeamId);
 				}
 			}
 		}
 		else
 		{
-			UE_LOG(LogTeam, Error, TEXT("FindTeamFromObject(%s) failed: Team subsystem does not exist yet"), *Agent->GetPathName());
+			UE_LOG(LogArenaTeams, Error, TEXT("FindTeamFromObject(%s) failed: Team subsystem does not exist yet"), *Agent->GetPathName());
 		}
 	}
 }
 
 FLinearColor UArenaTeamSubsystem::FindTeamColorFromActor(const UObject* TestObject) const
 {
-	ETeam Team = FindTeamFromObject(TestObject);
-	if (Team != ETeam::ET_Max)
+	int32 TeamId = FindTeamFromObject(TestObject);
+	if (TeamId != INDEX_NONE)
 	{
-		if (const FLinearColor* TeamColor = TeamColorMap.Find(Team))
+		if (const FLinearColor* TeamColor = TeamColorMap.Find(TeamId))
 		{
 			return *TeamColor;
 		}
 	}
 
 	return FLinearColor::White;
-}
-
-EArenaTeamComparison UArenaTeamSubsystem::CompareTeams(const UObject* A, const UObject* B) const
-{
-	ETeam TeamA, TeamB;
-	return CompareTeams(A, B, /*out*/ TeamA, /*out*/ TeamB);
 }
 
 bool UArenaTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObject* Target,
@@ -254,13 +230,13 @@ bool UArenaTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObjec
 		}
 	}
 
-	ETeam InstigatorTeam, TargetTeam;
-	EArenaTeamComparison Comparison = CompareTeams(Instigator, Target, /*out*/ InstigatorTeam, /*out*/ TargetTeam);
+	int32 InstigatorTeamId, TargetTeamId;
+	EArenaTeamComparison Comparison = CompareTeams(Instigator, Target, /*out*/ InstigatorTeamId, /*out*/ TargetTeamId);
 	if (Comparison == EArenaTeamComparison::DifferentTeams)
 	{
 		return true;
 	}
-	else if ((Comparison == EArenaTeamComparison::InvalidArgument) && (InstigatorTeam != ETeam::ET_Max))
+	else if ((Comparison == EArenaTeamComparison::InvalidArgument) && (InstigatorTeamId != INDEX_NONE))
 	{
 		// Allow damaging non-team actors for now, as long as they have an ability system component
 		return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Cast<const AActor>(Target)) != nullptr;
@@ -269,11 +245,11 @@ bool UArenaTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObjec
 	return false;
 }
 
-void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount)
+void UArenaTeamSubsystem::AddTeamTagStack(int32 TeamId, FGameplayTag Tag, int32 StackCount)
 {
 	auto FailureHandler = [&](const FString& ErrorMessage)
 	{
-		UE_LOG(LogTeam, Error, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+		UE_LOG(LogArenaTeams, Error, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
 	};
 
 	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
@@ -289,15 +265,15 @@ void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 
 		return;
 	}
 
-	UE_LOG(LogTeam, Log, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
+	UE_LOG(LogArenaTeams, Log, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.AddStack(Tag, StackCount);
 }
 
-void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 StackCount)
+void UArenaTeamSubsystem::RemoveTeamTagStack(int32 TeamId, FGameplayTag Tag, int32 StackCount)
 {
 	auto FailureHandler = [&](const FString& ErrorMessage)
 	{
-		UE_LOG(LogTeam, Error, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+		UE_LOG(LogArenaTeams, Error, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
 	};
 
 	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
@@ -313,11 +289,11 @@ void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int
 		return;
 	}
 
-	UE_LOG(LogTeam, Log, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
+	UE_LOG(LogArenaTeams, Log, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.RemoveStack(Tag, StackCount);
 }
 
-int32 UArenaTeamSubsystem::GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) const
+int32 UArenaTeamSubsystem::GetTeamTagStackCount(int32 TeamId, FGameplayTag Tag) const
 {
 	const AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
 	if (TeamInfo)
@@ -331,7 +307,7 @@ int32 UArenaTeamSubsystem::GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) 
 	}
 }
 
-bool UArenaTeamSubsystem::TeamHasTag(ETeam TeamId, FGameplayTag Tag) const
+bool UArenaTeamSubsystem::TeamHasTag(int32 TeamId, FGameplayTag Tag) const
 {
 	return GetTeamTagStackCount(TeamId, Tag) > 0;
 }

@@ -3,10 +3,13 @@
 
 #include "Teams/ArenaTeamInfo.h"
 
+#include "ArenaLogChannel.h"
 #include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
 
 AArenaTeamInfo::AArenaTeamInfo(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, TeamId(INDEX_NONE)
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
@@ -18,7 +21,7 @@ void AArenaTeamInfo::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ThisClass, Team);
+	DOREPLIFETIME(ThisClass, TeamId);
 	DOREPLIFETIME(ThisClass, TeamTags);
 }
 
@@ -31,6 +34,16 @@ void AArenaTeamInfo::BeginPlay()
 
 void AArenaTeamInfo::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (TeamId != INDEX_NONE)
+	{
+		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+		if (TeamSubsystem)
+		{
+			// EndPlay can happen at weird times where the subsystem has already been destroyed
+			TeamSubsystem->UnregisterTeamInfo(this);
+		}
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -41,7 +54,7 @@ void AArenaTeamInfo::RegisterWithTeamSubsystem(UArenaTeamSubsystem* Subsystem)
 
 void AArenaTeamInfo::TryRegisterWithTeamSubsystem()
 {
-	if (Team != ETeam::ET_Max)
+	if (TeamId != INDEX_NONE)
 	{
 		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
 		if (ensure(TeamSubsystem))
@@ -51,13 +64,13 @@ void AArenaTeamInfo::TryRegisterWithTeamSubsystem()
 	}
 }
 
-void AArenaTeamInfo::SetTeam(const ETeam NewTeam)
+void AArenaTeamInfo::SetTeamId(const int32 NewTeamId)
 {
 	check(HasAuthority());
-	check(Team == ETeam::ET_Max);
-	check(NewTeam != ETeam::ET_Max);
+	check(TeamId == INDEX_NONE);
+	check(NewTeamId != INDEX_NONE);
 
-	Team = NewTeam;
+	TeamId = NewTeamId;
 
 	TryRegisterWithTeamSubsystem();
 }
@@ -69,5 +82,5 @@ void AArenaTeamInfo::OnRep_Team()
 
 void AArenaTeamInfo::OnRep_TeamTags()
 {
-	UE_LOG(LogTeam, Warning, TEXT("Team tags replicated"));
+	UE_LOG(LogArenaTeams, Warning, TEXT("Team tags replicated"));
 }

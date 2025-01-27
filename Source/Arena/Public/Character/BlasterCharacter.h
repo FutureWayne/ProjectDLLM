@@ -46,7 +46,7 @@ public:
 	
 	FVector GetHitTarget() const;
 
-	void SetTeamColor(ETeam Team) const;
+	void SetTeamColor(int32 TeamId) const;
 	void SetSpawnPoint();
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)

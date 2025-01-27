@@ -7,17 +7,18 @@
 #include "System/GameplayTagStack.h"
 #include "ArenaTeamInfo.generated.h"
 
+class UArenaTeamCreationComponent;
 class UArenaTeamSubsystem;
 
-UENUM(BlueprintType)
-enum class ETeam : uint8
-{	
-	ET_Neutral UMETA(DisplayName = "Neutral"),
-	ET_Attack UMETA(DisplayName = "Attack"),
-	ET_Defense UMETA(DisplayName = "Defense"),
-	
-	ET_Max UMETA(DisplayName = "Max")
-};
+// UENUM(BlueprintType)
+// enum class ETeam : uint8
+// {	
+// 	ET_Neutral UMETA(DisplayName = "Neutral"),
+// 	ET_Attack UMETA(DisplayName = "Attack"),
+// 	ET_Defense UMETA(DisplayName = "Defense"),
+// 	
+// 	ET_Max UMETA(DisplayName = "Max")
+// };
 
 /**
  * 
@@ -32,7 +33,7 @@ public:
 
 	friend UArenaTeamSubsystem;
 
-	ETeam GetTeam() const { return Team; }
+	int32 GetTeamId() const { return TeamId; }
 
 	//~AActor interface
 	virtual void BeginPlay() override;
@@ -44,7 +45,7 @@ protected:
 	void TryRegisterWithTeamSubsystem();
 
 private:
-	void SetTeam(const ETeam NewTeam);
+	void SetTeamId(const int32 NewTeamId);
 
 	UFUNCTION()
 	void OnRep_Team();
@@ -53,10 +54,12 @@ private:
 	void OnRep_TeamTags();
 
 public:
+	friend UArenaTeamCreationComponent;
+	
 	UPROPERTY(ReplicatedUsing = OnRep_TeamTags)
 	FGameplayTagStackContainer TeamTags;
 
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Team)
-	ETeam Team = ETeam::ET_Max;
+	int32 TeamId;
 };

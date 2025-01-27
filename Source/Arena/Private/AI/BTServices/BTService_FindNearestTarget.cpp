@@ -39,8 +39,8 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 
 		if (AArenaPlayerState* ArenaPlayerState = Cast<AArenaPlayerState>(Controller->PlayerState))
 		{
-			ETeam ArenaPlayerTeam = ArenaPlayerState->GetTeam();
-			if (ArenaPlayerTeam != ETeam::ET_Defense)
+			int32 ArenaPlayerTeamId = ArenaPlayerState->GetTeamId();
+			if (ArenaPlayerTeamId != 2)
 			{
 				continue;
 			}

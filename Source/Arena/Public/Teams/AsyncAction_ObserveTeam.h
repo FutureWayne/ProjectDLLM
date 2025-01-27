@@ -8,7 +8,7 @@
 
 enum class ETeam : uint8;
 class IArenaTeamAgentInterface;
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTeamObservedAsyncDelegate, bool, bTeamSet, ETeam, TeamId);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTeamObservedAsyncDelegate, bool, bTeamSet, int32, TeamID);
 
 /**
  * 
@@ -44,9 +44,7 @@ private:
 
 private:
 	UFUNCTION()
-	void OnWatchedAgentChangedTeam(UObject* TeamAgent, ETeam OldTeam, ETeam NewTeam);
+	void OnWatchedAgentChangedTeam(UObject* TeamAgent, int32 OldTeamID, int32 NewTeamID);
 
 	TWeakInterfacePtr<IArenaTeamAgentInterface> TeamInterfacePtr;
-	
-	
 };

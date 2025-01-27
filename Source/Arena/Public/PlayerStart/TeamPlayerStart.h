@@ -17,5 +17,5 @@ class ARENA_API ATeamPlayerStart : public APlayerStart
 	
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Team", Meta = (AllowPrivateAccess = "true"))
-	ETeam Team;
+	int32 Team;
 };

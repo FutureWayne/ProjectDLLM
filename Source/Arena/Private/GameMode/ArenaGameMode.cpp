@@ -13,6 +13,13 @@ AArenaGameMode::AArenaGameMode(const FObjectInitializer& ObjectInitializer)
 	PlayerStateClass = AArenaPlayerState::StaticClass();
 }
 
+void AArenaGameMode::GenericPlayerInitialization(AController* NewPlayer)
+{
+	Super::GenericPlayerInitialization(NewPlayer);
+
+	OnGameModePlayerInitialized.Broadcast(this, NewPlayer);
+}
+
 void AArenaGameMode::RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset)
 {
 	if (bForceReset && (Controller != nullptr))

@@ -53,8 +53,4 @@ public:
 private:
 	UPROPERTY(VisibleAnywhere, Category = "Arena|GameState")
 	TObjectPtr<UArenaAbilitySystemComponent> AbilitySystemComponent;
-	
-public:
-	TArray<AArenaPlayerState*> AttackTeam;
-	TArray<AArenaPlayerState*> DefenseTeam;
 };
