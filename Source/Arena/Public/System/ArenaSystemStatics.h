@@ -20,6 +20,9 @@ class UArenaSystemStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Arena", meta = (WorldContext = "WorldContextObject"))
+	static void PlayNextGame(const UObject* WorldContextObject);
 
 	// Sets ParameterName to ParameterValue on all sections of all mesh components found on the TargetActor
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Material", meta=(DefaultToSelf="TargetActor"))

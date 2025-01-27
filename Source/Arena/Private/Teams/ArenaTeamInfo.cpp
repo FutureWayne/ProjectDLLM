@@ -18,7 +18,7 @@ void AArenaTeamInfo::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ThisClass, Team, COND_InitialOnly);
+	DOREPLIFETIME(ThisClass, Team);
 	DOREPLIFETIME(ThisClass, TeamTags);
 }
 
@@ -65,4 +65,9 @@ void AArenaTeamInfo::SetTeam(const ETeam NewTeam)
 void AArenaTeamInfo::OnRep_Team()
 {
 	TryRegisterWithTeamSubsystem();
+}
+
+void AArenaTeamInfo::OnRep_TeamTags()
+{
+	UE_LOG(LogTeam, Warning, TEXT("Team tags replicated"));
 }

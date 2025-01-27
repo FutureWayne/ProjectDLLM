@@ -7,6 +7,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "ArenaTeamSubsystem.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogTeam, Log, All);
+
 class AArenaPlayerState;
 
 // Result of comparing the team affiliation for two actors

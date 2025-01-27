@@ -8,6 +8,35 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaSystemStatics)
 
+void UArenaSystemStatics::PlayNextGame(const UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	const FWorldContext& WorldContext = GEngine->GetWorldContextFromWorldChecked(World);
+	FURL LastURL = WorldContext.LastURL;
+
+#if WITH_EDITOR
+	// To transition during PIE we need to strip the PIE prefix from maps.
+	LastURL.Map = UWorld::StripPIEPrefixFromPackageName(LastURL.Map, WorldContext.World()->StreamingLevelsPrefix);
+#endif
+
+	// Add seamless travel option as we want to keep clients connected. This will fall back to hard travel if seamless is disabled
+	LastURL.AddOption(TEXT("SeamlessTravel"));
+
+	FString URL = LastURL.ToString();
+	
+	// If we don't remove the host/port info the server travel will fail.
+	URL.RemoveFromStart(LastURL.GetHostPortString());
+
+	const bool bAbsolute = false;
+	const bool bShouldSkipGameNotify = false;
+	World->ServerTravel(URL, bAbsolute, bShouldSkipGameNotify);
+}
+
 void UArenaSystemStatics::SetScalarParameterValueOnAllMeshComponents(AActor* TargetActor, const FName ParameterName, const float ParameterValue, bool bIncludeChildActors)
 {
 	if (TargetActor != nullptr)

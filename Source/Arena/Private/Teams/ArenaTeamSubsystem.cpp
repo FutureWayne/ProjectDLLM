@@ -6,6 +6,9 @@
 #include "AbilitySystemGlobals.h"
 #include "EngineUtils.h"
 #include "Player/ArenaPlayerState.h"
+#include "Logging/LogMacros.h"
+
+DEFINE_LOG_CATEGORY(LogTeam);
 
 // Define and initialize the static const TMap
 const TMap<ETeam, FLinearColor> UArenaTeamSubsystem::TeamColorMap = {
@@ -151,6 +154,8 @@ const AArenaPlayerState* UArenaTeamSubsystem::FindPlayerStateFromActor(const AAc
 
 bool UArenaTeamSubsystem::ChangeTeamForActor(AActor* ActorToChange, const ETeam NewTeam) const
 {
+	UE_LOG(LogTeam, Log, TEXT("ChangeTeamForActor(%s, %d)"), *ActorToChange->GetPathName(), static_cast<uint8>(NewTeam));
+	
 	if (AArenaPlayerState* ArenaPS = const_cast<AArenaPlayerState*>(FindPlayerStateFromActor(ActorToChange)))
 	{
 		ArenaPS->SetGenericTeamId(TeamToGenericTeamId(NewTeam));
@@ -207,13 +212,13 @@ void UArenaTeamSubsystem::FindTeamFromObject(const UObject* Agent, bool& bIsPart
 
 				if ((TeamColor == FLinearColor::White) && bLogIfNotSet)
 				{
-					UE_LOG(LogTemp, Log, TEXT("FindTeamFromObject(%s) called too early (found team %d but no display asset set yet"), *Agent->GetPathName(), TeamId);
+					UE_LOG(LogTeam, Log, TEXT("FindTeamFromObject(%s) called too early (found team %d but no display asset set yet"), *Agent->GetPathName(), TeamId);
 				}
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("FindTeamFromObject(%s) failed: Team subsystem does not exist yet"), *Agent->GetPathName());
+			UE_LOG(LogTeam, Error, TEXT("FindTeamFromObject(%s) failed: Team subsystem does not exist yet"), *Agent->GetPathName());
 		}
 	}
 }
@@ -268,7 +273,7 @@ void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 
 {
 	auto FailureHandler = [&](const FString& ErrorMessage)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+		UE_LOG(LogTeam, Error, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
 	};
 
 	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
@@ -283,7 +288,8 @@ void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 
 		FailureHandler(TEXT("failed because it was called on a client"));
 		return;
 	}
-	
+
+	UE_LOG(LogTeam, Log, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.AddStack(Tag, StackCount);
 }
 
@@ -291,7 +297,7 @@ void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int
 {
 	auto FailureHandler = [&](const FString& ErrorMessage)
 	{
-		UE_LOG(LogTemp, Error, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
+		UE_LOG(LogTeam, Error, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d) %s"), TeamId, *Tag.ToString(), StackCount, *ErrorMessage);
 	};
 
 	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
@@ -307,19 +313,20 @@ void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int
 		return;
 	}
 
+	UE_LOG(LogTeam, Log, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.RemoveStack(Tag, StackCount);
 }
 
 int32 UArenaTeamSubsystem::GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) const
 {
-	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
+	const AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
 	if (TeamInfo)
 	{
+		int32 StackCount = TeamInfo->TeamTags.GetStackCount(Tag);
 		return TeamInfo->TeamTags.GetStackCount(Tag);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("GetTeamTagStackCount(TeamId: %d, Tag: %s) failed to find team info"), TeamId, *Tag.ToString());
 		return 0;
 	}
 }

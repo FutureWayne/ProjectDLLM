@@ -78,6 +78,8 @@ void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AArenaPlayerController, MatchState);
+	DOREPLIFETIME(AArenaPlayerController, InventoryManagerComponent);
+	DOREPLIFETIME(AArenaPlayerController, QuickBarComponent);
 }
 
 void AArenaPlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)
@@ -149,18 +151,18 @@ float AArenaPlayerController::GetServerTime()
 
 void AArenaPlayerController::SetHUDMatchCountdown(float CountdownTime)
 {
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD)
-	{
-		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
-		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
-
-		if (ArenaHUD && ArenaHUD->OverlayWidget && ArenaHUD->OverlayWidget->MatchCountdownText)
-		{
-			FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-			ArenaHUD->OverlayWidget->MatchCountdownText->SetText(FText::FromString(TimeString));
-		}
-	}
+// 	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
+// 	if (ArenaHUD)
+// 	{
+// 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
+// 		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
+//
+// 		if (ArenaHUD && ArenaHUD->OverlayWidget && ArenaHUD->OverlayWidget->MatchCountdownText)
+// 		{
+// 			FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
+// 			ArenaHUD->OverlayWidget->MatchCountdownText->SetText(FText::FromString(TimeString));
+// 		}
+// 	}
 }
 
 void AArenaPlayerController::SetHUDAgentChooseCountdown(float CountdownTime)
@@ -219,39 +221,39 @@ void AArenaPlayerController::CheckTimeSync(float DeltaTime)
 
 void AArenaPlayerController::SetHUDTime()
 {
-	float TimeLeft = 0.0f;
-	if (MatchState == MatchState::WaitingToStart)
-	{
-		TimeLeft = AgentChooseDuration - GetServerTime() + LevelStartingTime;
-	}
-	else if (MatchState == MatchState::InProgress)
-	{
-		TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	}
-	else if (MatchState == MatchState::Cooldown)
-	{
-		TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	}
-	
-	uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
-	if (CountdownInt != SecondsLeft)
-	{
-		if (MatchState == MatchState::WaitingToStart)
-		{
-			SetHUDAgentChooseCountdown(TimeLeft);
-		}
-		else if (MatchState == MatchState::InProgress)
-		{
-			SetHUDMatchCountdown(TimeLeft);
-		}
-		else if (MatchState == MatchState::Cooldown)
-		{
-			SetHUDCooldownCountdown(TimeLeft);
-		}
-	}
-
-	CountdownInt = SecondsLeft;
-	
+	// float TimeLeft = 0.0f;
+	// if (MatchState == MatchState::WaitingToStart)
+	// {
+	// 	TimeLeft = AgentChooseDuration - GetServerTime() + LevelStartingTime;
+	// }
+	// else if (MatchState == MatchState::InProgress)
+	// {
+	// 	TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
+	// }
+	// else if (MatchState == MatchState::Cooldown)
+	// {
+	// 	TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
+	// }
+	//
+	// uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
+	// if (CountdownInt != SecondsLeft)
+	// {
+	// 	if (MatchState == MatchState::WaitingToStart)
+	// 	{
+	// 		SetHUDAgentChooseCountdown(TimeLeft);
+	// 	}
+	// 	else if (MatchState == MatchState::InProgress)
+	// 	{
+	// 		SetHUDMatchCountdown(TimeLeft);
+	// 	}
+	// 	else if (MatchState == MatchState::Cooldown)
+	// 	{
+	// 		SetHUDCooldownCountdown(TimeLeft);
+	// 	}
+	// }
+	//
+	// CountdownInt = SecondsLeft;
+	//
 }
 
 void AArenaPlayerController::HandleMatchWaitingToStart()

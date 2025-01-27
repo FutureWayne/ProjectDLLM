@@ -43,6 +43,17 @@ void AArenaCharacter::OnDeathStarted(AActor* OwningActor)
 
 void AArenaCharacter::OnDeathFinished(AActor* OwningActor)
 {
+	// AArenaPlayerState* PS = GetPlayerState<AArenaPlayerState>();
+	// check(PS);
+	//
+	// if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	// {
+	// 	if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
+	// 	{
+	// 		HUD->RemoveOverlay();
+	// 	}
+	// }
+	
 	DestroyDueToDeath();
 }
 

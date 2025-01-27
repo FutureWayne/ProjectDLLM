@@ -31,22 +31,23 @@ void ATeamsGameMode::Tick(float DeltaSeconds)
 		{
 			StartMatch();
 		}
-	}
-	else if (MatchState == MatchState::InProgress)
-	{
-		CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			SetMatchState(MatchState::Cooldown);
-		}
-	}
-	else if (MatchState == MatchState::Cooldown)
-	{
-		CountdownTime = AgentChoosingDuration + MatchDuration + CooldownDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
-		if (CountdownTime <= 0.0f)
-		{
-			RestartGame();
-		}
+		// }
+		// else if (MatchState == MatchState::InProgress)
+		// {
+		// 	CountdownTime = AgentChoosingDuration + MatchDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		// 	if (CountdownTime <= 0.0f)
+		// 	{
+		// 		SetMatchState(MatchState::Cooldown);
+		// 	}
+		// }
+		// else if (MatchState == MatchState::Cooldown)
+		// {
+		// 	CountdownTime = AgentChoosingDuration + MatchDuration + CooldownDuration - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+		// 	if (CountdownTime <= 0.0f)
+		// 	{
+		// 		RestartGame();
+		// 	}
+		// }
 	}
 }
 
@@ -61,8 +62,8 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
 
-	// Sort the players into teams
-	// If there is player in attack team, assign new player to defense team
+	UE_LOG(LogTemp, Error, TEXT("PostLogin"));
+	
 	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
 	{
 		if (AArenaPlayerState* ArenaPS = NewPlayer->GetPlayerState<AArenaPlayerState>())
@@ -70,7 +71,8 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 			UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
 			if (ensure(TeamSubsystem))
 			{
-				if (ArenaGS->AttackTeam.Num() == 0)
+				int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
+				if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
 				{
 					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
@@ -81,8 +83,19 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 				}
 			}
-			
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
+			}
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("ArenaPlayerState is not valid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
 	}
 }
 
@@ -111,30 +124,43 @@ void ATeamsGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
+	UE_LOG(LogTemp, Error, TEXT("HandleMatchHasStarted"));
+
 	// Sort the players into teams
 	if (AArenaGameState* ArenaGS = Cast<AArenaGameState>(UGameplayStatics::GetGameState(this)))
 	{
-		for (auto PlayerState : ArenaGS->PlayerArray)
+		UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+		if (ensure(TeamSubsystem))
 		{
-			if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
+			for (auto PlayerState : ArenaGS->PlayerArray)
 			{
-				UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
-				if (ensure(TeamSubsystem))
+				if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
 				{
-					// Assign one player to attack and the rest to defense
-					if (ArenaGS->AttackTeam.Num() == 0)
+					if (ArenaGS->AttackTeam.Num() <= ArenaGS->DefenseTeam.Num())
 					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Attack);
 						ArenaGS->AttackTeam.AddUnique(ArenaPS);
 					}
 					else
 					{
-						TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Defense);
 						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 					}
 				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("PlayerState is not valid"));
+				}
 			}
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("TeamSubsystem is not valid"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ArenaGameState is not valid"));
 	}
 }
 
@@ -156,6 +182,9 @@ UClass* ATeamsGameMode::GetDefaultPawnClassForController_Implementation(AControl
 	bool bIsPartOfTeam = false;
 	ETeam TeamId = ETeam::ET_Max;
 	FLinearColor TeamColor = FLinearColor::White;
+
+	int32 Minutes = FMath::FloorToInt(60 / 60.f);
+	int32 Seconds = 60 % 60;
 
 	UArenaTeamSubsystem::FindTeamFromObject(InController, bIsPartOfTeam, TeamId, TeamColor);
 	if (TeamId == ETeam::ET_Attack)

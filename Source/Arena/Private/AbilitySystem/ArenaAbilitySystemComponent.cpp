@@ -4,6 +4,11 @@
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 
 #include "AbilitySystem/ArenaGameplayAbility.h"
+#include "AbilitySystem/ArenaGlobalAbilitySystem.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaAbilitySystemComponent)
+
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_AbilityInputBlocked, "Gameplay.AbilityInputBlocked");
 
 UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 {
@@ -12,6 +17,63 @@ UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitiali
 	InputHeldSpecHandles.Reset();
 
 	FMemory::Memset(ActivationGroupCounts, 0, sizeof(ActivationGroupCounts));
+}
+
+void UArenaAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UArenaGlobalAbilitySystem* GlobalAbilitySystem = UWorld::GetSubsystem<UArenaGlobalAbilitySystem>(GetWorld()))
+	{
+		GlobalAbilitySystem->UnregisterASC(this);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+void UArenaAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
+{
+	FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
+	check(ActorInfo);
+	check(InOwnerActor);
+
+	const bool bHasNewPawnAvatar = Cast<APawn>(InAvatarActor) && (InAvatarActor != ActorInfo->AvatarActor.Get());
+	
+	Super::InitAbilityActorInfo(InOwnerActor, InAvatarActor);
+
+	if (bHasNewPawnAvatar)
+	{
+		// Notify all abilities that a new pawn avatar has been set
+		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
+		{
+			ensureMsgf(AbilitySpec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced, TEXT("InitAbilityActorInfo: All Abilities should be Instanced (NonInstanced is being deprecated due to usability issues)."));
+
+			TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
+			for (UGameplayAbility* AbilityInstance : Instances)
+			{
+				UArenaGameplayAbility* ArenaAbilityInstance = CastChecked<UArenaGameplayAbility>(AbilityInstance);
+				ArenaAbilityInstance->OnPawnAvatarSet();
+			}
+		}
+
+		// Register with the global system once we actually have a pawn avatar. We wait until this time since some globally-applied effects may require an avatar.
+		if (UArenaGlobalAbilitySystem* GlobalAbilitySystem = UWorld::GetSubsystem<UArenaGlobalAbilitySystem>(GetWorld()))
+		{
+			GlobalAbilitySystem->RegisterASC(this);
+		}
+
+		TryActivateAbilitiesOnSpawn();
+	}
+}
+
+void UArenaAbilitySystemComponent::TryActivateAbilitiesOnSpawn()
+{
+	ABILITYLIST_SCOPE_LOCK();
+	for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
+	{
+		if (const UArenaGameplayAbility* ArenaAbilityCDO = Cast<UArenaGameplayAbility>(AbilitySpec.Ability))
+		{
+			ArenaAbilityCDO->TryActivateAbilityOnSpawn(AbilityActorInfo.Get(), AbilitySpec);
+		}
+	}
 }
 
 void UArenaAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
@@ -50,7 +112,11 @@ void UArenaAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& I
 
 void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
-	// TODO: Clear ability input if has input blocked tag
+	if (HasMatchingGameplayTag(TAG_Gameplay_AbilityInputBlocked))
+	{
+		ClearAbilityInput();
+		return;
+	}
 
 	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
 	AbilitiesToActivate.Reset();
@@ -135,6 +201,13 @@ void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGa
 	//
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
+}
+
+void UArenaAbilitySystemComponent::ClearAbilityInput()
+{
+	InputPressedSpecHandles.Reset();
+	InputReleasedSpecHandles.Reset();
+	InputHeldSpecHandles.Reset();
 }
 
 void UArenaAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc,

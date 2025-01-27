@@ -27,6 +27,7 @@ void AArenaPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AArenaPlayerState, MyTeamID);
+	DOREPLIFETIME(AArenaPlayerState, StatTags);
 }
 
 UAbilitySystemComponent* AArenaPlayerState::GetAbilitySystemComponent() const

@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
 #include "ArenaGameplayAbility.h"
+#include "NativeGameplayTags.h"
 #include "ArenaAbilitySystemComponent.generated.h"
+
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_AbilityInputBlocked);
 
 /**
  * 
@@ -17,11 +20,18 @@ class ARENA_API UArenaAbilitySystemComponent : public UAbilitySystemComponent
 
 public:
 	UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
+
+	//~UActorComponent interface
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~End of UActorComponent interface
+
+	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
+
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 
 	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
+	void ClearAbilityInput();
 
 	typedef TFunctionRef<bool(const UArenaGameplayAbility* ArenaAbility, FGameplayAbilitySpecHandle Handle)> TShouldCancelAbilityFunc;
 	void CancelAbilitiesByFunc(const TShouldCancelAbilityFunc& ShouldCancelFunc, bool bReplicateCancelAbility);
@@ -32,6 +42,8 @@ public:
 	void CancelActivationGroupAbilities(EArenaAbilityActivationGroup Group, UArenaGameplayAbility* IgnoreArenaAbility, bool bReplicateCancelAbility);
 
 protected:
+	void TryActivateAbilitiesOnSpawn();
+	
 	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability) override;
 	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, bool bWasCancelled) override;
 
