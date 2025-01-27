@@ -34,18 +34,19 @@ UAsyncAction_ObserveTeam* UAsyncAction_ObserveTeam::InternalObserveTeamChanges(
 void UAsyncAction_ObserveTeam::Activate()
 {
 	bool bCouldSucceed = false;
-	ETeam CurrentTeam = ETeam::ET_Max;
+	int32 CurrentTeamIndex = INDEX_NONE;
 
 	if (IArenaTeamAgentInterface* TeamAgentInterface = TeamInterfacePtr.Get())
 	{
-		CurrentTeam = GenericTeamIdToTeam(TeamAgentInterface->GetGenericTeamId());
+		CurrentTeamIndex = GenericTeamIdToInteger(TeamAgentInterface->GetGenericTeamId());
 		
 		TeamAgentInterface->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnWatchedAgentChangedTeam);
 
 		bCouldSucceed = true;
 	}
 
-	OnTeamChanged.Broadcast(CurrentTeam != ETeam::ET_Max, CurrentTeam);
+	// Broadcast once so users get the current state
+	OnTeamChanged.Broadcast(CurrentTeamIndex != INDEX_NONE, CurrentTeamIndex);
 
 	if (!bCouldSucceed)
 	{
@@ -63,8 +64,7 @@ void UAsyncAction_ObserveTeam::SetReadyToDestroy()
 	}
 }
 
-
-void UAsyncAction_ObserveTeam::OnWatchedAgentChangedTeam(UObject* TeamAgent, ETeam OldTeam, ETeam NewTeam)
+void UAsyncAction_ObserveTeam::OnWatchedAgentChangedTeam(UObject* TeamAgent, int32 OldTeamID, int32 NewTeamID)
 {
-	OnTeamChanged.Broadcast(NewTeam != ETeam::ET_Max, NewTeam);
+	OnTeamChanged.Broadcast(NewTeamID != INDEX_NONE, NewTeamID);
 }

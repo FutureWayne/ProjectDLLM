@@ -74,12 +74,12 @@ void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 				int32 TotalPlayers = ArenaGS->AttackTeam.Num() + ArenaGS->DefenseTeam.Num();
 				if (ArenaGS->AttackTeam.Num() <= TotalPlayers / 2)
 				{
-					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Attack);
+					TeamSubsystem->ChangeTeamForActor(ArenaPS, 1);
 					ArenaGS->AttackTeam.AddUnique(ArenaPS);
 				}
 				else
 				{
-					TeamSubsystem->ChangeTeamForActor(ArenaPS, ETeam::ET_Defense);
+					TeamSubsystem->ChangeTeamForActor(ArenaPS, 2);
 					ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 				}
 			}
@@ -134,16 +134,16 @@ void ATeamsGameMode::HandleMatchHasStarted()
 		{
 			for (auto PlayerState : ArenaGS->PlayerArray)
 			{
-				if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeam() == ETeam::ET_Max)
+				if (AArenaPlayerState* ArenaPS = Cast<AArenaPlayerState>(PlayerState); ArenaPS && ArenaPS->GetTeamId() == INDEX_NONE)
 				{
 					if (ArenaGS->AttackTeam.Num() <= ArenaGS->DefenseTeam.Num())
 					{
-						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Attack);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, 1);
 						ArenaGS->AttackTeam.AddUnique(ArenaPS);
 					}
 					else
 					{
-						TeamSubsystem->ChangeTeamForActor(PlayerState, ETeam::ET_Defense);
+						TeamSubsystem->ChangeTeamForActor(PlayerState, 2);
 						ArenaGS->DefenseTeam.AddUnique(ArenaPS);
 					}
 				}
@@ -180,18 +180,18 @@ void ATeamsGameMode::OnMatchStateSet()
 UClass* ATeamsGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
 	bool bIsPartOfTeam = false;
-	ETeam TeamId = ETeam::ET_Max;
+	int32 TeamId = INDEX_NONE;
 	FLinearColor TeamColor = FLinearColor::White;
 
 	int32 Minutes = FMath::FloorToInt(60 / 60.f);
 	int32 Seconds = 60 % 60;
 
 	UArenaTeamSubsystem::FindTeamFromObject(InController, bIsPartOfTeam, TeamId, TeamColor);
-	if (TeamId == ETeam::ET_Attack)
+	if (TeamId == 1)
 	{
 		return AttackerCharacterClass;
 	}
-	else if (TeamId == ETeam::ET_Defense)
+	else if (TeamId == 2)
 	{
 		return DefenderCharacterClass;
 	}

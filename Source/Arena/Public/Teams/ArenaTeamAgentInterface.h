@@ -10,16 +10,16 @@
 
 template <typename InterfaceType> class TScriptInterface;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnArenaTeamIndexChangedDelegate, UObject*, ObjectChangingTeam, ETeam, OldTeamID, ETeam, NewTeamID);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnArenaTeamIndexChangedDelegate, UObject*, ObjectChangingTeam, int32, OldTeamID, int32, NewTeamID);
 
-inline ETeam GenericTeamIdToTeam(const FGenericTeamId ID)
+inline int32 GenericTeamIdToInteger(const FGenericTeamId ID)
 {
-	return (ID == FGenericTeamId::NoTeam) ? ETeam::ET_Max : static_cast<ETeam>(ID.GetId());
+	return (ID == FGenericTeamId::NoTeam) ? INDEX_NONE : static_cast<int32>(ID);
 }
 
-inline FGenericTeamId TeamToGenericTeamId(const ETeam Team)
+inline FGenericTeamId IntegerToGenericTeamId(const int32 ID)
 {
-	return (Team == ETeam::ET_Max) ? FGenericTeamId::NoTeam : FGenericTeamId(static_cast<uint8>(Team));
+	return (ID == INDEX_NONE) ? FGenericTeamId::NoTeam : FGenericTeamId(static_cast<uint8>(ID));
 }
 
 /** Interface for actors which can be associated with teams */
@@ -35,7 +35,7 @@ class ARENA_API IArenaTeamAgentInterface : public IGenericTeamAgentInterface
 
 	virtual FOnArenaTeamIndexChangedDelegate* GetOnTeamIndexChangedDelegate() { return nullptr; }
 
-	static void ConditionalBroadcastTeamChanged(TScriptInterface<IArenaTeamAgentInterface> This, FGenericTeamId OldTeamID, FGenericTeamId NewTeamID);
+	static void ConditionalBroadcastTeamChanged(TScriptInterface<IArenaTeamAgentInterface> This, FGenericTeamId OldTeamId, FGenericTeamId NewTeamId);
 	
 	FOnArenaTeamIndexChangedDelegate& GetTeamChangedDelegateChecked()
 	{

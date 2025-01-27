@@ -160,21 +160,21 @@ FVector ABlasterCharacter::GetHitTarget() const
 	return Combat->HitTarget;
 }
 
-void ABlasterCharacter::SetTeamColor(const ETeam Team) const
+void ABlasterCharacter::SetTeamColor(const int32 TeamId) const
 {
 	if (GetMesh() == nullptr) return;
 
-	switch (Team)
+	switch (TeamId)
 	{
-	case ETeam::ET_Attack:
+	case 1:
 		GetMesh()->SetMaterial(0, RedMaterial1);
 		GetMesh()->SetMaterial(1, RedMaterial2);
 		break;
-	case ETeam::ET_Defense:
+	case 2:
 		GetMesh()->SetMaterial(0, BlueMaterial1);
 		GetMesh()->SetMaterial(1, BlueMaterial2);
 		break;
-	case ETeam::ET_Neutral:
+	case 0:
 		GetMesh()->SetMaterial(0, BlueMaterial1);
 		GetMesh()->SetMaterial(1, BlueMaterial2);
 		break;
@@ -185,7 +185,7 @@ void ABlasterCharacter::SetTeamColor(const ETeam Team) const
 
 void ABlasterCharacter::SetSpawnPoint()
 {
-	if (HasAuthority() && ArenaPlayerState->GetTeam() != ETeam::ET_Max)
+	if (HasAuthority() && ArenaPlayerState->GetTeamId() != INDEX_NONE)
 	{
 		TArray<AActor*> SpawnPoints;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), SpawnPoints);
@@ -194,7 +194,7 @@ void ABlasterCharacter::SetSpawnPoint()
 		for (auto SpawnPoint : SpawnPoints)
 		{
 			ATeamPlayerStart* TeamSpawnPoint = Cast<ATeamPlayerStart>(SpawnPoint);
-			if (TeamSpawnPoint && TeamSpawnPoint->Team == ArenaPlayerState->GetTeam())
+			if (TeamSpawnPoint && TeamSpawnPoint->Team == ArenaPlayerState->GetTeamId())
 			{
 				TeamSpawnPoints.Add(TeamSpawnPoint);
 			}
@@ -418,7 +418,7 @@ void ABlasterCharacter::OnPlayerStateInitialized()
 {
 	Super::OnPlayerStateInitialized();
 
-	SetTeamColor(ArenaPlayerState->GetTeam());
+	SetTeamColor(ArenaPlayerState->GetTeamId());
 	SetSpawnPoint();
 }
 

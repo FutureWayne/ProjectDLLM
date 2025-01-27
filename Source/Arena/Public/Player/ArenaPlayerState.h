@@ -14,8 +14,6 @@
 class UArenaCombatSet;
 class UArenaHealthSet;
 
-enum class ETeam : uint8;
-
 /**
  * 
  */
@@ -49,9 +47,9 @@ public:
 
 	/** Returns the ETeam of the team the player belongs to. */
 	UFUNCTION(BlueprintCallable)
-	ETeam GetTeam() const
+	int32 GetTeamId() const
 	{
-		return GenericTeamIdToTeam(MyTeamID);
+		return GenericTeamIdToInteger(MyTeamID);
 	}
 
 	// Adds a specified number of stacks to the tag (does nothing if StackCount is below 1)
