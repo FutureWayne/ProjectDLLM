@@ -28,12 +28,28 @@ void AArenaHUD::InitOverlay(APlayerController* PlayerController, APlayerState* P
 	const FWidgetControllerParams WidgetControllerParams(PlayerController, PlayerState, AbilitySystemComponent, AttributeSet);
 	UOverlayWidgetController* WidgetController = GetOverlayWidgetController(WidgetControllerParams);
 
+	// If we already have a valid OverlayWidget, remove it before creating a new one
+	if (OverlayWidget)
+	{
+		OverlayWidget->RemoveFromParent();
+		OverlayWidget = nullptr;
+	}
+	
 	auto Player = PlayerController->GetPawn();
 	OverlayWidget = CreateWidget<UCharacterOverlay>(PlayerController, OverlayWidgetClass);
 	OverlayWidget->SetWidgetController(WidgetController);
 	WidgetController->BroadCastInitialValues();
 	WidgetController->BindCallbacksToDependencies();
 	OverlayWidget->AddToViewport();
+}
+
+void AArenaHUD::RemoveOverlay()
+{
+	if (OverlayWidget)
+	{
+		OverlayWidget->RemoveFromParent();
+		OverlayWidget = nullptr;
+	}
 }
 
 void AArenaHUD::AddAgentChooseWidget()

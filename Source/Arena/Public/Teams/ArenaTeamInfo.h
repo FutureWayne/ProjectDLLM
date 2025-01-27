@@ -49,8 +49,11 @@ private:
 	UFUNCTION()
 	void OnRep_Team();
 
+	UFUNCTION()
+	void OnRep_TeamTags();
+
 public:
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_TeamTags)
 	FGameplayTagStackContainer TeamTags;
 
 private:

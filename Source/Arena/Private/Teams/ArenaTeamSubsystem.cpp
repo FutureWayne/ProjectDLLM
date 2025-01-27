@@ -288,7 +288,8 @@ void UArenaTeamSubsystem::AddTeamTagStack(ETeam TeamId, FGameplayTag Tag, int32 
 		FailureHandler(TEXT("failed because it was called on a client"));
 		return;
 	}
-	
+
+	UE_LOG(LogTeam, Log, TEXT("AddTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.AddStack(Tag, StackCount);
 }
 
@@ -312,19 +313,20 @@ void UArenaTeamSubsystem::RemoveTeamTagStack(ETeam TeamId, FGameplayTag Tag, int
 		return;
 	}
 
+	UE_LOG(LogTeam, Log, TEXT("RemoveTeamTagStack(TeamId: %d, Tag: %s, StackCount: %d)"), TeamId, *Tag.ToString(), StackCount);
 	TeamInfo->TeamTags.RemoveStack(Tag, StackCount);
 }
 
 int32 UArenaTeamSubsystem::GetTeamTagStackCount(ETeam TeamId, FGameplayTag Tag) const
 {
-	AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
+	const AArenaTeamInfo* TeamInfo = TeamMap.FindRef(TeamId);
 	if (TeamInfo)
 	{
+		int32 StackCount = TeamInfo->TeamTags.GetStackCount(Tag);
 		return TeamInfo->TeamTags.GetStackCount(Tag);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("GetTeamTagStackCount(TeamId: %d, Tag: %s) failed to find team info"), TeamId, *Tag.ToString());
 		return 0;
 	}
 }

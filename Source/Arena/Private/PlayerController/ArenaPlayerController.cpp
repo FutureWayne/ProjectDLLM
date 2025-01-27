@@ -78,6 +78,8 @@ void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AArenaPlayerController, MatchState);
+	DOREPLIFETIME(AArenaPlayerController, InventoryManagerComponent);
+	DOREPLIFETIME(AArenaPlayerController, QuickBarComponent);
 }
 
 void AArenaPlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)

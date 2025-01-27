@@ -36,6 +36,8 @@ public:
 
 	void InitOverlay(APlayerController* PlayerController, APlayerState* PlayerState, UAbilitySystemComponent* AbilitySystemComponent, UAttributeSet* AttributeSet);
 
+	void RemoveOverlay();
+	
 	void AddAgentChooseWidget();
 
 	void AddCooldownWidget();
