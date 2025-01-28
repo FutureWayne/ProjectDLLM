@@ -4,7 +4,8 @@
 #include "Teams/AsyncAction_ObserveTeam.h"
 
 #include "Teams/ArenaTeamAgentInterface.h"
-#include "Teams/ArenaTeamInfo.h"
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(AsyncAction_ObserveTeam)
 
 UAsyncAction_ObserveTeam::UAsyncAction_ObserveTeam(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
