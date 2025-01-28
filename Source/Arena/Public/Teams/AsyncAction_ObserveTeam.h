@@ -2,12 +2,14 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Engine/CancellableAsyncAction.h"
+#include "UObject/ScriptInterface.h"
+#include "UObject/WeakInterfacePtr.h"
 #include "AsyncAction_ObserveTeam.generated.h"
 
-enum class ETeam : uint8;
 class IArenaTeamAgentInterface;
+struct FFrame;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTeamObservedAsyncDelegate, bool, bTeamSet, int32, TeamID);
 
 /**
@@ -16,11 +18,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FTeamObservedAsyncDelegate, bool, b
 UCLASS()
 class ARENA_API UAsyncAction_ObserveTeam : public UCancellableAsyncAction
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
-	UAsyncAction_ObserveTeam(const FObjectInitializer& ObjectInitializer);
-	
 	// Watches for team changes on the specified team agent
 	//  - It will fire once immediately to give the current team assignment
 	//  - For anything that can ever belong to a team (implements IArenaTeamAgentInterface),

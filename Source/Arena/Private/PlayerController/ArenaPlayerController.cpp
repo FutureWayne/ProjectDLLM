@@ -3,19 +3,13 @@
 
 #include "PlayerController/ArenaPlayerController.h"
 
+#include "ArenaLogChannel.h"
 #include "EnhancedInputSubsystems.h"
-#include "Components/TextBlock.h"
 #include "Equipment/ArenaQuickBarComponent.h"
-#include "GameFramework/GameMode.h"
-#include "GameMode/TeamsGameMode.h"
 #include "Input/ArenaInputComponent.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
-#include "UI/HUD/ArenaHUD.h"
-#include "UI/Widget/AgentChooseWidget.h"
-#include "UI/Widget/CharacterOverlay.h"
-#include "UI/Widget/CooldownWidget.h"
 
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
 {
@@ -50,12 +44,46 @@ UArenaAbilitySystemComponent* AArenaPlayerController::GetArenaAbilitySystemCompo
 	return ArenaPS ? ArenaPS->GetArenaAbilitySystemComponent() : nullptr;
 }
 
+void AArenaPlayerController::SetGenericTeamId(const FGenericTeamId& TeamID)
+{
+	UE_LOG(LogArenaTeams, Error, TEXT("You can't set the team ID on a player controller (%s); it's driven by the associated player state"), *GetPathNameSafe(this));
+}
+
+FGenericTeamId AArenaPlayerController::GetGenericTeamId() const
+{
+	if (const IArenaTeamAgentInterface* PSWithTeamInterface = Cast<IArenaTeamAgentInterface>(PlayerState))
+	{
+		return PSWithTeamInterface->GetGenericTeamId();
+	}
+	return FGenericTeamId::NoTeam;
+}
+
+FOnArenaTeamIndexChangedDelegate* AArenaPlayerController::GetOnTeamIndexChangedDelegate()
+{
+	return &OnTeamChangedDelegate;
+}
+
+void AArenaPlayerController::InitPlayerState()
+{
+	Super::InitPlayerState();
+	BroadcastOnPlayerStateChanged();
+}
+
+void AArenaPlayerController::CleanupPlayerState()
+{
+	Super::CleanupPlayerState();
+	BroadcastOnPlayerStateChanged();
+}
+
+void AArenaPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	BroadcastOnPlayerStateChanged();
+}
+
 void AArenaPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ArenaHUD = Cast<AArenaHUD>(GetHUD());
-	ServerCheckMatchState();
 
 	check(DefaultMappingContext);
 
@@ -65,19 +93,10 @@ void AArenaPlayerController::BeginPlay()
 	}
 }
 
-void AArenaPlayerController::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	SetHUDTime();
-	CheckTimeSync(DeltaSeconds);
-}
-
 void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AArenaPlayerController, MatchState);
+	
 	DOREPLIFETIME(AArenaPlayerController, InventoryManagerComponent);
 	DOREPLIFETIME(AArenaPlayerController, QuickBarComponent);
 }
@@ -100,12 +119,6 @@ void AArenaPlayerController::PostProcessInput(const float DeltaTime, const bool 
 void AArenaPlayerController::ReceivedPlayer()
 {
 	Super::ReceivedPlayer();
-
-	// Sync with server time
-	if (IsLocalController())
-	{
-		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
-	}
 }
 
 void AArenaPlayerController::PlayerTick(float DeltaTime)
@@ -123,237 +136,37 @@ void AArenaPlayerController::SetupInputComponent()
 	ArenaInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased);
 }
 
-void AArenaPlayerController::ServerRequestServerTime_Implementation(float TimeOfClientRequest)
+void AArenaPlayerController::OnPlayerStateChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam)
 {
-	const float TimeOfServerReceivedRequest = GetWorld()->GetTimeSeconds();
-	ClientReportServerTime(TimeOfServerReceivedRequest, TimeOfClientRequest);
+	ConditionalBroadcastTeamChanged(this, IntegerToGenericTeamId(OldTeam), IntegerToGenericTeamId(NewTeam));
 }
 
-void AArenaPlayerController::ClientReportServerTime_Implementation(float TimeOfServerReceivedRequest,
-	float TimeOfClientRequest)
+void AArenaPlayerController::BroadcastOnPlayerStateChanged()
 {
-	const float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClientRequest;
-	float CurrentServerTime = TimeOfServerReceivedRequest + RoundTripTime * 0.5f;
-	ClientServerDeltaTime = CurrentServerTime - GetWorld()->GetTimeSeconds();
-}
-
-float AArenaPlayerController::GetServerTime()
-{
-	if (HasAuthority())
+	// Unbind from the old player state, if any
+	FGenericTeamId OldTeamID = FGenericTeamId::NoTeam;
+	if (LastSeenPlayerState != nullptr)
 	{
-		return GetWorld()->GetTimeSeconds();
-	}
-	else
-	{
-		return GetWorld()->GetTimeSeconds() + ClientServerDeltaTime;
-	}
-}
-
-void AArenaPlayerController::SetHUDMatchCountdown(float CountdownTime)
-{
-// 	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-// 	if (ArenaHUD)
-// 	{
-// 		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
-// 		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
-//
-// 		if (ArenaHUD && ArenaHUD->OverlayWidget && ArenaHUD->OverlayWidget->MatchCountdownText)
-// 		{
-// 			FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-// 			ArenaHUD->OverlayWidget->MatchCountdownText->SetText(FText::FromString(TimeString));
-// 		}
-// 	}
-}
-
-void AArenaPlayerController::SetHUDAgentChooseCountdown(float CountdownTime)
-{
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD && ArenaHUD->AgentChooseWidget && ArenaHUD->AgentChooseWidget->ChooseTimeCountdown)
-	{
-		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
-		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
-
-		FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-		ArenaHUD->AgentChooseWidget->ChooseTimeCountdown->SetText(FText::FromString(TimeString));
-	}
-}
-
-void AArenaPlayerController::SetHUDCooldownCountdown(float CountdownTime)
-{
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD && ArenaHUD->CooldownWidget && ArenaHUD->CooldownWidget->CooldownTimeCountdown)
-	{
-		int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
-		int32 Seconds = FMath::FloorToInt(FMath::Fmod(CountdownTime, 60.f));
-
-		FString TimeString = FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds);
-		ArenaHUD->CooldownWidget->CooldownTimeCountdown->SetText(FText::FromString(TimeString));
-	}
-}
-
-void AArenaPlayerController::OnMatchStateSet(const FName NewMatchState)
-{
-	MatchState = NewMatchState;
-	
-	if (NewMatchState == MatchState::WaitingToStart)
-	{
-		HandleMatchWaitingToStart();
-	}
-	else if (NewMatchState == MatchState::InProgress)
-	{
-		HandleMatchStart();
-	}
-	else if (NewMatchState == MatchState::Cooldown)
-	{
-		HandleCooldown();
-	}
-}
-
-void AArenaPlayerController::CheckTimeSync(float DeltaTime)
-{
-	TimeSyncRunningTime += DeltaTime;
-	if (IsLocalController() && TimeSyncRunningTime > TimeSyncFrequency)
-	{
-		ServerRequestServerTime(GetWorld()->GetTimeSeconds());
-		TimeSyncRunningTime = 0.f;
-	}
-}
-
-void AArenaPlayerController::SetHUDTime()
-{
-	// float TimeLeft = 0.0f;
-	// if (MatchState == MatchState::WaitingToStart)
-	// {
-	// 	TimeLeft = AgentChooseDuration - GetServerTime() + LevelStartingTime;
-	// }
-	// else if (MatchState == MatchState::InProgress)
-	// {
-	// 	TimeLeft = AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	// }
-	// else if (MatchState == MatchState::Cooldown)
-	// {
-	// 	TimeLeft = CooldownDuration + AgentChooseDuration + MatchDuration - GetServerTime() + LevelStartingTime;
-	// }
-	//
-	// uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
-	// if (CountdownInt != SecondsLeft)
-	// {
-	// 	if (MatchState == MatchState::WaitingToStart)
-	// 	{
-	// 		SetHUDAgentChooseCountdown(TimeLeft);
-	// 	}
-	// 	else if (MatchState == MatchState::InProgress)
-	// 	{
-	// 		SetHUDMatchCountdown(TimeLeft);
-	// 	}
-	// 	else if (MatchState == MatchState::Cooldown)
-	// 	{
-	// 		SetHUDCooldownCountdown(TimeLeft);
-	// 	}
-	// }
-	//
-	// CountdownInt = SecondsLeft;
-	//
-}
-
-void AArenaPlayerController::HandleMatchWaitingToStart()
-{
-	if (HasAuthority())
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Server HandleMatchWaitingToStart"));
-	}
-
-	if (IsLocalPlayerController())
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Client HandleMatchWaitingToStart"));
-	}
-	
-	
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-
-	if (ArenaHUD)
-	{
-		if (ArenaHUD->CooldownWidget)
+		if (IArenaTeamAgentInterface* PlayerStateTeamInterface = Cast<IArenaTeamAgentInterface>(LastSeenPlayerState))
 		{
-			ArenaHUD->CooldownWidget->RemoveFromParent();
-		}
-		
-		ArenaHUD->AddAgentChooseWidget();
-	}
-	
-	SetIgnoreMoveInput(true);
-	SetIgnoreLookInput(true);
-}
-
-void AArenaPlayerController::HandleMatchStart()
-{
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD)
-	{
-		if (ArenaHUD->AgentChooseWidget)
-		{
-			ArenaHUD->AgentChooseWidget->RemoveFromParent();
+			OldTeamID = PlayerStateTeamInterface->GetGenericTeamId();
+			PlayerStateTeamInterface->GetTeamChangedDelegateChecked().RemoveAll(this);
 		}
 	}
 
-	SetIgnoreMoveInput(false);
-	SetIgnoreLookInput(false);
-}
-
-void AArenaPlayerController::HandleCooldown()
-{
-	ArenaHUD = !ArenaHUD ? Cast<AArenaHUD>(GetHUD()) : ArenaHUD.Get();
-	if (ArenaHUD)
+	// Bind to the new player state, if any
+	FGenericTeamId NewTeamID = FGenericTeamId::NoTeam;
+	if (PlayerState != nullptr)
 	{
-		if (ArenaHUD->OverlayWidget)
+		if (IArenaTeamAgentInterface* PlayerStateTeamInterface = Cast<IArenaTeamAgentInterface>(PlayerState))
 		{
-			ArenaHUD->OverlayWidget->RemoveFromParent();
+			NewTeamID = PlayerStateTeamInterface->GetGenericTeamId();
+			PlayerStateTeamInterface->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnPlayerStateChangedTeam);
 		}
-		
-		ArenaHUD->AddCooldownWidget();
 	}
-}
 
-void AArenaPlayerController::ServerCheckMatchState_Implementation()
-{
-	ATeamsGameMode* TeamsGameMode = GetWorld()->GetAuthGameMode<ATeamsGameMode>();
-	if (TeamsGameMode)
-	{
-		AgentChooseDuration = TeamsGameMode->AgentChoosingDuration;
-		MatchDuration = TeamsGameMode->MatchDuration;
-		CooldownDuration = TeamsGameMode->CooldownDuration;
-		LevelStartingTime = TeamsGameMode->LevelStartingTime;
-		
-		MatchState = TeamsGameMode->GetMatchState();
-		ClientJoinMidGame(MatchState, AgentChooseDuration, MatchDuration, CooldownDuration, LevelStartingTime);
-	}
-}
+	// Broadcast the team change (if it really has)
+	ConditionalBroadcastTeamChanged(this, OldTeamID, NewTeamID);
 
-void AArenaPlayerController::ClientJoinMidGame_Implementation(FName StateOfMatch, float AgentChoose, float Match, float Cooldown, float LevelStart)
-{
-	AgentChooseDuration = AgentChoose;
-	MatchDuration = Match;
-	CooldownDuration = Cooldown;
-	LevelStartingTime = LevelStart;
-	MatchState = StateOfMatch;
-	if (!HasAuthority())
-	{
-		OnMatchStateSet(StateOfMatch);
-	}
-}
-
-void AArenaPlayerController::OnRep_MatchState()
-{
-	if (MatchState == MatchState::WaitingToStart)
-	{
-		HandleMatchWaitingToStart();
-	}
-	else if (MatchState == MatchState::InProgress)
-	{
-		HandleMatchStart();
-	}
-	else if (MatchState == MatchState::Cooldown)
-	{
-		HandleCooldown();
-	}
+	LastSeenPlayerState = PlayerState;
 }
