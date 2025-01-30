@@ -6,7 +6,7 @@
 #include "GameMode/ArenaGameMode.h"
 #include "TeamsGameMode.generated.h"
 
-class ABlasterCharacter;
+class AArenaCharacter;
 
 namespace MatchState
 {
@@ -25,10 +25,10 @@ public:
 
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Classes")
-	TSubclassOf<ABlasterCharacter> AttackerCharacterClass;
+	TSubclassOf<AArenaCharacter> AttackerCharacterClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Classes")
-	TSubclassOf<ABlasterCharacter> DefenderCharacterClass;
+	TSubclassOf<AArenaCharacter> DefenderCharacterClass;
 
 protected:
 	/* Begin AGameMode interface */

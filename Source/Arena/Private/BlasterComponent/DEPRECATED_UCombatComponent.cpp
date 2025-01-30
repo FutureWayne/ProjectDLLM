@@ -1,36 +1,36 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BlasterComponent/CombatComponent.h"
+#include "BlasterComponent/DEPRECATED_UCombatComponent.h"
 
 #include "Camera/CameraComponent.h"
-#include "Character/BlasterCharacter.h"
+#include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Components/SphereComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UI/HUD/BlasterHUD.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
-#include "PlayerController/ArenaPlayerController.h"
+#include "Player/ArenaPlayerController.h"
 #include "Weapon/Weapon.h"
 
-UCombatComponent::UCombatComponent()
+UDEPRECATED_UCombatComponent::UDEPRECATED_UCombatComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsAiming = false;
 	bFireButtonPressed = false;
 }
 
-void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void UDEPRECATED_UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UCombatComponent, EquippedWeapon);
-	DOREPLIFETIME(UCombatComponent, bIsAiming);
+	DOREPLIFETIME(UDEPRECATED_UCombatComponent, EquippedWeapon);
+	DOREPLIFETIME(UDEPRECATED_UCombatComponent, bIsAiming);
 }
 
 
-void UCombatComponent::BeginPlay()
+void UDEPRECATED_UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -45,7 +45,7 @@ void UCombatComponent::BeginPlay()
 }
 
 // Called every frame
-void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UDEPRECATED_UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -60,13 +60,13 @@ void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActo
 	}
 }
 
-void UCombatComponent::SetAiming(const bool bNewAiming)
+void UDEPRECATED_UCombatComponent::SetAiming(const bool bNewAiming)
 {
 	bIsAiming = bNewAiming;
 	ServerSetAiming(bNewAiming);
 }
 
-void UCombatComponent::OnRep_EquippedWeapon() const
+void UDEPRECATED_UCombatComponent::OnRep_EquippedWeapon() const
 {
 	if (EquippedWeapon && OwningCharacter)
 	{
@@ -74,7 +74,7 @@ void UCombatComponent::OnRep_EquippedWeapon() const
 	}
 }
 
-void UCombatComponent::TraceUnderCrosshair(FHitResult& HitResult)
+void UDEPRECATED_UCombatComponent::TraceUnderCrosshair(FHitResult& HitResult)
 {
 	FVector2D ViewportSize;
 	if (GEngine && GEngine->GameViewport)
@@ -124,7 +124,7 @@ void UCombatComponent::TraceUnderCrosshair(FHitResult& HitResult)
 	}
 }
 
-void UCombatComponent::InterpFOV(float DeltaTime)
+void UDEPRECATED_UCombatComponent::InterpFOV(float DeltaTime)
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -146,7 +146,7 @@ void UCombatComponent::InterpFOV(float DeltaTime)
 	}
 }
 
-void UCombatComponent::StartFireTimer()
+void UDEPRECATED_UCombatComponent::StartFireTimer()
 {
 	if (EquippedWeapon == nullptr || OwningCharacter == nullptr)
 	{
@@ -157,12 +157,12 @@ void UCombatComponent::StartFireTimer()
 	OwningCharacter->GetWorldTimerManager().SetTimer(
 		FireTimer,
 		this,
-		&UCombatComponent::FireTimerFinished,
+		&UDEPRECATED_UCombatComponent::FireTimerFinished,
 		FireDelay
 		);
 }
 
-void UCombatComponent::FireTimerFinished()
+void UDEPRECATED_UCombatComponent::FireTimerFinished()
 {
 	bCanFire = true;
 	if (bFireButtonPressed && bAutomatic)
@@ -171,12 +171,12 @@ void UCombatComponent::FireTimerFinished()
 	}
 }
 
-void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+void UDEPRECATED_UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	MulticastFire(TraceHitTarget);
 }
 
-void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
+void UDEPRECATED_UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceHitTarget)
 {
 	if (EquippedWeapon == nullptr)
 	{
@@ -190,7 +190,7 @@ void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& T
 	}
 }
 
-void UCombatComponent::Fire()
+void UDEPRECATED_UCombatComponent::Fire()
 {
 	if (bCanFire)
 	{
@@ -207,7 +207,7 @@ void UCombatComponent::Fire()
 	}
 }
 
-void UCombatComponent::FireButtonPressed(bool bPressed)
+void UDEPRECATED_UCombatComponent::FireButtonPressed(bool bPressed)
 {
 	bFireButtonPressed = bPressed;
 
@@ -217,7 +217,7 @@ void UCombatComponent::FireButtonPressed(bool bPressed)
 	}
 }
 
-void UCombatComponent::SetHUDCrosshair(float DeltaTime)
+void UDEPRECATED_UCombatComponent::SetHUDCrosshair(float DeltaTime)
 {
 	if (OwningCharacter == nullptr || OwningCharacter->Controller == nullptr)
 	{
@@ -256,7 +256,7 @@ void UCombatComponent::SetHUDCrosshair(float DeltaTime)
 			}
 
 			// Calculate crosshair spread
-			ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetOwner());
+			ADEPRECATED_ABlasterCharacter* BlasterCharacter = Cast<ADEPRECATED_ABlasterCharacter>(GetOwner());
 			if (BlasterCharacter != nullptr)
 			{
 				const FVector2D SpeedRange(0.f, BlasterCharacter->GetDefaultJogSpeed());
@@ -293,12 +293,12 @@ void UCombatComponent::SetHUDCrosshair(float DeltaTime)
 	}
 }
 
-void UCombatComponent::ServerSetAiming_Implementation(const bool bNewAiming)
+void UDEPRECATED_UCombatComponent::ServerSetAiming_Implementation(const bool bNewAiming)
 {
 	bIsAiming = bNewAiming;
 }
 
-void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
+void UDEPRECATED_UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 {
 	if (OwningCharacter == nullptr || WeaponToEquip == nullptr)
 	{
@@ -326,7 +326,7 @@ void UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	OwningCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
-void UCombatComponent::DropWeapon()
+void UDEPRECATED_UCombatComponent::DropWeapon()
 {
 	if (EquippedWeapon == nullptr)
 	{

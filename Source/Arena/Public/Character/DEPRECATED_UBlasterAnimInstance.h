@@ -3,15 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DEPRECATED_ABlasterCharacter.h"
 #include "Animation/AnimInstance.h"
 #include "Arena/ArenaTypes/TurnInPlace.h"
-#include "BlasterAnimInstance.generated.h"
+#include "DEPRECATED_UBlasterAnimInstance.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class ARENA_API UBlasterAnimInstance : public UAnimInstance
+UCLASS(Deprecated)
+class ARENA_API UDEPRECATED_UBlasterAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 
@@ -20,8 +21,8 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 private:
-	UPROPERTY(BlueprintReadOnly, Category = "Character", meta = (AllowPrivateAccess = true))
-	TObjectPtr<class ABlasterCharacter> BlasterCharacter;
+	UPROPERTY(meta = (Deprecated)) 
+	TObjectPtr<ADEPRECATED_ABlasterCharacter> BlasterCharacter_DEPRECATED;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Character", meta = (AllowPrivateAccess = true))
 	TObjectPtr<class AWeapon> EquippedWeapon;

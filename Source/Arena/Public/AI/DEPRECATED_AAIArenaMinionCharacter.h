@@ -3,19 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/ArenaMinion.h"
+#include "Character/DEPRECATED_AArenaMinion.h"
 #include <BehaviorTree/BTNode.h>
-#include "AIArenaMinionCharacter.generated.h"
+#include "DEPRECATED_AAIArenaMinionCharacter.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class ARENA_API AAIArenaMinionCharacter : public AArenaMinion
+UCLASS(Deprecated)
+class ARENA_API ADEPRECATED_AAIArenaMinionCharacter : public ADEPRECATED_AArenaMinion
 {
 	GENERATED_BODY()
 public:
-	AAIArenaMinionCharacter();
+	ADEPRECATED_AAIArenaMinionCharacter();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float DetectRangeRadius = 400.0f;

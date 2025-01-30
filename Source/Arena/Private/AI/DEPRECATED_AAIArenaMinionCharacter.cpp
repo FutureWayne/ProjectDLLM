@@ -1,19 +1,19 @@
-#include "AI/AIArenaMinionCharacter.h"
-#include "AI/AIArenaMinionController.h"
+#include "AI/DEPRECATED_AAIArenaMinionCharacter.h"
+#include "AI/DEPRECATED_AAIArenaMinionController.h"
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include <Kismet/GameplayStatics.h>
-#include <Character/BlasterCharacter.h>
+#include <Character/DEPRECATED_ABlasterCharacter.h>
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 
-AAIArenaMinionCharacter::AAIArenaMinionCharacter()
+ADEPRECATED_AAIArenaMinionCharacter::ADEPRECATED_AAIArenaMinionCharacter()
 {
 	HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
 	HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	AIControllerClass = AAIArenaMinionController::StaticClass();
+	AIControllerClass = ADEPRECATED_AAIArenaMinionController::StaticClass();
 	bUseControllerRotationYaw = false;
 	if (GetCharacterMovement())
 	{
@@ -25,7 +25,7 @@ AAIArenaMinionCharacter::AAIArenaMinionCharacter()
 	OverheadWidget->SetupAttachment(RootComponent);
 }
 
-void AAIArenaMinionCharacter::OnDeathStarted(AActor* OwningActor)
+void ADEPRECATED_AAIArenaMinionCharacter::OnDeathStarted(AActor* OwningActor)
 {
 	if (Controller)
 	{
@@ -43,7 +43,7 @@ void AAIArenaMinionCharacter::OnDeathStarted(AActor* OwningActor)
 	MovementComp->DisableMovement();
 }
 
-void AAIArenaMinionCharacter::OnDeathFinished(AActor* OwningActor)
+void ADEPRECATED_AAIArenaMinionCharacter::OnDeathFinished(AActor* OwningActor)
 {
 	if (GetLocalRole() == ROLE_Authority)
 	{
@@ -54,12 +54,12 @@ void AAIArenaMinionCharacter::OnDeathFinished(AActor* OwningActor)
 	SetActorHiddenInGame(true);
 }
 
-void AAIArenaMinionCharacter::SetTowerTarget(AActor* Target)
+void ADEPRECATED_AAIArenaMinionCharacter::SetTowerTarget(AActor* Target)
 {
 	TowerTarget = Target;
 }
 
-void AAIArenaMinionCharacter::Tick(float DeltaTime)
+void ADEPRECATED_AAIArenaMinionCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }

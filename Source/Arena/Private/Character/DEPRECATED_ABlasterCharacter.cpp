@@ -1,10 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Character/BlasterCharacter.h"
+#include "Character/DEPRECATED_ABlasterCharacter.h"
 
 #include "ArenaGameplayTags.h"
-#include "BlasterComponent/CombatComponent.h"
+#include "BlasterComponent/DEPRECATED_UCombatComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -16,12 +16,12 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
-#include "PlayerController/ArenaPlayerController.h"
+#include "Player/ArenaPlayerController.h"
 #include "PlayerStart/TeamPlayerStart.h"
 #include "Weapon/Weapon.h"
 
 // Sets default values
-ABlasterCharacter::ABlasterCharacter()
+ADEPRECATED_ABlasterCharacter::ADEPRECATED_ABlasterCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -65,8 +65,8 @@ ABlasterCharacter::ABlasterCharacter()
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
 
-	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
-	Combat->SetIsReplicated(true);
+	Combat_DEPRECATED = CreateDefaultSubobject<UDEPRECATED_UCombatComponent>(TEXT("CombatComponent"));
+	Combat_DEPRECATED->SetIsReplicated(true);
 
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
 
@@ -76,16 +76,16 @@ ABlasterCharacter::ABlasterCharacter()
 	SetMinNetUpdateFrequency(33.0f);
 }
 
-void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ADEPRECATED_ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	// Register properties to replicate
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
-	DOREPLIFETIME(ABlasterCharacter, Health);
+	DOREPLIFETIME_CONDITION(ADEPRECATED_ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
+	DOREPLIFETIME(ADEPRECATED_ABlasterCharacter, Health);
 }
 
-void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
+void ADEPRECATED_ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
 	if (OverlappingWeapon)
 	{
@@ -103,29 +103,29 @@ void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 	}
 }
 
-bool ABlasterCharacter::IsWeaponEquipped() const
+bool ADEPRECATED_ABlasterCharacter::IsWeaponEquipped() const
 {
-	return (Combat && Combat->EquippedWeapon != nullptr);
+	return (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon != nullptr);
 }
 
-bool ABlasterCharacter::IsAiming() const
+bool ADEPRECATED_ABlasterCharacter::IsAiming() const
 {
-	return (Combat && Combat->bIsAiming);
+	return (Combat_DEPRECATED && Combat_DEPRECATED->bIsAiming);
 }
 
-AWeapon* ABlasterCharacter::GetEquippedWeapon() const
+AWeapon* ADEPRECATED_ABlasterCharacter::GetEquippedWeapon() const
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		return Combat->EquippedWeapon;
+		return Combat_DEPRECATED->EquippedWeapon;
 	}
 
 	return nullptr;
 }
 
-void ABlasterCharacter::PlayFireMontage()
+void ADEPRECATED_ABlasterCharacter::PlayFireMontage()
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
+	if (Combat_DEPRECATED == nullptr || Combat_DEPRECATED->EquippedWeapon == nullptr)
 	{
 		return;
 	}
@@ -137,9 +137,9 @@ void ABlasterCharacter::PlayFireMontage()
 	}
 }
 
-void ABlasterCharacter::PlayHitReactMontage()
+void ADEPRECATED_ABlasterCharacter::PlayHitReactMontage()
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
+	if (Combat_DEPRECATED == nullptr || Combat_DEPRECATED->EquippedWeapon == nullptr)
 	{
 		return;
 	}
@@ -151,16 +151,16 @@ void ABlasterCharacter::PlayHitReactMontage()
 	}
 }
 
-FVector ABlasterCharacter::GetHitTarget() const
+FVector ADEPRECATED_ABlasterCharacter::GetHitTarget() const
 {
-	if (Combat == nullptr)
+	if (Combat_DEPRECATED == nullptr)
 	{
 		return FVector::ZeroVector;
 	}
-	return Combat->HitTarget;
+	return Combat_DEPRECATED->HitTarget;
 }
 
-void ABlasterCharacter::SetTeamColor(const int32 TeamId) const
+void ADEPRECATED_ABlasterCharacter::SetTeamColor(const int32 TeamId) const
 {
 	if (GetMesh() == nullptr) return;
 
@@ -183,7 +183,7 @@ void ABlasterCharacter::SetTeamColor(const int32 TeamId) const
 	}
 }
 
-void ABlasterCharacter::SetSpawnPoint()
+void ADEPRECATED_ABlasterCharacter::SetSpawnPoint()
 {
 	if (HasAuthority() && ArenaPlayerState->GetTeamId() != INDEX_NONE)
 	{
@@ -209,19 +209,19 @@ void ABlasterCharacter::SetSpawnPoint()
 	}
 }
 
-USkeletalMeshComponent* ABlasterCharacter::GetDisplayMesh_Implementation()
+USkeletalMeshComponent* ADEPRECATED_ABlasterCharacter::GetDisplayMesh_Implementation()
 {
 	return GetMesh();
 }
 
 // Called when the game starts or when spawned
-void ABlasterCharacter::BeginPlay()
+void ADEPRECATED_ABlasterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-void ABlasterCharacter::Tick(float DeltaSeconds)
+void ADEPRECATED_ABlasterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
@@ -251,7 +251,7 @@ void ABlasterCharacter::Tick(float DeltaSeconds)
 	
 }
 
-void ABlasterCharacter::Move(const FInputActionValue& Value)
+void ADEPRECATED_ABlasterCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -274,7 +274,7 @@ void ABlasterCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
-void ABlasterCharacter::Look(const FInputActionValue& Value)
+void ADEPRECATED_ABlasterCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -287,23 +287,23 @@ void ABlasterCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void ABlasterCharacter::EquipButtonPressed()
+void ADEPRECATED_ABlasterCharacter::EquipButtonPressed()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
 		ServerEquipButtonPressed();
 	}
 }
 
-void ABlasterCharacter::DropButtonPressed()
+void ADEPRECATED_ABlasterCharacter::DropButtonPressed()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
 		ServerDropButtonPressed();
 	}
 }
 
-void ABlasterCharacter::CrouchButtonPressed()
+void ADEPRECATED_ABlasterCharacter::CrouchButtonPressed()
 {
 	if (bIsCrouched)
 	{
@@ -315,23 +315,23 @@ void ABlasterCharacter::CrouchButtonPressed()
 	}
 }
 
-void ABlasterCharacter::AimButtonPressed()
+void ADEPRECATED_ABlasterCharacter::AimButtonPressed()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->SetAiming(true);
+		Combat_DEPRECATED->SetAiming(true);
 	}
 }
 
-void ABlasterCharacter::AimButtonReleased()
+void ADEPRECATED_ABlasterCharacter::AimButtonReleased()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->SetAiming(false);
+		Combat_DEPRECATED->SetAiming(false);
 	}
 }
 
-void ABlasterCharacter::CalculateAOPitch()
+void ADEPRECATED_ABlasterCharacter::CalculateAOPitch()
 {
 	AO_Pitch = GetBaseAimRotation().Pitch;
 	if (AO_Pitch > 90.f && !IsLocallyControlled())
@@ -341,9 +341,9 @@ void ABlasterCharacter::CalculateAOPitch()
 	}
 }
 
-void ABlasterCharacter::AimOffset(float DeltaSeconds)
+void ADEPRECATED_ABlasterCharacter::AimOffset(float DeltaSeconds)
 {
-	if (Combat && Combat->EquippedWeapon == nullptr)
+	if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon == nullptr)
 	{
 		return;
 	}
@@ -379,9 +379,9 @@ void ABlasterCharacter::AimOffset(float DeltaSeconds)
 	CalculateAOPitch();
 }
 
-void ABlasterCharacter::SimProxiesTurn()
+void ADEPRECATED_ABlasterCharacter::SimProxiesTurn()
 {
-	if (Combat == nullptr || Combat->EquippedWeapon == nullptr)
+	if (Combat_DEPRECATED == nullptr || Combat_DEPRECATED->EquippedWeapon == nullptr)
 	{
 		return;
 	}
@@ -414,7 +414,7 @@ void ABlasterCharacter::SimProxiesTurn()
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
 }
 
-void ABlasterCharacter::OnPlayerStateInitialized()
+void ADEPRECATED_ABlasterCharacter::OnPlayerStateInitialized()
 {
 	Super::OnPlayerStateInitialized();
 
@@ -422,34 +422,34 @@ void ABlasterCharacter::OnPlayerStateInitialized()
 	SetSpawnPoint();
 }
 
-void ABlasterCharacter::FireButtonPressed()
+void ADEPRECATED_ABlasterCharacter::FireButtonPressed()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->FireButtonPressed(true);
+		Combat_DEPRECATED->FireButtonPressed(true);
 	}
 }
 
-void ABlasterCharacter::FireButtonReleased()
+void ADEPRECATED_ABlasterCharacter::FireButtonReleased()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->FireButtonPressed(false);
+		Combat_DEPRECATED->FireButtonPressed(false);
 	}
 }
 
-void ABlasterCharacter::WalkButtonPressed()
+void ADEPRECATED_ABlasterCharacter::WalkButtonPressed()
 {
 	GetCharacterMovement()->MaxWalkSpeed = DefaultWalkSpeed;
 }
 
-void ABlasterCharacter::WalkButtonReleased()
+void ADEPRECATED_ABlasterCharacter::WalkButtonReleased()
 {
 	GetCharacterMovement()->MaxWalkSpeed = DefaultJogSpeed;
 }
 
 // Called to bind functionality to input
-void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ADEPRECATED_ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	UArenaInputComponent* ArenaIC = Cast<UArenaInputComponent>(PlayerInputComponent);
 	AArenaPlayerController* ArenaPC = Cast<AArenaPlayerController>(GetController());
@@ -470,34 +470,34 @@ void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Look, ETriggerEvent::Triggered, this, &ABlasterCharacter::Look, false);
 
 		// Equipping
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Equip, ETriggerEvent::Triggered, this, &ABlasterCharacter::EquipButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Equip, ETriggerEvent::Triggered, this, &ADEPRECATED_ABlasterCharacter::EquipButtonPressed, false);
 
 		// Dropping
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Drop, ETriggerEvent::Triggered, this, &ABlasterCharacter::DropButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Drop, ETriggerEvent::Triggered, this, &ADEPRECATED_ABlasterCharacter::DropButtonPressed, false);
 
 		// // Crouching
 		// ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ABlasterCharacter::CrouchButtonPressed, false);
 
 		// Aiming
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Started, this, &ABlasterCharacter::AimButtonPressed, false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Completed, this, &ABlasterCharacter::AimButtonReleased, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Started, this, &ADEPRECATED_ABlasterCharacter::AimButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Aim, ETriggerEvent::Completed, this, &ADEPRECATED_ABlasterCharacter::AimButtonReleased, false);
 
 		// Firing
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Started, this, &ABlasterCharacter::FireButtonPressed, false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Completed, this, &ABlasterCharacter::FireButtonReleased, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Started, this, &ADEPRECATED_ABlasterCharacter::FireButtonPressed, false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Fire, ETriggerEvent::Completed, this, &ADEPRECATED_ABlasterCharacter::FireButtonReleased, false);
 	}
 }
 
-void ABlasterCharacter::PostInitializeComponents()
+void ADEPRECATED_ABlasterCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->OwningCharacter = this;
+		Combat_DEPRECATED->OwningCharacter = this;
 	}
 }
 
-void ABlasterCharacter::OnRep_ReplicatedMovement()
+void ADEPRECATED_ABlasterCharacter::OnRep_ReplicatedMovement()
 {
 	Super::OnRep_ReplicatedMovement();
 
@@ -505,25 +505,25 @@ void ABlasterCharacter::OnRep_ReplicatedMovement()
 	TimeSinceLastMovementReplication = 0.0f;
 }
 
-void ABlasterCharacter::ServerEquipButtonPressed_Implementation()
+void ADEPRECATED_ABlasterCharacter::ServerEquipButtonPressed_Implementation()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->EquipWeapon(OverlappingWeapon);
+		Combat_DEPRECATED->EquipWeapon(OverlappingWeapon);
 	}
 
 	StartingAimRotation = FRotator(0.0f, GetControlRotation().Yaw, 0.0f);
 }
 
-void ABlasterCharacter::ServerDropButtonPressed_Implementation()
+void ADEPRECATED_ABlasterCharacter::ServerDropButtonPressed_Implementation()
 {
-	if (Combat)
+	if (Combat_DEPRECATED)
 	{
-		Combat->DropWeapon();
+		Combat_DEPRECATED->DropWeapon();
 	}
 }
 
-void ABlasterCharacter::OnRep_OverlappingWeapon(const AWeapon* LastWeapon) const
+void ADEPRECATED_ABlasterCharacter::OnRep_OverlappingWeapon(const AWeapon* LastWeapon) const
 {
 	// OverlappingWeapon has changed
 	if (OverlappingWeapon)
@@ -537,11 +537,11 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(const AWeapon* LastWeapon) const
 	}
 }
 
-void ABlasterCharacter::OnRep_Health()
+void ADEPRECATED_ABlasterCharacter::OnRep_Health()
 {
 }
 
-void ABlasterCharacter::TurnInPlace(float DeltaSeconds)
+void ADEPRECATED_ABlasterCharacter::TurnInPlace(float DeltaSeconds)
 {
 	if (AO_Yaw > 90.0f)
 	{
@@ -564,7 +564,7 @@ void ABlasterCharacter::TurnInPlace(float DeltaSeconds)
 	}
 }
 
-void ABlasterCharacter::HideCharacterIfCameraClose()
+void ADEPRECATED_ABlasterCharacter::HideCharacterIfCameraClose()
 {
 	if (!IsLocallyControlled())
 	{
@@ -574,17 +574,17 @@ void ABlasterCharacter::HideCharacterIfCameraClose()
 	if ((CameraComponent->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
 	{
 		GetMesh()->SetVisibility(false);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+			Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
 		}
 	}
 	else
 	{
 		GetMesh()->SetVisibility(true);
-		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
 		{
-			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+			Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
 		}
 	}
 }

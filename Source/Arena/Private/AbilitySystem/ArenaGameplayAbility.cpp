@@ -6,7 +6,7 @@
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Character/ArenaCharacterBase.h"
-#include "PlayerController/ArenaPlayerController.h"
+#include "Player/ArenaPlayerController.h"
 
 #define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				    \
 {																																						    \

@@ -2,10 +2,10 @@
 #include "AIController.h"
 #include "BehaviorTree/BTFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
-#include <Character/BlasterCharacter.h>
+#include <Character/DEPRECATED_ABlasterCharacter.h>
 #include <Player/ArenaPlayerState.h>
 #include "BehaviorTree/BlackboardComponent.h"
-#include <AI/AIArenaMinionCharacter.h>
+#include <AI/DEPRECATED_AAIArenaMinionCharacter.h>
 #include "Character/ArenaHealthComponent.h"
 
 void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -14,10 +14,10 @@ void UBTService_FindNearestTarget::TickNode(UBehaviorTreeComponent& OwnerComp, u
 
 	APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
 
-	AAIArenaMinionCharacter* AICharacter = Cast<AAIArenaMinionCharacter>(OwningPawn);
+	ADEPRECATED_AAIArenaMinionCharacter* AICharacter = Cast<ADEPRECATED_AAIArenaMinionCharacter>(OwningPawn);
 
 	TArray<AActor*> FoundActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ABlasterCharacter::StaticClass(), FoundActors);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADEPRECATED_ABlasterCharacter::StaticClass(), FoundActors);
 	float ClosestDistance = TNumericLimits<float>::Max();
 	AActor* ClosestActor = nullptr;
 	for (AActor* Actor : FoundActors)
