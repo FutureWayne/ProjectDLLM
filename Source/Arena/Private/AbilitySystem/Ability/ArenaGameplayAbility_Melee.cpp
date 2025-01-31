@@ -13,7 +13,7 @@ void UArenaGameplayAbility_Melee::TraceMeleeTarget()
 {
 	bool bHit;
 	TArray<FHitResult> HitResults;
-	AArenaCharacterBase* ArenaCharacter = GetArenaCharacterFromActorInfo();
+	AArenaCharacter* ArenaCharacter = GetArenaCharacterFromActorInfo();
 	FVector StartLocation = ArenaCharacter->GetActorLocation();
 	FVector EndLocation = StartLocation + ArenaCharacter->GetActorForwardVector() * MeleeRange;
 	float Radius = 96.0f;

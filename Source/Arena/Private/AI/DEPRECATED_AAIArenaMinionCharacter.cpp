@@ -10,19 +10,19 @@
 
 ADEPRECATED_AAIArenaMinionCharacter::ADEPRECATED_AAIArenaMinionCharacter()
 {
-	HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
-	HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-	AIControllerClass = ADEPRECATED_AAIArenaMinionController::StaticClass();
-	bUseControllerRotationYaw = false;
-	if (GetCharacterMovement())
-	{
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->RotationRate = FRotator(0.0f, 400.0f, 0.0f);
-	}
-
-	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
-	OverheadWidget->SetupAttachment(RootComponent);
+	// HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
+	// HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
+	// AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	// AIControllerClass = ADEPRECATED_AAIArenaMinionController::StaticClass();
+	// bUseControllerRotationYaw = false;
+	// if (GetCharacterMovement())
+	// {
+	// 	GetCharacterMovement()->bUseControllerDesiredRotation = true;
+	// 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 400.0f, 0.0f);
+	// }
+	//
+	// OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
+	// OverheadWidget->SetupAttachment(RootComponent);
 }
 
 void ADEPRECATED_AAIArenaMinionCharacter::OnDeathStarted(AActor* OwningActor)

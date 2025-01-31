@@ -58,7 +58,7 @@ void UArenaEquipmentInstance::SpawnEquipmentActors(const TArray<FArenaEquipmentA
 	if (APawn* OwningPawn = GetPawn())
 	{
 		USceneComponent* AttachTarget = OwningPawn->GetRootComponent();
-		if (ADEPRECATED_ABlasterCharacter* Char = Cast<ADEPRECATED_ABlasterCharacter>(OwningPawn))
+		if (AArenaCharacter* Char = Cast<AArenaCharacter>(OwningPawn))
 		{
 			AttachTarget = Char->GetDisplayMesh();
 		}
@@ -72,7 +72,6 @@ void UArenaEquipmentInstance::SpawnEquipmentActors(const TArray<FArenaEquipmentA
 
 			SpawnedActors.Add(NewActor);
 		}
-		
 	}
 }
 

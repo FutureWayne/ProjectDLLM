@@ -34,14 +34,14 @@ void UDEPRECATED_UCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (OwningCharacter)
-	{
-		if (OwningCharacter->GetCameraComponent())
-		{
-			DefaultFOV = OwningCharacter->GetCameraComponent()->FieldOfView;
-			CurrentFOV = DefaultFOV;
-		}
-	}
+	// if (OwningCharacter)
+	// {
+	// 	if (OwningCharacter->GetCameraComponent())
+	// 	{
+	// 		DefaultFOV = OwningCharacter->GetCameraComponent()->FieldOfView;
+	// 		CurrentFOV = DefaultFOV;
+	// 	}
+	// }
 }
 
 // Called every frame
@@ -139,11 +139,11 @@ void UDEPRECATED_UCombatComponent::InterpFOV(float DeltaTime)
 	{
 		CurrentFOV = FMath::FInterpTo(CurrentFOV, DefaultFOV, DeltaTime, ZoomInterpSpeed);
 	}
-
-	if (OwningCharacter && OwningCharacter->GetCameraComponent())
-	{
-		OwningCharacter->GetCameraComponent()->SetFieldOfView(CurrentFOV);
-	}
+	//
+	// if (OwningCharacter && OwningCharacter->GetCameraComponent())
+	// {
+	// 	OwningCharacter->GetCameraComponent()->SetFieldOfView(CurrentFOV);
+	// }
 }
 
 void UDEPRECATED_UCombatComponent::StartFireTimer()
@@ -318,12 +318,12 @@ void UDEPRECATED_UCombatComponent::EquipWeapon(AWeapon* WeaponToEquip)
 	EquippedWeapon->ShowPickupWidget(false);
 	EquippedWeapon->SetOwner(OwningCharacter);
 	
-	if (const USkeletalMeshSocket* WeaponSocket = OwningCharacter->GetDisplayMesh()->GetSocketByName(FName("weapon_r")))
-	{
-		WeaponSocket->AttachActor(EquippedWeapon, OwningCharacter->GetDisplayMesh());
-	}
-	
-	OwningCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
+	// if (const USkeletalMeshSocket* WeaponSocket = OwningCharacter->GetDisplayMesh()->GetSocketByName(FName("weapon_r")))
+	// {
+	// 	WeaponSocket->AttachActor(EquippedWeapon, OwningCharacter->GetDisplayMesh());
+	// }
+	//
+	// OwningCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 void UDEPRECATED_UCombatComponent::DropWeapon()

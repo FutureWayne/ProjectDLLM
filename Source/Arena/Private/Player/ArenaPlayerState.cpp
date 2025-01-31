@@ -62,12 +62,6 @@ void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
 	}
-
-	
-	if (const ADEPRECATED_ABlasterCharacter* BlasterCharacter = Cast<ADEPRECATED_ABlasterCharacter>(GetPawn()))
-	{
-		BlasterCharacter->SetTeamColor(GetTeamId());
-	}
 }
 
 FGenericTeamId AArenaPlayerState::GetGenericTeamId() const
@@ -102,11 +96,6 @@ bool AArenaPlayerState::HasStatTag(FGameplayTag Tag) const
 
 void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
 {
-	if (const ADEPRECATED_ABlasterCharacter* BlasterCharacter = Cast<ADEPRECATED_ABlasterCharacter>(GetPawn()))
-	{
-		BlasterCharacter->SetTeamColor(GetTeamId());
-	}
-
 	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);
 }
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/ArenaCharacterBase.h"
+#include "Character/ArenaCharacter.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "DEPRECATED_AArenaMinion.generated.h"
 
@@ -11,7 +11,7 @@
  * 
  */
 UCLASS(Deprecated)
-class ARENA_API ADEPRECATED_AArenaMinion : public AArenaCharacterBase, public IArenaTeamAgentInterface
+class ARENA_API ADEPRECATED_AArenaMinion : public AArenaCharacter, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 

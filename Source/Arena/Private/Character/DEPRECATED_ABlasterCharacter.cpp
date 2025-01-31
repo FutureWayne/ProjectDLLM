@@ -58,9 +58,9 @@ ADEPRECATED_ABlasterCharacter::ADEPRECATED_ABlasterCharacter()
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	// CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	// CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	// CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	OverheadWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadWidget"));
 	OverheadWidget->SetupAttachment(RootComponent);
@@ -185,33 +185,28 @@ void ADEPRECATED_ABlasterCharacter::SetTeamColor(const int32 TeamId) const
 
 void ADEPRECATED_ABlasterCharacter::SetSpawnPoint()
 {
-	if (HasAuthority() && ArenaPlayerState->GetTeamId() != INDEX_NONE)
-	{
-		TArray<AActor*> SpawnPoints;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), SpawnPoints);
-
-		TArray<ATeamPlayerStart*> TeamSpawnPoints;
-		for (auto SpawnPoint : SpawnPoints)
-		{
-			ATeamPlayerStart* TeamSpawnPoint = Cast<ATeamPlayerStart>(SpawnPoint);
-			if (TeamSpawnPoint && TeamSpawnPoint->Team == ArenaPlayerState->GetTeamId())
-			{
-				TeamSpawnPoints.Add(TeamSpawnPoint);
-			}
-		}
-
-		if (TeamSpawnPoints.Num() > 0)
-		{
-			const int32 RandomIndex = FMath::RandRange(0, TeamSpawnPoints.Num() - 1);
-			SetActorLocation(TeamSpawnPoints[RandomIndex]->GetActorLocation());
-			SetActorRotation(TeamSpawnPoints[RandomIndex]->GetActorRotation());
-		}
-	}
-}
-
-USkeletalMeshComponent* ADEPRECATED_ABlasterCharacter::GetDisplayMesh_Implementation()
-{
-	return GetMesh();
+	// if (HasAuthority() && ArenaPlayerState->GetTeamId() != INDEX_NONE)
+	// {
+	// 	TArray<AActor*> SpawnPoints;
+	// 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), SpawnPoints);
+	//
+	// 	TArray<ATeamPlayerStart*> TeamSpawnPoints;
+	// 	for (auto SpawnPoint : SpawnPoints)
+	// 	{
+	// 		ATeamPlayerStart* TeamSpawnPoint = Cast<ATeamPlayerStart>(SpawnPoint);
+	// 		if (TeamSpawnPoint && TeamSpawnPoint->Team == ArenaPlayerState->GetTeamId())
+	// 		{
+	// 			TeamSpawnPoints.Add(TeamSpawnPoint);
+	// 		}
+	// 	}
+	//
+	// 	if (TeamSpawnPoints.Num() > 0)
+	// 	{
+	// 		const int32 RandomIndex = FMath::RandRange(0, TeamSpawnPoints.Num() - 1);
+	// 		SetActorLocation(TeamSpawnPoints[RandomIndex]->GetActorLocation());
+	// 		SetActorRotation(TeamSpawnPoints[RandomIndex]->GetActorRotation());
+	// 	}
+	// }
 }
 
 // Called when the game starts or when spawned
@@ -241,13 +236,13 @@ void ADEPRECATED_ABlasterCharacter::Tick(float DeltaSeconds)
 	
 	//HideCharacterIfCameraClose();
 
-	if (ArenaPlayerState == nullptr)
-	{
-		if (Cast<AArenaPlayerState>(GetPlayerState()))
-		{
-			OnPlayerStateInitialized();
-		}
-	}
+	// if (ArenaPlayerState == nullptr)
+	// {
+	// 	if (Cast<AArenaPlayerState>(GetPlayerState()))
+	// 	{
+	// 		OnPlayerStateInitialized();
+	// 	}
+	// }
 	
 }
 
@@ -414,13 +409,13 @@ void ADEPRECATED_ABlasterCharacter::SimProxiesTurn()
 	TurnInPlaceDirection = ETurnInPlaceDirection::ETIP_NotTurning;
 }
 
-void ADEPRECATED_ABlasterCharacter::OnPlayerStateInitialized()
-{
-	Super::OnPlayerStateInitialized();
-
-	SetTeamColor(ArenaPlayerState->GetTeamId());
-	SetSpawnPoint();
-}
+// void ADEPRECATED_ABlasterCharacter::OnPlayerStateInitialized()
+// {
+// 	Super::OnPlayerStateInitialized();
+// 	
+// 	SetTeamColor(ArenaPlayerState->GetTeamId());
+// 	SetSpawnPoint();
+// }
 
 void ADEPRECATED_ABlasterCharacter::FireButtonPressed()
 {
@@ -566,26 +561,26 @@ void ADEPRECATED_ABlasterCharacter::TurnInPlace(float DeltaSeconds)
 
 void ADEPRECATED_ABlasterCharacter::HideCharacterIfCameraClose()
 {
-	if (!IsLocallyControlled())
-	{
-		return;
-	}
-
-	if ((CameraComponent->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
-	{
-		GetMesh()->SetVisibility(false);
-		if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
-		{
-			Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
-		}
-	}
-	else
-	{
-		GetMesh()->SetVisibility(true);
-		if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
-		{
-			Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
-		}
-	}
+	// if (!IsLocallyControlled())
+	// {
+	// 	return;
+	// }
+	//
+	// if ((CameraComponent->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	// {
+	// 	GetMesh()->SetVisibility(false);
+	// 	if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
+	// 	{
+	// 		Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+	// 	}
+	// }
+	// else
+	// {
+	// 	GetMesh()->SetVisibility(true);
+	// 	if (Combat_DEPRECATED && Combat_DEPRECATED->EquippedWeapon && Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh())
+	// 	{
+	// 		Combat_DEPRECATED->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+	// 	}
+	// }
 }
 

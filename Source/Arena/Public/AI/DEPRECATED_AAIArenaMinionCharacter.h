@@ -25,12 +25,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	UBehaviorTree* BehaviorTreeAsset;
-
-	UFUNCTION()
-	virtual void OnDeathStarted(AActor* OwningActor);
-
-	UFUNCTION()
-	virtual void OnDeathFinished(AActor* OwningActor);
+	
+	virtual void OnDeathStarted(AActor* OwningActor) override;
+	
+	virtual void OnDeathFinished(AActor* OwningActor) override;
 
 	UFUNCTION(BlueprintCallable, Category = "AIArenaMinion")
 	void SetTowerTarget(AActor* Target);

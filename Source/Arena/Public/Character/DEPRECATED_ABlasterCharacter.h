@@ -9,6 +9,7 @@
 #include "Interfaces/InteractWithCrosshairInterface.h"
 #include "DEPRECATED_ABlasterCharacter.generated.h"
 
+class UArenaEquipmentManagerComponent;
 class UWidgetComponent;
 enum class ETeam : uint8;
 class UDEPRECATED_UCombatComponent;
@@ -20,7 +21,7 @@ class UInputAction;
 struct FInputActionValue;
 
 UCLASS(Deprecated)
-class ARENA_API ADEPRECATED_ABlasterCharacter : public AArenaCharacter, public IInteractWithCrosshairInterface
+class ARENA_API ADEPRECATED_ABlasterCharacter : public ACharacter, public IInteractWithCrosshairInterface
 {
 	GENERATED_BODY()
 
@@ -48,9 +49,6 @@ public:
 
 	void SetTeamColor(int32 TeamId) const;
 	void SetSpawnPoint();
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	USkeletalMeshComponent* GetDisplayMesh();
 
 protected:
 	// Called when the game starts or when spawned
@@ -84,7 +82,7 @@ protected:
 	void AimOffset(float DeltaSeconds);
 	void SimProxiesTurn();
 
-	virtual void OnPlayerStateInitialized() override;
+	// virtual void OnPlayerStateInitialized() override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -171,8 +169,8 @@ private:
 	TObjectPtr<UArenaEquipmentManagerComponent> EquipmentManagerComponent;
 
 public:
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	//FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	//FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 	FORCEINLINE float GetAOYaw() const { return AO_Yaw; }
 	FORCEINLINE float GetAOPitch() const { return AO_Pitch; }
 	FORCEINLINE float GetDefaultJogSpeed() const { return DefaultJogSpeed; }
