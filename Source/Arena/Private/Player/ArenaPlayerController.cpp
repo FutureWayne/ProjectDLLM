@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "PlayerController/ArenaPlayerController.h"
+#include "Player/ArenaPlayerController.h"
 
 #include "ArenaLogChannel.h"
 #include "EnhancedInputSubsystems.h"

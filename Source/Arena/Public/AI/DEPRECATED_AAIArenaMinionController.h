@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
-#include "AIArenaMinionController.generated.h"
+#include "DEPRECATED_AAIArenaMinionController.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class ARENA_API AAIArenaMinionController : public AAIController
+UCLASS(Deprecated)
+class ARENA_API ADEPRECATED_AAIArenaMinionController : public AAIController
 {
 	GENERATED_BODY()
 	
 public:
-	AAIArenaMinionController();
+	ADEPRECATED_AAIArenaMinionController();
 
 protected:
 

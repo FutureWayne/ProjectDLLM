@@ -3,20 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/ArenaCharacterBase.h"
+#include "Character/ArenaCharacter.h"
 #include "Teams/ArenaTeamAgentInterface.h"
-#include "ArenaMinion.generated.h"
+#include "DEPRECATED_AArenaMinion.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class ARENA_API AArenaMinion : public AArenaCharacterBase, public IArenaTeamAgentInterface
+UCLASS(Deprecated)
+class ARENA_API ADEPRECATED_AArenaMinion : public AArenaCharacter, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
 public:
-	AArenaMinion();
+	ADEPRECATED_AArenaMinion();
 
 	// ~ Begin IGenericTeamAgentInterface
 	virtual FGenericTeamId GetGenericTeamId() const override { return MyTeamID; }

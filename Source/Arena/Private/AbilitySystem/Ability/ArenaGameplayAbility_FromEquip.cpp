@@ -41,8 +41,10 @@ UArenaInventoryItemInstance* UArenaGameplayAbility_FromEquip::GetAssociatedItem(
 EDataValidationResult UArenaGameplayAbility_FromEquip::IsDataValid(FDataValidationContext& Context) const
 {
 	EDataValidationResult Result = Super::IsDataValid(Context);
-
+	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	if (InstancingPolicy == EGameplayAbilityInstancingPolicy::NonInstanced)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	{
 		Context.AddError(NSLOCTEXT("Arena", "EquipmentAbilityMustBeInstanced", "Equipment ability must be instanced"));
 		Result = EDataValidationResult::Invalid;

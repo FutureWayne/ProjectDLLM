@@ -3,7 +3,7 @@
 
 #include "Equipment/ArenaEquipmentInstance.h"
 
-#include "Character/BlasterCharacter.h"
+#include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
@@ -58,7 +58,7 @@ void UArenaEquipmentInstance::SpawnEquipmentActors(const TArray<FArenaEquipmentA
 	if (APawn* OwningPawn = GetPawn())
 	{
 		USceneComponent* AttachTarget = OwningPawn->GetRootComponent();
-		if (ABlasterCharacter* Char = Cast<ABlasterCharacter>(OwningPawn))
+		if (AArenaCharacter* Char = Cast<AArenaCharacter>(OwningPawn))
 		{
 			AttachTarget = Char->GetDisplayMesh();
 		}
@@ -72,7 +72,6 @@ void UArenaEquipmentInstance::SpawnEquipmentActors(const TArray<FArenaEquipmentA
 
 			SpawnedActors.Add(NewActor);
 		}
-		
 	}
 }
 

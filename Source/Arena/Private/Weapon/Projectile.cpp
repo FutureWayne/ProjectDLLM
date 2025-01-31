@@ -6,7 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameplayEffect.h"
-#include "Character/BlasterCharacter.h"
+#include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -84,7 +84,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, U
 		return;
 	}
 	
-	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(OtherActor))
+	if (ADEPRECATED_ABlasterCharacter* BlasterCharacter = Cast<ADEPRECATED_ABlasterCharacter>(OtherActor))
 	{
 		BlasterCharacter->PlayHitReactMontage();
 	}

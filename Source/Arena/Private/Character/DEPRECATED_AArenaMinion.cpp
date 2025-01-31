@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Character/ArenaMinion.h"
+#include "Character/DEPRECATED_AArenaMinion.h"
 
 #include "AbilitySystem/ArenaAbilitySet.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
@@ -9,7 +9,7 @@
 #include "Character/ArenaHealthComponent.h"
 #include "Net/UnrealNetwork.h"
 
-AArenaMinion::AArenaMinion()
+ADEPRECATED_AArenaMinion::ADEPRECATED_AArenaMinion()
 {
 	AbilitySystemComponent = CreateDefaultSubobject<UArenaAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
@@ -18,19 +18,19 @@ AArenaMinion::AArenaMinion()
 	ArenaHealthSet = CreateDefaultSubobject<UArenaHealthSet>(TEXT("AttributeSet"));
 }
 
-void AArenaMinion::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void ADEPRECATED_AArenaMinion::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AArenaMinion, MyTeamID);
+	DOREPLIFETIME(ADEPRECATED_AArenaMinion, MyTeamID);
 }
 
-void AArenaMinion::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+void ADEPRECATED_AArenaMinion::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
 	MyTeamID = NewTeamID;
 }
 
-void AArenaMinion::BeginPlay()
+void ADEPRECATED_AArenaMinion::BeginPlay()
 {
 	Super::BeginPlay();
 

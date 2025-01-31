@@ -7,7 +7,7 @@
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
 #include "AbilitySystem/ArenaHealthSet.h"
-#include "Character/BlasterCharacter.h"
+#include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Net/UnrealNetwork.h"
 
 AArenaPlayerState::AArenaPlayerState()
@@ -62,12 +62,6 @@ void AArenaPlayerState::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
 	}
-
-	
-	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
-	{
-		BlasterCharacter->SetTeamColor(GetTeamId());
-	}
 }
 
 FGenericTeamId AArenaPlayerState::GetGenericTeamId() const
@@ -102,11 +96,6 @@ bool AArenaPlayerState::HasStatTag(FGameplayTag Tag) const
 
 void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)
 {
-	if (const ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
-	{
-		BlasterCharacter->SetTeamColor(GetTeamId());
-	}
-
 	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);
 }
 

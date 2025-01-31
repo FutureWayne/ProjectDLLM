@@ -8,7 +8,7 @@
 
 class AArenaPlayerController;
 class UArenaAbilitySystemComponent;
-class AArenaCharacterBase;
+class AArenaCharacter;
 
 /**
  * EArenaAbilityActivationGroup
@@ -66,7 +66,7 @@ public:
 	AController* GetControllerFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
-	AArenaCharacterBase* GetArenaCharacterFromActorInfo() const;
+	AArenaCharacter* GetArenaCharacterFromActorInfo() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponentFromActorInfo() const;

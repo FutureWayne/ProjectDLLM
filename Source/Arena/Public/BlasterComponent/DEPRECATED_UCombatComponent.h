@@ -5,26 +5,26 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "UI/HUD/BlasterHUD.h"
-#include "CombatComponent.generated.h"
+#include "DEPRECATED_UCombatComponent.generated.h"
 
 #define TRACE_LENGTH 80000.f
 
 class AArenaPlayerController;
 class AWeapon;
-class ABlasterCharacter;
+class ADEPRECATED_ABlasterCharacter;
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class ARENA_API UCombatComponent : public UActorComponent
+UCLASS(Deprecated, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class ARENA_API UDEPRECATED_UCombatComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:	
-	UCombatComponent();
+	UDEPRECATED_UCombatComponent();
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	friend class ABlasterCharacter;
+	friend class ADEPRECATED_ABlasterCharacter;
 
 	void EquipWeapon(AWeapon* WeaponToEquip);
 
@@ -63,7 +63,7 @@ private:
 
 	FVector HitTarget;
 	
-	TObjectPtr<ABlasterCharacter> OwningCharacter;
+	TObjectPtr<ADEPRECATED_ABlasterCharacter> OwningCharacter;
 	TObjectPtr<AArenaPlayerController> OwningController;
 	TObjectPtr<ABlasterHUD> OwningHUD;
 	FHUDPackage HUDPackage;

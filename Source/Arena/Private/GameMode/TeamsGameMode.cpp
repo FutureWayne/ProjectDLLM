@@ -3,7 +3,7 @@
 
 #include "GameMode/TeamsGameMode.h"
 
-#include "Character/BlasterCharacter.h"
+#include "Character/ArenaCharacter.h"
 #include "GameState/ArenaGameState.h"
 #include "Teams/ArenaTeamSubsystem.h"
 

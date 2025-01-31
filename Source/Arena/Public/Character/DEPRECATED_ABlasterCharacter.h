@@ -7,11 +7,12 @@
 #include "Arena/ArenaTypes/TurnInPlace.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/InteractWithCrosshairInterface.h"
-#include "BlasterCharacter.generated.h"
+#include "DEPRECATED_ABlasterCharacter.generated.h"
 
+class UArenaEquipmentManagerComponent;
 class UWidgetComponent;
 enum class ETeam : uint8;
-class UCombatComponent;
+class UDEPRECATED_UCombatComponent;
 class AWeapon;
 class USpringArmComponent;
 class UCameraComponent;
@@ -19,14 +20,14 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
-UCLASS()
-class ARENA_API ABlasterCharacter : public AArenaCharacter, public IInteractWithCrosshairInterface
+UCLASS(Deprecated)
+class ARENA_API ADEPRECATED_ABlasterCharacter : public ACharacter, public IInteractWithCrosshairInterface
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
-	ABlasterCharacter();
+	ADEPRECATED_ABlasterCharacter();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -48,9 +49,6 @@ public:
 
 	void SetTeamColor(int32 TeamId) const;
 	void SetSpawnPoint();
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	USkeletalMeshComponent* GetDisplayMesh();
 
 protected:
 	// Called when the game starts or when spawned
@@ -84,7 +82,7 @@ protected:
 	void AimOffset(float DeltaSeconds);
 	void SimProxiesTurn();
 
-	virtual void OnPlayerStateInitialized() override;
+	// virtual void OnPlayerStateInitialized() override;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -106,8 +104,8 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_OverlappingWeapon)
 	TObjectPtr<AWeapon> OverlappingWeapon;
 
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UCombatComponent> Combat;
+	UPROPERTY(meta = (DeprecatedProperty))
+	TObjectPtr<UDEPRECATED_UCombatComponent> Combat_DEPRECATED;
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	TObjectPtr<UAnimMontage> FireWeaponMontage;
@@ -171,8 +169,8 @@ private:
 	TObjectPtr<UArenaEquipmentManagerComponent> EquipmentManagerComponent;
 
 public:
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	//FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	//FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 	FORCEINLINE float GetAOYaw() const { return AO_Yaw; }
 	FORCEINLINE float GetAOPitch() const { return AO_Pitch; }
 	FORCEINLINE float GetDefaultJogSpeed() const { return DefaultJogSpeed; }

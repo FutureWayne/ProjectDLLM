@@ -5,8 +5,8 @@
 
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
-#include "Character/ArenaCharacterBase.h"
-#include "PlayerController/ArenaPlayerController.h"
+#include "Character/ArenaCharacter.h"
+#include "Player/ArenaPlayerController.h"
 
 #define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				    \
 {																																						    \
@@ -58,9 +58,9 @@ AController* UArenaGameplayAbility::GetControllerFromActorInfo() const
 	return nullptr;	
 }
 
-AArenaCharacterBase* UArenaGameplayAbility::GetArenaCharacterFromActorInfo() const
+AArenaCharacter* UArenaGameplayAbility::GetArenaCharacterFromActorInfo() const
 {
-	return (CurrentActorInfo ? Cast<AArenaCharacterBase>(CurrentActorInfo->AvatarActor.Get()) : nullptr);
+	return (CurrentActorInfo ? Cast<AArenaCharacter>(CurrentActorInfo->AvatarActor.Get()) : nullptr);
 }
 
 UArenaAbilitySystemComponent* UArenaGameplayAbility::GetArenaAbilitySystemComponentFromActorInfo() const
