@@ -3,6 +3,7 @@
 
 #include "Player/ArenaPlayerController.h"
 
+#include "ArenaGameplayTags.h"
 #include "ArenaLogChannel.h"
 #include "EnhancedInputSubsystems.h"
 #include "Equipment/ArenaQuickBarComponent.h"
@@ -17,7 +18,7 @@ AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectI
 	QuickBarComponent = CreateDefaultSubobject<UArenaQuickBarComponent>(TEXT("QuickBarComponent"));
 }
 
-void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
+void AArenaPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
 	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
 	{
@@ -25,12 +26,74 @@ void AArenaPlayerController::AbilityInputTagPressed(FGameplayTag InputTag)
 	}
 }
 
-void AArenaPlayerController::AbilityInputTagReleased(FGameplayTag InputTag)
+void AArenaPlayerController::Input_AbilityInputTagReleased(FGameplayTag InputTag)
 {
 	if (UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
 	{
 		ArenaASC->AbilityInputTagReleased(InputTag);
 	}
+}
+
+void AArenaPlayerController::Input_Move(const FInputActionValue& InputActionValue)
+{
+	APawn* ControlledPawn = GetPawn<APawn>();
+
+	AController* Controller = ControlledPawn ? ControlledPawn->GetController() : nullptr;
+	if (Controller)
+	{
+		const FVector2D Value = InputActionValue.Get<FVector2D>();
+		const FRotator MovementRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
+
+		if (Value.X != 0.0f)
+		{
+			const FVector MovementDirection = MovementRotation.RotateVector(FVector::RightVector);
+			ControlledPawn->AddMovementInput(MovementDirection, Value.X);
+		}
+
+		if (Value.Y != 0.0f)
+		{
+			const FVector MovementDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+			ControlledPawn->AddMovementInput(MovementDirection, Value.Y);
+		}
+	}
+}
+
+void AArenaPlayerController::Input_LookMouse(const FInputActionValue& InputActionValue)
+{
+	APawn* ControlledPawn = GetPawn<APawn>();
+
+	if (!ControlledPawn)
+	{
+		return;
+	}
+	
+	const FVector2D Value = InputActionValue.Get<FVector2D>();
+
+	if (Value.X != 0.0f)
+	{
+		ControlledPawn->AddControllerYawInput(Value.X);
+	}
+
+	if (Value.Y != 0.0f)
+	{
+		ControlledPawn->AddControllerPitchInput(Value.Y);
+	}
+}
+
+void AArenaPlayerController::Input_Crouch(const FInputActionValue& InputActionValue)
+{
+}
+
+void AArenaPlayerController::Input_Jump(const FInputActionValue& InputActionValue)
+{
+}
+
+void AArenaPlayerController::Input_Sprint(const FInputActionValue& InputActionValue)
+{
+}
+
+void AArenaPlayerController::Input_Walk(const FInputActionValue& InputActionValue)
+{
 }
 
 AArenaPlayerState* AArenaPlayerController::GetArenaPlayerState() const
@@ -130,10 +193,20 @@ void AArenaPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	UArenaInputComponent* ArenaInputComponent = CastChecked<UArenaInputComponent>(InputComponent);
-	check(ArenaInputComponent);
-	
-	ArenaInputComponent->BindAbilityActions(InputConfig, this, &ThisClass::AbilityInputTagPressed, &ThisClass::AbilityInputTagReleased);
+	UArenaInputComponent* ArenaIC = CastChecked<UArenaInputComponent>(InputComponent);
+	check(ArenaIC);
+
+	if (ensureMsgf(ArenaIC, TEXT("Unexpected Input Component class! The Gameplay Abilities will not be bound to their inputs. Change the input component to UArenaInputComponent or a subclass of it.")))
+	{
+		ArenaIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased);
+
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move, /*bLogIfNotFound=*/ false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_LookMouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse, /*bLogIfNotFound=*/ false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ThisClass::Input_Crouch, /*bLogIfNotFound=*/ false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Triggered, this, &ThisClass::Input_Jump, /*bLogIfNotFound=*/ false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Sprint, ETriggerEvent::Triggered, this, &ThisClass::Input_Sprint, /*bLogIfNotFound=*/ false);
+		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Walk, ETriggerEvent::Triggered, this, &ThisClass::Input_Walk, /*bLogIfNotFound=*/ false);
+	}
 }
 
 void AArenaPlayerController::OnPlayerStateChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam)
