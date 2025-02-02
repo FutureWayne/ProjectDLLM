@@ -17,7 +17,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
 #include "Player/ArenaPlayerController.h"
-#include "PlayerStart/TeamPlayerStart.h"
+#include "Player/ArenaPlayerStart.h"
 #include "Weapon/Weapon.h"
 
 // Sets default values
