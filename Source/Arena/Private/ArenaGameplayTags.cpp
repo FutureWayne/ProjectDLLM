@@ -26,6 +26,10 @@ namespace ArenaGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death, "Status.Death", "Target has the death status.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death_Dying, "Status.Death.Dying", "Target has begun the death process.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death_Dead, "Status.Death.Dead", "Target has finished the death process.");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_AOE, "DamageType.Grenade.AOE", "Damage Tag for Grenade AOE damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_DirectHit, "DamageType.Grenade.DirectHit", "Damage Tag for Grenade Direct Hit damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_Effect, "DamageType.Grenade.Effect", "Damage Tag for Grenade Effect damage.");
 	
 	
 	FGameplayTag FindTagByString(const FString& TagString, bool bMatchPartialString)

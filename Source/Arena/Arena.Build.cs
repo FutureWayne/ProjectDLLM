@@ -16,7 +16,8 @@ public class Arena : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"GameplayAbilities",
-			"AIModule"
+			"AIModule",
+			"Niagara",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -24,7 +25,6 @@ public class Arena : ModuleRules
 			"GameplayTags",
 			"GameplayTasks",
 			"ModularGameplay",
-			"Niagara",
 			"NetCore",
 			"GameplayMessageRuntime",
 			"Slate",
