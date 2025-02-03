@@ -18,13 +18,13 @@ public class Arena : ModuleRules
 			"GameplayAbilities",
 			"AIModule",
 			"Niagara",
+			"ModularGameplay",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"GameplayTags",
 			"GameplayTasks",
-			"ModularGameplay",
 			"NetCore",
 			"GameplayMessageRuntime",
 			"Slate",

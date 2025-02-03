@@ -14,7 +14,7 @@ class AArenaPlayerState;
  * 
  */
 UCLASS()
-class ARENA_API AArenaGameState : public AGameState, public IAbilitySystemInterface
+class ARENA_API AArenaGameState : public AGameStateBase, public IAbilitySystemInterface
 {
 	GENERATED_BODY()
 	
