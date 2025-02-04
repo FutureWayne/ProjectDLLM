@@ -181,7 +181,7 @@ void UArenaPlayerSpawningManagerComponent::TickComponent(float DeltaTime, ELevel
 }
 
 
-APlayerStart* UArenaPlayerSpawningManagerComponent::GetFirstRandomUnoccupiedPlayerStart(AController* Controller,
+AArenaPlayerStart* UArenaPlayerSpawningManagerComponent::GetFirstRandomUnoccupiedPlayerStart(AController* Controller,
 	const TArray<AArenaPlayerStart*>& FoundStartPoints) const
 {
 	if (Controller)

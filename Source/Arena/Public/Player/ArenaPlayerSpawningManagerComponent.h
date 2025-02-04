@@ -7,6 +7,7 @@
 #include "ArenaPlayerSpawningManagerComponent.generated.h"
 
 class AArenaPlayerStart;
+
 /**
  * 
  */
@@ -25,7 +26,7 @@ public:
 
 protected:
 	// Utility
-	APlayerStart* GetFirstRandomUnoccupiedPlayerStart(AController* Controller, const TArray<AArenaPlayerStart*>& FoundStartPoints) const;
+	AArenaPlayerStart* GetFirstRandomUnoccupiedPlayerStart(AController* Controller, const TArray<AArenaPlayerStart*>& FoundStartPoints) const;
 
 	virtual AActor* OnChoosePlayerStart(AController* Player, TArray<AArenaPlayerStart*>& PlayerStarts) { return nullptr; }
 	virtual void OnFinishRestartPlayer(AController* Player, const FRotator& StartRotation) { }
