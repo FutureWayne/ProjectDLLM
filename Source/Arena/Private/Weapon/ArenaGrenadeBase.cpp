@@ -11,24 +11,55 @@
 #include "GameplayCueFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Teams/ArenaTeamSubsystem.h"
 
 // Sets default values
-AArenaGrenadeBase::AArenaGrenadeBase()
+AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-	RootComponent = MeshComponent;
+	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
+	CollisionComponent->SetCollisionProfileName("BlockAllDynamic");
+	SetRootComponent(CollisionComponent);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-	ProjectileMovementComponent->InitialSpeed = ProjectileSpeed;
-	ProjectileMovementComponent->MaxSpeed = ProjectileSpeed;
-	ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	ProjectileMovementComponent->bShouldBounce = bShouldBounce;
+	ProjectileMovementComponent->bAutoActivate = true;
+	ProjectileMovementComponent->bInterpMovement = true;
+	ProjectileMovementComponent->bInterpRotation = true;
 	
 	SetReplicates(true);
+	SetReplicatingMovement(true);
+	SetNetUpdateFrequency(100.0f);
 }
+
+void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const FGrenadeParams InGrenadeParams)
+{
+	GrenadeParams = InGrenadeParams;
+	
+	ProjectileMovementComponent->InitialSpeed = GrenadeParams.ProjectileSpeed;
+	ProjectileMovementComponent->MaxSpeed = GrenadeParams.ProjectileSpeed;
+	ProjectileMovementComponent->bShouldBounce = GrenadeParams.bShouldBounce;
+	ProjectileMovementComponent->ProjectileGravityScale = GrenadeParams.GravityScale;
+
+	SpawnCosmeticActor();
+	LaunchGrenade();
+}
+
+void AArenaGrenadeBase::LaunchGrenade()
+{
+	SetupVFX();
+
+	if (GrenadeParams.TimeBeforeExplosion > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, GrenadeParams.TimeBeforeExplosion, false);
+	}
+
+	FTimerHandle PostLaunchCleanupTimerHandle;
+	GetWorldTimerManager().SetTimer(PostLaunchCleanupTimerHandle, this, &AArenaGrenadeBase::PostLaunchCleanup, 0.15f, false);
+}
+
 
 void AArenaGrenadeBase::BeginPlay()
 {
@@ -37,18 +68,8 @@ void AArenaGrenadeBase::BeginPlay()
 	if (ACharacter* Character = Cast<ACharacter>(GetInstigator()))
 	{
 		Character->GetCapsuleComponent()->IgnoreActorWhenMoving(this, true);
-		MeshComponent->IgnoreActorWhenMoving(Character, true);
+		CollisionComponent->IgnoreActorWhenMoving(Character, true);
 	}
-
-	SetupVFX();
-
-	if (TimeBeforeExplosion > 0.0f)
-	{
-		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, TimeBeforeExplosion, false);
-	}
-
-	FTimerHandle PostLaunchCleanupTimerHandle;
-	GetWorldTimerManager().SetTimer(PostLaunchCleanupTimerHandle, this, &AArenaGrenadeBase::PostLaunchCleanup, 0.15f, false);
 }
 
 void AArenaGrenadeBase::Detonate_Implementation()
@@ -63,11 +84,14 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	// VFX
 	FGameplayCueParameters GameplayCueParameters;
 	GameplayCueParameters.Location = GetActorLocation();
-	UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, ExplosionCueTag, GameplayCueParameters);
+	UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GrenadeParams.ExplosionCueTag, GameplayCueParameters);
 
 	// Hide Mesh
-	MeshComponent->SetHiddenInGame(true);
-
+	if (SpawnedCosmeticActor.Get())
+	{
+		SpawnedCosmeticActor->SetActorHiddenInGame(true);
+	}
+	
 	// Deactivate Projectile Movement
 	ProjectileMovementComponent->Deactivate();
 
@@ -97,19 +121,12 @@ void AArenaGrenadeBase::Detonate_Implementation()
 
 				if (hit)
 				{
-					ApplyDamageToTarget(OverlappingActor, HitResult);
+					ApplyDamageToTarget(OverlappingActor, HitResult, false);
 				}
 			}
 		}
 
-		if (TrailComponent)
-		{
-			TrailComponent->OnSystemFinished.AddDynamic(this, &AArenaGrenadeBase::OnTrailFinished);
-		}
-		else
-		{
-			Destroy();
-		}
+		Destroy();
 	}
 }
 
@@ -122,9 +139,9 @@ bool AArenaGrenadeBase::ShouldDetonate_Implementation(FHitResult HitResult) cons
 void AArenaGrenadeBase::SetupVFX()
 {
 	// Setup Trail Effect
-	if (TrailEffect)
+	if (GrenadeParams.TrailEffect)
 	{
-		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(TrailEffect, MeshComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, true);
+		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(GrenadeParams.TrailEffect, CollisionComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, true);
 	}
 
 	if (UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
@@ -144,10 +161,8 @@ void AArenaGrenadeBase::PostLaunchCleanup()
 	if (ACharacter* Character = Cast<ACharacter>(GetInstigator()))
 	{
 		Character->GetCapsuleComponent()->IgnoreActorWhenMoving(this, false);
-		MeshComponent->IgnoreActorWhenMoving(Character, false);
+		CollisionComponent->IgnoreActorWhenMoving(Character, false);
 	}
-
-	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 }
 
 bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverlappingActors) const
@@ -156,16 +171,16 @@ bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverl
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Destructible));
-	return UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), DetonationRadius, ObjectTypes, nullptr, TArray<AActor*>(), OutOverlappingActors);
+	return UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), GrenadeParams.DetonationRadius, ObjectTypes, nullptr, TArray<AActor*>(), OutOverlappingActors);
 }
 
-void AArenaGrenadeBase::OnTrailFinished(UNiagaraComponent* PSystem)
+void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const
 {
-	Destroy();
-}
-
-void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult) const
-{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 
@@ -182,9 +197,10 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 		GameplayEffectContextHandle.AddHitResult(HitResult, true);
 	}
 
-	float DistanceToCenter = HitResult.Distance;
-	float EffectLevel = FMath::Clamp(DistanceToCenter / DetonationRadius, 0.1f, 1.0f);
-
+	const float DistanceToCenter = HitResult.Distance;
+	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeParams.DetonationRadius, 0.1f, 1.0f);
+	const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeParams.DirectHitGameplayEffect : GrenadeParams.ExplosionGameplayEffect;
+	check(ExplosionGameplayEffect);
 	UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
 	InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
 }
@@ -192,16 +208,30 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,
 	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
-	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
-
 	if (ShouldDetonate(Hit))
 	{
 		UKismetSystemLibrary::K2_ClearTimerHandle(this, ExplosionCountdownTimerHandle);
-
+		DirectHitTarget = Other;
+		ApplyDamageToTarget(Other, Hit, true);
 		Detonate();
 	}
 	else
 	{
-		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeImpactSound, Hit.Location);
+		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeParams.GrenadeImpactSound, Hit.Location);
 	}
+
+	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
+}
+
+void AArenaGrenadeBase::SpawnCosmeticActor()
+{
+	if (GrenadeParams.CosmeticActorClass == nullptr || !HasAuthority())
+	{
+		return;
+	}
+	
+	SpawnedCosmeticActor = GetWorld()->SpawnActorDeferred<AActor>( GrenadeParams.CosmeticActorClass, GetActorTransform());
+	SpawnedCosmeticActor->FinishSpawning(FTransform::Identity, true);
+	SpawnedCosmeticActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+	SpawnedCosmeticActor->SetActorEnableCollision(false);
 }

@@ -3,9 +3,13 @@
 #pragma once
 
 #include "GameplayCueInterface.h"
+#include "Equipment/ArenaGrenadeInstance.h"
 #include "GameFramework/Actor.h"
 #include "ArenaGrenadeBase.generated.h"
 
+class UBoxComponent;
+class USphereComponent;
+class UArenaGrenadeInstance;
 class UGameplayEffect;
 class UNiagaraSystem;
 class UNiagaraComponent;
@@ -26,7 +30,16 @@ class ARENA_API AArenaGrenadeBase : public AActor
 	
 public:	
 	// Sets default values for this actor's properties
-	AArenaGrenadeBase();
+	AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer);
+
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
+	void SetGrenadeParameter(const FGrenadeParams InGrenadeParams);
+
+	UFUNCTION(BlueprintCallable)
+	const FGrenadeParams& GetGrenadeParameter() const { return GrenadeParams; }
+
+	UFUNCTION()
+	void LaunchGrenade();
 
 protected:
 	//~Begin AActor interface
@@ -46,50 +59,24 @@ private:
 
 	bool GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverlappingActors) const;
 
-	void ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult) const;
+	void ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const;
 
 	void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
-	
-	UFUNCTION()
-	void OnTrailFinished(UNiagaraComponent* PSystem);
+
+	void SpawnCosmeticActor();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> MeshComponent;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraComponent> TrailComponent;
 
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	float TimeBeforeExplosion = 3.0f;
+	UPROPERTY()
+	FGrenadeParams GrenadeParams;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	float DetonationRadius = 450.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	float ProjectileSpeed = 2500.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	bool bShouldBounce = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	TObjectPtr<UNiagaraSystem> TrailEffect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	FGameplayTag ExplosionCueTag;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	TSubclassOf<UGameplayEffect> ExplosionGameplayEffect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
-	TObjectPtr<USoundBase> GrenadeImpactSound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UBoxComponent> CollisionComponent;
 
 private:
 	TWeakObjectPtr<AActor> DirectHitTarget;
@@ -97,6 +84,8 @@ private:
 	FLinearColor TeamColor;
 	
 	FTimerHandle ExplosionCountdownTimerHandle;
+
+	TWeakObjectPtr<AActor> SpawnedCosmeticActor;
 	
 	bool bDetonationFired = false;
 };

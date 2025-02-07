@@ -7,3 +7,8 @@ UArenaGrenadeInstance::UArenaGrenadeInstance(const FObjectInitializer& ObjectIni
 	: Super(ObjectInitializer)
 {
 }
+
+const FGrenadeParams& UArenaGrenadeInstance::GetGrenadeParams() const
+{
+	return GrenadeParams;
+}
