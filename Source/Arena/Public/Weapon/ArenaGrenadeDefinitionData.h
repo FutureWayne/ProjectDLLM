@@ -28,6 +28,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
 	float GravityScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
+	float Bounciness = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
+	float Friction = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
+	float MinFrictionFraction = 0.8f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TObjectPtr<UNiagaraSystem> TrailEffect = nullptr;

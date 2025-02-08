@@ -51,6 +51,9 @@ void AArenaGrenadeBase::SetGrenadeParameter_Implementation(UArenaGrenadeDefiniti
 		ProjectileMovementComponent->MaxSpeed = GrenadeDefinitionData->ProjectileSpeed;
 		ProjectileMovementComponent->bShouldBounce = GrenadeDefinitionData->bShouldBounce;
 		ProjectileMovementComponent->ProjectileGravityScale = GrenadeDefinitionData->GravityScale;
+		ProjectileMovementComponent->Bounciness = GrenadeDefinitionData->Bounciness;
+		ProjectileMovementComponent->Friction = GrenadeDefinitionData->Friction;
+		ProjectileMovementComponent->MinFrictionFraction = GrenadeDefinitionData->MinFrictionFraction;
 		ProjectileMovementComponent->Velocity = GetActorForwardVector() * GrenadeDefinitionData->ProjectileSpeed;
 
 		SpawnCosmeticActor();
