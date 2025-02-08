@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "GameplayCueInterface.h"
 #include "Equipment/ArenaGrenadeInstance.h"
 #include "GameFramework/Actor.h"
 #include "ArenaGrenadeBase.generated.h"
@@ -38,9 +37,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	const FGrenadeParams& GetGrenadeParameter() const { return GrenadeParams; }
 
-	UFUNCTION()
-	void LaunchGrenade();
-
 protected:
 	//~Begin AActor interface
 	virtual void BeginPlay() override;
@@ -49,10 +45,15 @@ protected:
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	virtual void Detonate();
 
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void PostDetonation();
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	bool ShouldDetonate(FHitResult HitResult) const;
+	bool ShouldDetonateOnImpact(FHitResult HitResult) const;
 
 private:
+	void LaunchGrenade();
+	
 	void SetupVFX();
 	
 	void PostLaunchCleanup();
@@ -72,20 +73,21 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraComponent> TrailComponent;
 
-	UPROPERTY()
-	FGrenadeParams GrenadeParams;
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<AActor> SpawnedCosmeticActor;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> CollisionComponent;
 
 private:
+	UPROPERTY(Replicated)
+	FGrenadeParams GrenadeParams;
+	
 	TWeakObjectPtr<AActor> DirectHitTarget;
 	
 	FLinearColor TeamColor;
 	
 	FTimerHandle ExplosionCountdownTimerHandle;
-
-	TWeakObjectPtr<AActor> SpawnedCosmeticActor;
 	
 	bool bDetonationFired = false;
 };

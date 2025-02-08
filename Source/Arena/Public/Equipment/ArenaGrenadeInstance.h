@@ -77,4 +77,8 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	const FGrenadeParams& GetGrenadeParams() const;
+	
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
 };

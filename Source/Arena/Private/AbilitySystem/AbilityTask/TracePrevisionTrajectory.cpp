@@ -5,20 +5,20 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/GameplayStaticsTypes.h"
 
-
-
 UTracePrevisionTrajectory::UTracePrevisionTrajectory(const FObjectInitializer& ObjectInitializer)
 {
 	bTickingTask = true;
 }
 
 UTracePrevisionTrajectory* UTracePrevisionTrajectory::StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetDirectionDelegate
-                                                                   LaunchVelocityDelegate, float InLaunchSpeed)
+                                                                   LaunchDirectionDelegate, float LaunchSpeed, float GravityScale)
 {
 	UTracePrevisionTrajectory* Task = NewAbilityTask<UTracePrevisionTrajectory>(OwningAbility);
 	Task->GetStartLocation = StartLocationDelegate;
-	Task->GetLaunchDirection = LaunchVelocityDelegate;
-	Task->LaunchSpeed = InLaunchSpeed;
+	Task->GetLaunchDirection = LaunchDirectionDelegate;
+	Task->LaunchSpeed = LaunchSpeed;
+	Task->GravityScale = GravityScale;
+	
 	Task->OwnerActor = OwningAbility->GetCurrentActorInfo()->AvatarActor.Get();
 	
 	return Task;
@@ -52,7 +52,7 @@ void UTracePrevisionTrajectory::TickTask(float DeltaTime)
 		PathParams.LaunchVelocity = LaunchVelocity;
 		PathParams.ProjectileRadius = 5.f; // Adjust as needed
 		PathParams.bTraceWithCollision = true;
-		PathParams.OverrideGravityZ = 0.f; // Default gravity
+		PathParams.OverrideGravityZ = -980 * GravityScale - 0.1f; // Adjust gravity scale;
 		PathParams.ActorsToIgnore = ActorsToIgnore;
 
 		FPredictProjectilePathResult PathResult;

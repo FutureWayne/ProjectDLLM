@@ -14,6 +14,7 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
 
 // Sets default values
@@ -34,6 +35,12 @@ AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer
 	SetNetUpdateFrequency(100.0f);
 }
 
+void AArenaGrenadeBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AArenaGrenadeBase, GrenadeParams);
+}
+
 void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const FGrenadeParams InGrenadeParams)
 {
 	GrenadeParams = InGrenadeParams;
@@ -42,24 +49,11 @@ void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const FGrenadeParams 
 	ProjectileMovementComponent->MaxSpeed = GrenadeParams.ProjectileSpeed;
 	ProjectileMovementComponent->bShouldBounce = GrenadeParams.bShouldBounce;
 	ProjectileMovementComponent->ProjectileGravityScale = GrenadeParams.GravityScale;
+	ProjectileMovementComponent->Velocity = GetActorForwardVector() * GrenadeParams.ProjectileSpeed;
 
 	SpawnCosmeticActor();
 	LaunchGrenade();
 }
-
-void AArenaGrenadeBase::LaunchGrenade()
-{
-	SetupVFX();
-
-	if (GrenadeParams.TimeBeforeExplosion > 0.0f)
-	{
-		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, GrenadeParams.TimeBeforeExplosion, false);
-	}
-
-	FTimerHandle PostLaunchCleanupTimerHandle;
-	GetWorldTimerManager().SetTimer(PostLaunchCleanupTimerHandle, this, &AArenaGrenadeBase::PostLaunchCleanup, 0.15f, false);
-}
-
 
 void AArenaGrenadeBase::BeginPlay()
 {
@@ -126,14 +120,33 @@ void AArenaGrenadeBase::Detonate_Implementation()
 			}
 		}
 
+		if (IsValid(SpawnedCosmeticActor))
+		{
+			SpawnedCosmeticActor->Destroy();
+		}
+		
+		PostDetonation();
 		Destroy();
 	}
 }
 
-bool AArenaGrenadeBase::ShouldDetonate_Implementation(FHitResult HitResult) const
+bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResult) const
 {
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor());
 	return IsValid(TargetASC);
+}
+
+void AArenaGrenadeBase::LaunchGrenade()
+{
+	SetupVFX();
+
+	if (GrenadeParams.TimeBeforeExplosion > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, GrenadeParams.TimeBeforeExplosion, false);
+	}
+
+	FTimerHandle PostLaunchCleanupTimerHandle;
+	GetWorldTimerManager().SetTimer(PostLaunchCleanupTimerHandle, this, &AArenaGrenadeBase::PostLaunchCleanup, 0.15f, false);
 }
 
 void AArenaGrenadeBase::SetupVFX()
@@ -184,18 +197,13 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 
-	if (!TargetASC)
+	if (!TargetASC || !InstigatorASC)
 	{
 		return;
 	}
-	
-	FGameplayEffectContextHandle GameplayEffectContextHandle;
-	
-	if (ensureMsgf(InstigatorASC, TEXT("Instigator of Grenade should ")))
-	{
-		GameplayEffectContextHandle = InstigatorASC->MakeEffectContext();
-		GameplayEffectContextHandle.AddHitResult(HitResult, true);
-	}
+
+	FGameplayEffectContextHandle GameplayEffectContextHandle = InstigatorASC->MakeEffectContext();
+	GameplayEffectContextHandle.AddHitResult(HitResult, true);
 
 	const float DistanceToCenter = HitResult.Distance;
 	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeParams.DetonationRadius, 0.1f, 1.0f);
@@ -208,7 +216,7 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,
 	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (ShouldDetonate(Hit))
+	if (ShouldDetonateOnImpact(Hit))
 	{
 		UKismetSystemLibrary::K2_ClearTimerHandle(this, ExplosionCountdownTimerHandle);
 		DirectHitTarget = Other;
@@ -234,4 +242,8 @@ void AArenaGrenadeBase::SpawnCosmeticActor()
 	SpawnedCosmeticActor->FinishSpawning(FTransform::Identity, true);
 	SpawnedCosmeticActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	SpawnedCosmeticActor->SetActorEnableCollision(false);
+	
+	FVector NewRelativeLocation = SpawnedCosmeticActor->GetRootComponent()->GetRelativeLocation();
+	NewRelativeLocation.Z -= 5.0f;
+	SpawnedCosmeticActor->SetActorRelativeLocation(NewRelativeLocation);
 }
