@@ -16,6 +16,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
+#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 // Sets default values
 AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer)
@@ -38,21 +39,23 @@ AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer
 void AArenaGrenadeBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AArenaGrenadeBase, GrenadeParams);
+	DOREPLIFETIME(AArenaGrenadeBase, GrenadeDefinitionData);
 }
 
-void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const FGrenadeParams InGrenadeParams)
+void AArenaGrenadeBase::SetGrenadeParameter_Implementation(UArenaGrenadeDefinitionData* InGrenadeDefinitionData)
 {
-	GrenadeParams = InGrenadeParams;
-	
-	ProjectileMovementComponent->InitialSpeed = GrenadeParams.ProjectileSpeed;
-	ProjectileMovementComponent->MaxSpeed = GrenadeParams.ProjectileSpeed;
-	ProjectileMovementComponent->bShouldBounce = GrenadeParams.bShouldBounce;
-	ProjectileMovementComponent->ProjectileGravityScale = GrenadeParams.GravityScale;
-	ProjectileMovementComponent->Velocity = GetActorForwardVector() * GrenadeParams.ProjectileSpeed;
+	if (InGrenadeDefinitionData)
+	{
+		GrenadeDefinitionData = InGrenadeDefinitionData;
+		ProjectileMovementComponent->InitialSpeed = GrenadeDefinitionData->ProjectileSpeed;
+		ProjectileMovementComponent->MaxSpeed = GrenadeDefinitionData->ProjectileSpeed;
+		ProjectileMovementComponent->bShouldBounce = GrenadeDefinitionData->bShouldBounce;
+		ProjectileMovementComponent->ProjectileGravityScale = GrenadeDefinitionData->GravityScale;
+		ProjectileMovementComponent->Velocity = GetActorForwardVector() * GrenadeDefinitionData->ProjectileSpeed;
 
-	SpawnCosmeticActor();
-	LaunchGrenade();
+		SpawnCosmeticActor();
+		LaunchGrenade();
+	}
 }
 
 void AArenaGrenadeBase::BeginPlay()
@@ -78,7 +81,7 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	// VFX
 	FGameplayCueParameters GameplayCueParameters;
 	GameplayCueParameters.Location = GetActorLocation();
-	UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GrenadeParams.ExplosionCueTag, GameplayCueParameters);
+	UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GrenadeDefinitionData->ExplosionCueTag, GameplayCueParameters);
 
 	// Hide Mesh
 	if (SpawnedCosmeticActor.Get())
@@ -140,9 +143,9 @@ void AArenaGrenadeBase::LaunchGrenade()
 {
 	SetupVFX();
 
-	if (GrenadeParams.TimeBeforeExplosion > 0.0f)
+	if (GrenadeDefinitionData->TimeBeforeExplosion > 0.0f)
 	{
-		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, GrenadeParams.TimeBeforeExplosion, false);
+		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, GrenadeDefinitionData->TimeBeforeExplosion, false);
 	}
 
 	FTimerHandle PostLaunchCleanupTimerHandle;
@@ -152,9 +155,9 @@ void AArenaGrenadeBase::LaunchGrenade()
 void AArenaGrenadeBase::SetupVFX()
 {
 	// Setup Trail Effect
-	if (GrenadeParams.TrailEffect)
+	if (GrenadeDefinitionData->TrailEffect)
 	{
-		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(GrenadeParams.TrailEffect, CollisionComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, true);
+		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(GrenadeDefinitionData->TrailEffect, CollisionComponent, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, true);
 	}
 
 	if (UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
@@ -184,7 +187,7 @@ bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverl
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Destructible));
-	return UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), GrenadeParams.DetonationRadius, ObjectTypes, nullptr, TArray<AActor*>(), OutOverlappingActors);
+	return UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), GrenadeDefinitionData->DetonationRadius, ObjectTypes, nullptr, TArray<AActor*>(), OutOverlappingActors);
 }
 
 void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const
@@ -206,8 +209,8 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 	GameplayEffectContextHandle.AddHitResult(HitResult, true);
 
 	const float DistanceToCenter = HitResult.Distance;
-	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeParams.DetonationRadius, 0.1f, 1.0f);
-	const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeParams.DirectHitGameplayEffect : GrenadeParams.ExplosionGameplayEffect;
+	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeDefinitionData->DetonationRadius, 0.1f, 1.0f);
+	const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect;
 	check(ExplosionGameplayEffect);
 	UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
 	InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
@@ -225,7 +228,7 @@ void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UP
 	}
 	else
 	{
-		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeParams.GrenadeImpactSound, Hit.Location);
+		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeDefinitionData->GrenadeImpactSound, Hit.Location);
 	}
 
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
@@ -233,12 +236,12 @@ void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UP
 
 void AArenaGrenadeBase::SpawnCosmeticActor()
 {
-	if (GrenadeParams.CosmeticActorClass == nullptr || !HasAuthority())
+	if (GrenadeDefinitionData->CosmeticActorClass == nullptr || !HasAuthority())
 	{
 		return;
 	}
 	
-	SpawnedCosmeticActor = GetWorld()->SpawnActorDeferred<AActor>( GrenadeParams.CosmeticActorClass, GetActorTransform());
+	SpawnedCosmeticActor = GetWorld()->SpawnActorDeferred<AActor>( GrenadeDefinitionData->CosmeticActorClass, GetActorTransform());
 	SpawnedCosmeticActor->FinishSpawning(FTransform::Identity, true);
 	SpawnedCosmeticActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	SpawnedCosmeticActor->SetActorEnableCollision(false);

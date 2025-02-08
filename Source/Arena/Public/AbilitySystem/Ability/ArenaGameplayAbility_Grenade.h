@@ -27,5 +27,5 @@ protected:
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Grenade")
-	TObjectPtr<UArenaGrenadeInstance> GrenadeInstance;
+	UArenaGrenadeInstance* GrenadeInstance;
 };

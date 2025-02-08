@@ -32,10 +32,10 @@ public:
 	AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
-	void SetGrenadeParameter(const FGrenadeParams InGrenadeParams);
+	void SetGrenadeParameter(UArenaGrenadeDefinitionData* InGrenadeDefinitionData);
 
 	UFUNCTION(BlueprintCallable)
-	const FGrenadeParams& GetGrenadeParameter() const { return GrenadeParams; }
+	UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() { return GrenadeDefinitionData; }
 
 protected:
 	//~Begin AActor interface
@@ -81,7 +81,7 @@ protected:
 
 private:
 	UPROPERTY(Replicated)
-	FGrenadeParams GrenadeParams;
+	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
 	
 	TWeakObjectPtr<AActor> DirectHitTarget;
 	

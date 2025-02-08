@@ -42,7 +42,6 @@ public:
 	static TArray<UActorComponent*> FindComponentsByClass(AActor* TargetActor, TSubclassOf<UActorComponent> ComponentClass, bool bIncludeChildActors = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Arena", meta = (WorldContext = "WorldContextObject"))
-	static AArenaGrenadeBase* SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, const TSubclassOf<UArenaGrenadeInstance>&
-		                                                        GrenadeInstance =
-		                                                        nullptr, AActor* Owner = nullptr, APawn* Instigator = nullptr);
+	static AArenaGrenadeBase* SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, UArenaGrenadeDefinitionData
+	                                                        * GrenadeDefinitionData, AActor* Owner = nullptr, APawn* Instigator = nullptr);
 };

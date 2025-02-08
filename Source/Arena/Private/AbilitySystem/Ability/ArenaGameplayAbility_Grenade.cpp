@@ -7,6 +7,7 @@
 #include "Equipment/ArenaGrenadeInstance.h"
 #include "System/ArenaSystemStatics.h"
 #include "Weapon/ArenaGrenadeBase.h"
+#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 UArenaGameplayAbility_Grenade::UArenaGameplayAbility_Grenade(const FObjectInitializer& ObjectInitializer)
 {
@@ -17,12 +18,12 @@ void UArenaGameplayAbility_Grenade::ActivateAbility(const FGameplayAbilitySpecHa
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
-
 	UArenaEquipmentInstance* EquipmentInstance = GetAssociatedEquipment();
 	GrenadeInstance = Cast<UArenaGrenadeInstance>(EquipmentInstance);
 	
-	ensureMsgf(GrenadeInstance, TEXT("UArenaGameplayAbility_Grenade::SpawnGrenade: GrenadeInstance is nullptr."));
+	checkf(GrenadeInstance, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeInstance is nullptr."));
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
 
@@ -31,8 +32,9 @@ AArenaGrenadeBase* UArenaGameplayAbility_Grenade::SpawnGrenade(FVector SpawnLoca
 	const FTransform SpawnTransform = FTransform(SpawnRotation, SpawnLocation);
 	AActor* Owner = GetOwningActorFromActorInfo();
 	APawn* Instigator = GetArenaCharacterFromActorInfo();
+	UArenaGrenadeDefinitionData* GrenadeDefinitionData = GrenadeInstance->GetGrenadeDefinitionData();
 	
-	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeInstance(GetWorld(), SpawnTransform, GrenadeInstance.GetClass(), Owner, Instigator);
+	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeInstance(GetWorld(), SpawnTransform, GrenadeDefinitionData, Owner, Instigator);
 	if (ensureMsgf(RetGrenade, TEXT("UArenaGameplayAbility_Grenade::SpawnGrenade: OutGrenade is nullptr.")))
 	{
 		return RetGrenade;
