@@ -24,7 +24,7 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly)
-	UArenaGrenadeDefinitionData* GrenadeDefinitionData;
+	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
 
 public:
 	UFUNCTION(BlueprintCallable)

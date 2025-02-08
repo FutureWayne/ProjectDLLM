@@ -56,7 +56,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Damage")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (TooTip = "Use B_GrenadeBase if no special function required"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
 	TSubclassOf<AArenaGrenadeBase> GrenadeClass = nullptr;
 
 #if WITH_EDITOR

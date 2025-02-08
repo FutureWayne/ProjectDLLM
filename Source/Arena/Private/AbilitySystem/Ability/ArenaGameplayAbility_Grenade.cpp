@@ -3,11 +3,12 @@
 
 #include "AbilitySystem/Ability/ArenaGameplayAbility_Grenade.h"
 
+#include "ArenaLogChannel.h"
 #include "Character/ArenaCharacter.h"
-#include "Equipment/ArenaGrenadeInstance.h"
+#include "Inventory/ArenaInventoryItemInstance.h"
+#include "Inventory/InventoryFragment_GrenadeDef.h"
 #include "System/ArenaSystemStatics.h"
 #include "Weapon/ArenaGrenadeBase.h"
-#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 UArenaGameplayAbility_Grenade::UArenaGameplayAbility_Grenade(const FObjectInitializer& ObjectInitializer)
 {
@@ -18,21 +19,24 @@ void UArenaGameplayAbility_Grenade::ActivateAbility(const FGameplayAbilitySpecHa
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	UArenaEquipmentInstance* EquipmentInstance = GetAssociatedEquipment();
-	GrenadeInstance = Cast<UArenaGrenadeInstance>(EquipmentInstance);
-	
-	checkf(GrenadeInstance, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeInstance is nullptr."));
+	UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
+	if (!ItemInstance)
+	{
+		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
+		return;
+	}
+
+	const UInventoryFragment_GrenadeDef* GrenadeDef = ItemInstance->FindFragmentByClass<UInventoryFragment_GrenadeDef>();
+	GrenadeDefinitionData = GrenadeDef->GetGrenadeDefinitionData();
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
-
 
 AArenaGrenadeBase* UArenaGameplayAbility_Grenade::SpawnGrenade(FVector SpawnLocation, FRotator SpawnRotation)
 {
 	const FTransform SpawnTransform = FTransform(SpawnRotation, SpawnLocation);
 	AActor* Owner = GetOwningActorFromActorInfo();
 	APawn* Instigator = GetArenaCharacterFromActorInfo();
-	UArenaGrenadeDefinitionData* GrenadeDefinitionData = GrenadeInstance->GetGrenadeDefinitionData();
 	
 	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeInstance(GetWorld(), SpawnTransform, GrenadeDefinitionData, Owner, Instigator);
 	if (ensureMsgf(RetGrenade, TEXT("UArenaGameplayAbility_Grenade::SpawnGrenade: OutGrenade is nullptr.")))
