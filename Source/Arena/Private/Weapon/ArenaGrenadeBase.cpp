@@ -247,6 +247,6 @@ void AArenaGrenadeBase::SpawnCosmeticActor()
 	SpawnedCosmeticActor->SetActorEnableCollision(false);
 	
 	FVector NewRelativeLocation = SpawnedCosmeticActor->GetRootComponent()->GetRelativeLocation();
-	NewRelativeLocation.Z -= 5.0f;
+	NewRelativeLocation.Z -= 10.0f;
 	SpawnedCosmeticActor->SetActorRelativeLocation(NewRelativeLocation);
 }

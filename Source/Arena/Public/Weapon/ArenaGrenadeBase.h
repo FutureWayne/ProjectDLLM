@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "Equipment/ArenaGrenadeInstance.h"
 #include "GameFramework/Actor.h"
 #include "ArenaGrenadeBase.generated.h"
 
 class UBoxComponent;
 class USphereComponent;
-class UArenaGrenadeInstance;
 class UGameplayEffect;
 class UNiagaraSystem;
 class UNiagaraComponent;

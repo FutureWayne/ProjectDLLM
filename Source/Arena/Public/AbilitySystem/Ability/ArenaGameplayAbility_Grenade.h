@@ -4,9 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Ability/ArenaGameplayAbility_FromEquip.h"
-#include "Equipment/ArenaGrenadeInstance.h"
 #include "ArenaGameplayAbility_Grenade.generated.h"
 
+class UArenaGrenadeDefinitionData;
 class AArenaGrenadeBase;
 /**
  * 
