@@ -4,6 +4,7 @@
 
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "UObject/SoftObjectPtr.h"
+#include "Weapon/ArenaGrenadeBase.h"
 
 #include "ArenaSystemStatics.generated.h"
 
@@ -15,7 +16,7 @@ class UObject;
 struct FFrame;
 
 UCLASS()
-class UArenaSystemStatics : public UBlueprintFunctionLibrary
+class ARENA_API UArenaSystemStatics : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -39,4 +40,8 @@ public:
 	// Gets all the components that inherit from the given class
 	UFUNCTION(BlueprintCallable, Category = "Actor", meta=(DefaultToSelf="TargetActor", ComponentClass="/Script/Engine.ActorComponent", DeterminesOutputType="ComponentClass"))
 	static TArray<UActorComponent*> FindComponentsByClass(AActor* TargetActor, TSubclassOf<UActorComponent> ComponentClass, bool bIncludeChildActors = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena", meta = (WorldContext = "WorldContextObject"))
+	static AArenaGrenadeBase* SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, UArenaGrenadeDefinitionData
+	                                                        * GrenadeDefinitionData, AActor* Owner = nullptr, APawn* Instigator = nullptr);
 };

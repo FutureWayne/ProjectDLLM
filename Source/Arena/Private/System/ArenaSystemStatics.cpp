@@ -3,8 +3,9 @@
 #include "System/ArenaSystemStatics.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Engine/AssetManager.h"
 #include "Components/MeshComponent.h"
+#include "Weapon/ArenaGrenadeBase.h"
+#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaSystemStatics)
 
@@ -70,8 +71,32 @@ TArray<UActorComponent*> UArenaSystemStatics::FindComponentsByClass(AActor* Targ
 	if (TargetActor != nullptr)
 	{
 		TargetActor->GetComponents(ComponentClass, /*out*/ Components, bIncludeChildActors);
-
 	}
 	return MoveTemp(Components);
+}
+
+AArenaGrenadeBase* UArenaSystemStatics::SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, UArenaGrenadeDefinitionData* GrenadeDefinitionData ,
+                                                                      AActor* Owner, APawn* Instigator)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (World == nullptr || GrenadeDefinitionData == nullptr)
+	{
+		return nullptr;
+	}
+	
+	check(GrenadeDefinitionData->GrenadeClass);
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = Owner;
+	SpawnParameters.Instigator = Instigator;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
+	AArenaGrenadeBase* Grenade = World->SpawnActor<AArenaGrenadeBase>(GrenadeDefinitionData->GrenadeClass, SpawnTransform, SpawnParameters);
+	if (Grenade)
+	{
+		Grenade->SetGrenadeParameter(GrenadeDefinitionData);
+	}
+
+	return Grenade;
 }
 
