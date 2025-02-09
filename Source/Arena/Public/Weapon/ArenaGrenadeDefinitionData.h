@@ -64,9 +64,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
-	FName ThrowSocketName = NAME_None;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
 	TSubclassOf<AArenaGrenadeBase> GrenadeClass = nullptr;
