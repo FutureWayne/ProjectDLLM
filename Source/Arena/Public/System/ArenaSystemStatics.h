@@ -8,6 +8,9 @@
 
 #include "ArenaSystemStatics.generated.h"
 
+class UArenaGrenadeDefinitionData;
+class UArenaInventoryItemDefinition;
+class UArenaInventoryItemInstance;
 template <typename T> class TSubclassOf;
 
 class AActor;
@@ -41,7 +44,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Actor", meta=(DefaultToSelf="TargetActor", ComponentClass="/Script/Engine.ActorComponent", DeterminesOutputType="ComponentClass"))
 	static TArray<UActorComponent*> FindComponentsByClass(AActor* TargetActor, TSubclassOf<UActorComponent> ComponentClass, bool bIncludeChildActors = true);
 
-	UFUNCTION(BlueprintCallable, Category = "Arena", meta = (WorldContext = "WorldContextObject"))
-	static AArenaGrenadeBase* SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, UArenaGrenadeDefinitionData
-	                                                        * GrenadeDefinitionData, AActor* Owner = nullptr, APawn* Instigator = nullptr);
+	UFUNCTION(BlueprintCallable, Category = "Arena|Grenade", meta = (WorldContext = "WorldContextObject"))
+	static AArenaGrenadeBase* SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform,
+															UArenaGrenadeDefinitionData* GrenadeDefinitionData, AActor* Owner = nullptr,
+															APawn* Instigator = nullptr);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static UArenaInventoryItemInstance* GiveItemDefinitionToPlayer(APawn* ReceivingPawn, TSubclassOf<UArenaInventoryItemDefinition> ItemDefinitionClass,
+																	int32 Count = 1, bool bAutoEquip = false);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void EquipItemToQuickBar(const APawn* ReceivingPawn, UArenaInventoryItemInstance* ItemInstance);
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void DropAllEquippedItemInQuickBar(const APawn* DroppingPawn);
 };

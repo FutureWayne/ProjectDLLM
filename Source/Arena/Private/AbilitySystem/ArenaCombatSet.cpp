@@ -56,6 +56,6 @@ void UArenaCombatSet::ClampAttribute(const FGameplayAttribute& Attribute, float&
 	
 	else if (Attribute == GetSpeedBuffAttribute())
 	{
-		NewValue = FMath::Clamp(NewValue, 0.0f, 10.f);
+		NewValue = FMath::Clamp(NewValue, -100.0f, 10.f);
 	}
 }
