@@ -81,7 +81,7 @@ TArray<UActorComponent*> UArenaSystemStatics::FindComponentsByClass(AActor* Targ
 	return MoveTemp(Components);
 }
 
-AArenaGrenadeBase* UArenaSystemStatics::SpawnGrenadeByGrenadeInstance(const UObject* WorldContextObject, const FTransform& SpawnTransform, UArenaGrenadeDefinitionData* GrenadeDefinitionData ,
+AArenaGrenadeBase* UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(const UObject* WorldContextObject, const FTransform& SpawnTransform, const UArenaGrenadeDefinitionData* GrenadeDefinitionData ,
                                                                       AActor* Owner, APawn* Instigator)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);

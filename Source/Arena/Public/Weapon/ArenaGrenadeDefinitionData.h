@@ -6,9 +6,44 @@
 #include "Engine/DataAsset.h"
 #include "ArenaGrenadeDefinitionData.generated.h"
 
+class UArenaGrenadeDefinitionData;
+class AArenaEffectActor;
 class UNiagaraSystem;
 class AArenaGrenadeBase;
 class UGameplayEffect;
+
+UENUM(BlueprintType)
+enum class ESpawnPolicy : uint8
+{
+	SpawnOnHit,
+	SpawnOnDetonation,
+	DoNotSpawn
+};
+
+USTRUCT(BlueprintType)
+struct FEffectActorSpawnData
+{
+	GENERATED_BODY();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor")
+	ESpawnPolicy SpawnPolicy = ESpawnPolicy::DoNotSpawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor")
+	TSubclassOf<AArenaEffectActor> EffectActorClass = nullptr;
+};
+
+USTRUCT(BlueprintType)
+struct FSecondaryGrenadeSpawnData
+{	
+	GENERATED_BODY();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
+	ESpawnPolicy SpawnPolicy = ESpawnPolicy::DoNotSpawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
+	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData = nullptr;
+};
+
 /**
  * 
  */
@@ -64,6 +99,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect", meta = (ToolTip = "Effect Actor to spawn after detonation"))
+	TArray<FEffectActorSpawnData> EffectActorsToSpawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect", meta = (ToolTip = "Effect Actor to spawn on direct hit"))
+	TArray<FSecondaryGrenadeSpawnData> SecondaryGrenadesToSpawn;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
 	TSubclassOf<AArenaGrenadeBase> GrenadeClass = nullptr;

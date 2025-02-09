@@ -16,7 +16,7 @@ class UArenaAbilitySystemComponent;
 
 
 /**
- * FArenaAbilitySet_GameplayAbility
+ * FArenaAbilitySet_GameplayAbility	
  *
  *	Data used by the ability set to grant gameplay abilities.
  */
