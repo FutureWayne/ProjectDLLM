@@ -25,7 +25,25 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Spawn Grenade"))
 	AArenaGrenadeBase* SpawnGrenade(FVector SpawnLocation, FRotator SpawnRotation);
 
+	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Spawn Location"))
+	FVector GetSpawnLocation();
+
+	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Spawn Rotation"))
+	FRotator GetSpawnRotation();
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Grenade")
 	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
+	float TraceDistance = 4500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
+	float PredictionDistance = 2500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
+	FVector SpawnLocationOffset = FVector(5.f, -25.f, 25.f);
+
+private:
+	static FRotator CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, float LaunchSpeed, float GravityScale);
 };

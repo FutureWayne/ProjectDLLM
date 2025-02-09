@@ -50,7 +50,7 @@ void UTracePrevisionTrajectory::TickTask(float DeltaTime)
 		FPredictProjectilePathParams PathParams;
 		PathParams.StartLocation = StartLocation;
 		PathParams.LaunchVelocity = LaunchVelocity;
-		PathParams.ProjectileRadius = 8.f; // Adjust as needed
+		PathParams.ProjectileRadius = 10.f; // Adjust as needed
 		PathParams.bTraceWithCollision = true;
 		PathParams.OverrideGravityZ = -980 * GravityScale - 0.1f; // Adjust gravity scale;
 		PathParams.ActorsToIgnore = ActorsToIgnore;
