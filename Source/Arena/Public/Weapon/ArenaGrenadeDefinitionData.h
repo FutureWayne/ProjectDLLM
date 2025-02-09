@@ -53,17 +53,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TSubclassOf<AActor> CosmeticActorClass = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	float TimeBeforeExplosion = 3.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	float DetonationRadius = 450.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	FName ThrowSocketName = NAME_None;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
 	TSubclassOf<AArenaGrenadeBase> GrenadeClass = nullptr;
