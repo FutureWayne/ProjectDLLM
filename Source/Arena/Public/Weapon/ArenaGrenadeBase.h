@@ -5,18 +5,13 @@
 #include "GameFramework/Actor.h"
 #include "ArenaGrenadeBase.generated.h"
 
+class AArenaEffectActor;
+class UArenaGrenadeDefinitionData;
 class UBoxComponent;
 class USphereComponent;
 class UGameplayEffect;
 class UNiagaraSystem;
 class UNiagaraComponent;
-
-USTRUCT()
-struct FGrenadeDefinition
-{
-	GENERATED_BODY()
-	
-};
 
 class UProjectileMovementComponent;
 
@@ -30,10 +25,10 @@ public:
 	AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
-	void SetGrenadeParameter(UArenaGrenadeDefinitionData* InGrenadeDefinitionData);
+	void SetGrenadeParameter(const UArenaGrenadeDefinitionData* InGrenadeDefinitionData);
 
 	UFUNCTION(BlueprintCallable)
-	UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() { return GrenadeDefinitionData; }
+	const UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() { return GrenadeDefinitionData; }
 
 protected:
 	//~Begin AActor interface
@@ -43,11 +38,17 @@ protected:
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	virtual void Detonate();
 
-	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
 	void PostDetonation();
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
 	bool ShouldDetonateOnImpact(FHitResult HitResult) const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
+	void SpawnEffectActor(const FTransform& SpawnTransform, TSubclassOf<AArenaEffectActor> EffectActorClass);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
+	void SpawnSecondaryGrenade(const FTransform& SpawnTransform, const UArenaGrenadeDefinitionData* GrenadeDefinition);
 
 private:
 	void LaunchGrenade();
@@ -60,9 +61,13 @@ private:
 
 	void ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const;
 
-	void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
+	virtual void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
 	void SpawnCosmeticActor();
+
+	void CheckSpawnConditionOnHit(const FHitResult& Hit);
+
+	void CheckSpawnConditionOnDetonation();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -79,7 +84,7 @@ protected:
 
 private:
 	UPROPERTY(Replicated)
-	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
+	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinitionData;
 	
 	TWeakObjectPtr<AActor> DirectHitTarget;
 	

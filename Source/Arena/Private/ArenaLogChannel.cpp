@@ -7,6 +7,7 @@
 DEFINE_LOG_CATEGORY(LogArena);
 DEFINE_LOG_CATEGORY(LogArenaAbilitySystem);
 DEFINE_LOG_CATEGORY(LogArenaTeams);
+DEFINE_LOG_CATEGORY(LogArenaInventory);
 
 FString GetClientServerContextString(UObject* ContextObject)
 {

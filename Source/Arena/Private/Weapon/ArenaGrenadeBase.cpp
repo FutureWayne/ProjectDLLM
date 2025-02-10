@@ -11,10 +11,12 @@
 #include "GameplayCueFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Actor/ArenaEffectActor.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "System/ArenaSystemStatics.h"
 #include "Teams/ArenaTeamSubsystem.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
 
@@ -42,7 +44,7 @@ void AArenaGrenadeBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(AArenaGrenadeBase, GrenadeDefinitionData);
 }
 
-void AArenaGrenadeBase::SetGrenadeParameter_Implementation(UArenaGrenadeDefinitionData* InGrenadeDefinitionData)
+void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const UArenaGrenadeDefinitionData* InGrenadeDefinitionData)
 {
 	if (InGrenadeDefinitionData)
 	{
@@ -71,6 +73,7 @@ void AArenaGrenadeBase::BeginPlay()
 		CollisionComponent->IgnoreActorWhenMoving(Character, true);
 	}
 }
+
 
 void AArenaGrenadeBase::Detonate_Implementation()
 {
@@ -130,16 +133,64 @@ void AArenaGrenadeBase::Detonate_Implementation()
 		{
 			SpawnedCosmeticActor->Destroy();
 		}
-		
+
+		CheckSpawnConditionOnDetonation();
 		PostDetonation();
 		Destroy();
 	}
 }
 
+
+void AArenaGrenadeBase::PostDetonation_Implementation()
+{
+}
+
 bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResult) const
 {
-	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor());
-	return IsValid(TargetASC);
+	bool bShouldDetonate = false;
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
+	{
+		bShouldDetonate = true;
+	}
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
+	{
+		if (UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor()))
+		{
+			bShouldDetonate |= IsValid(TargetASC);
+		}
+	}
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
+	{
+		bShouldDetonate |= HitResult.ImpactNormal.Z > 0.7f;
+	}
+
+	return bShouldDetonate;
+}
+
+void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnTransform,
+                                                        const TSubclassOf<AArenaEffectActor> EffectActorClass)
+{
+	if (EffectActorClass == nullptr)
+	{
+		return;
+	}
+
+	AArenaEffectActor* SpawnedEffectActor = GetWorld()->SpawnActorDeferred<AArenaEffectActor>(EffectActorClass, SpawnTransform);
+	SpawnedEffectActor->FinishSpawning(SpawnTransform, true);
+}
+
+void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& SpawnTransform,
+	const UArenaGrenadeDefinitionData* GrenadeDefinition)
+{
+	if (GrenadeDefinition == nullptr)
+	{
+		return;
+	}
+
+	UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, SpawnTransform, GrenadeDefinition, GetOwner(), Cast<APawn>(GetInstigator()));
 }
 
 void AArenaGrenadeBase::LaunchGrenade()
@@ -231,6 +282,7 @@ void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UP
 	}
 	else
 	{
+		CheckSpawnConditionOnHit(Hit);
 		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeDefinitionData->GrenadeImpactSound, Hit.Location);
 	}
 
@@ -252,4 +304,86 @@ void AArenaGrenadeBase::SpawnCosmeticActor()
 	FVector NewRelativeLocation = SpawnedCosmeticActor->GetRootComponent()->GetRelativeLocation();
 	NewRelativeLocation.Z -= 10.0f;
 	SpawnedCosmeticActor->SetActorRelativeLocation(NewRelativeLocation);
+}
+
+void AArenaGrenadeBase::CheckSpawnConditionOnHit(const FHitResult& Hit)
+{
+	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
+	{
+		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
+		{
+			continue;
+		}
+
+		if (EffectActorSpawnData.EffectActorClass == nullptr)
+		{
+			continue;
+		}
+
+		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnHit)
+		{
+			FTransform SpawnTransform = FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
+			SpawnEffectActor(SpawnTransform, EffectActorSpawnData.EffectActorClass);
+		}
+	}
+
+	for (const auto SecondaryGrenadeSpawnData : GrenadeDefinitionData->SecondaryGrenadesToSpawn)
+	{
+		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
+		{
+			continue;
+		}
+
+		if (SecondaryGrenadeSpawnData.GrenadeDefinitionData == nullptr)
+		{
+			continue;
+		}
+
+		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnHit)
+		{
+			FTransform SpawnTransform = FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
+			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData);
+		}
+	}
+}
+
+void AArenaGrenadeBase::CheckSpawnConditionOnDetonation()
+{
+	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
+	{
+		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
+		{
+			continue;
+		}
+
+		if (EffectActorSpawnData.EffectActorClass == nullptr)
+		{
+			continue;
+		}
+
+		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnDetonation)
+		{
+			FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation());
+			SpawnEffectActor(SpawnTransform, EffectActorSpawnData.EffectActorClass);
+		}
+	}
+
+	for (const auto SecondaryGrenadeSpawnData : GrenadeDefinitionData->SecondaryGrenadesToSpawn)
+	{
+		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
+		{
+			continue;
+		}
+
+		if (SecondaryGrenadeSpawnData.GrenadeDefinitionData == nullptr)
+		{
+			continue;
+		}
+
+		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnDetonation)
+		{
+			FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation());
+			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData);
+		}
+	}
 }
