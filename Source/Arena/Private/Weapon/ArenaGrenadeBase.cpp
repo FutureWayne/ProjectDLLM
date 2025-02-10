@@ -120,7 +120,8 @@ void AArenaGrenadeBase::Detonate_Implementation()
 				IgnoreActors.Remove(OverlappingActor);
 				// Trace to check for valid line of sight while ignoring other pawns in radius, so they don't block the hit
 				FHitResult HitResult;
-				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, EDrawDebugTrace::ForDuration, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
+				EDrawDebugTrace::Type DrawDebugType = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
+				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, DrawDebugType, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
 
 				if (hit)
 				{
