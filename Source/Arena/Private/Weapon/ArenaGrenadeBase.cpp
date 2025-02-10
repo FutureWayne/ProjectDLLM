@@ -133,7 +133,8 @@ void AArenaGrenadeBase::Detonate_Implementation()
 		{
 			SpawnedCosmeticActor->Destroy();
 		}
-		
+
+		CheckSpawnConditionOnDetonation();
 		PostDetonation();
 		Destroy();
 	}
@@ -142,13 +143,31 @@ void AArenaGrenadeBase::Detonate_Implementation()
 
 void AArenaGrenadeBase::PostDetonation_Implementation()
 {
-	CheckSpawnConditionOnDetonation();
 }
 
 bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResult) const
 {
-	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor());
-	return IsValid(TargetASC);
+	bool bShouldDetonate = false;
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
+	{
+		bShouldDetonate = true;
+	}
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
+	{
+		if (UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor()))
+		{
+			bShouldDetonate |= IsValid(TargetASC);
+		}
+	}
+
+	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
+	{
+		bShouldDetonate |= HitResult.ImpactNormal.Z > 0.7f;
+	}
+
+	return bShouldDetonate;
 }
 
 void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnTransform,

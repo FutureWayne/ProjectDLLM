@@ -9,6 +9,10 @@
 #include "Misc/DataValidation.h"
 #endif
 
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_DetonationPolicy_OnImpact, "DetonationPolicy.OnImpact", "Detonate on impact.");
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_DetonationPolicy_OnHitValidTarget, "DetonationPolicy.OnHitValidTarget", "Detonate when hit a target with valid ASC");
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_DetonationPolicy_OnHitHorizontal, "DetonationPolicy.OnHitHorizontal", "Detonate when hit a horizontal surface.");
+
 UArenaGrenadeDefinitionData::UArenaGrenadeDefinitionData(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

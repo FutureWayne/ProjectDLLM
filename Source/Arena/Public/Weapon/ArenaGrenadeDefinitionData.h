@@ -4,6 +4,7 @@
 
 #include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
+#include "ArenaGameplayTags.h"
 #include "ArenaGrenadeDefinitionData.generated.h"
 
 class UArenaGrenadeDefinitionData;
@@ -11,6 +12,10 @@ class AArenaEffectActor;
 class UNiagaraSystem;
 class AArenaGrenadeBase;
 class UGameplayEffect;
+
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnImpact);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnHitValidTarget);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnHitHorizontal);
 
 UENUM(BlueprintType)
 enum class ESpawnPolicy : uint8
@@ -99,6 +104,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	FGameplayTagContainer DetonationPolicy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect", meta = (ToolTip = "Effect Actor to spawn after detonation"))
 	TArray<FEffectActorSpawnData> EffectActorsToSpawn;
