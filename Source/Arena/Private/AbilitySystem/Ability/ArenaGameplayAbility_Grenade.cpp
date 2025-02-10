@@ -31,6 +31,13 @@ void UArenaGameplayAbility_Grenade::ActivateAbility(const FGameplayAbilitySpecHa
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 		return;
 	}
+
+	if (GrenadeDefinitionData == nullptr)
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeDefinitionData is nullptr."));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		return;
+	}
 	
 	// Set Cooldown Time Dynamically
 	TSubclassOf<UGameplayEffect> CooldownGameplayEffect = GetCooldownGameplayEffect()->GetClass();
@@ -67,7 +74,7 @@ void UArenaGameplayAbility_Grenade::OnAvatarSet(const FGameplayAbilityActorInfo*
 	}
 	else
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::OnAvatarSet: GetWorld() is nullptr."));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::OnAvatarSet: GetWorld() is nullptr."));
 	}
 }
 
@@ -76,14 +83,14 @@ bool UArenaGameplayAbility_Grenade::CheckCooldown(const FGameplayAbilitySpecHand
 {
 	if (GrenadeDefinitionData == nullptr)
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeDefinitionData is nullptr."));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeDefinitionData is nullptr."));
 		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
 	}
 	
 	FGameplayTag GrenadeSlotCooldownTag = GrenadeDefinitionData->GrenadeSlotCooldownTag;
 	if (GrenadeSlotCooldownTag == FGameplayTag::EmptyTag)
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeSlotCooldownTag is empty. Using default cooldown"));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeSlotCooldownTag is empty. Using default cooldown"));
 		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
 	}
 
@@ -285,7 +292,7 @@ void UArenaGameplayAbility_Grenade::GetGrenadeDefinitionData()
 	UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
 	if (!ItemInstance)
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
 		return;
 	}
 

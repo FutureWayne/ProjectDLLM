@@ -120,10 +120,14 @@ void AArenaGrenadeBase::Detonate_Implementation()
 				IgnoreActors.Remove(OverlappingActor);
 				// Trace to check for valid line of sight while ignoring other pawns in radius, so they don't block the hit
 				FHitResult HitResult;
-				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_Visibility), true, IgnoreActors, EDrawDebugTrace::None, HitResult, true, FLinearColor::Red, FLinearColor::Green, 0.0f);
+				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, EDrawDebugTrace::ForDuration, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
 
 				if (hit)
 				{
+					if (bDrawDebug)
+					{
+						DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 10.0f, 12, FColor::Green, false, 5.0f);
+					}
 					ApplyDamageToTarget(OverlappingActor, HitResult, false);
 				}
 			}
@@ -237,6 +241,11 @@ void AArenaGrenadeBase::PostLaunchCleanup()
 
 bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverlappingActors) const
 {
+	if (bDrawDebug)
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), GrenadeDefinitionData->DetonationRadius, 12, FColor::Red, false, 5.0f);
+	}
+	
 	// Capture all pawns in detonation radius
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
