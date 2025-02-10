@@ -32,7 +32,9 @@ namespace ArenaGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_AOE, "DamageType.Grenade.AOE", "Damage Tag for Grenade AOE damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_DirectHit, "DamageType.Grenade.DirectHit", "Damage Tag for Grenade Direct Hit damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_Effect, "DamageType.Grenade.Effect", "Damage Tag for Grenade Effect damage.");
-	
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Grenade_Duration_Message, "Ability.Grenade.Duration.Message", "Tag for grenade duration message.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Dash_Duration_Message, "Ability.Dash.Duration.Message", "Tag for dash duration message.");
 	
 	FGameplayTag FindTagByString(const FString& TagString, bool bMatchPartialString)
 	{

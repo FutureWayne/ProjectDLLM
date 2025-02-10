@@ -21,5 +21,8 @@ public:
 	
 	UPROPERTY(BlueprintReadWrite)
 	float Duration = 0;
+
+	UPROPERTY(BlueprintReadWrite)
+	FGameplayTag CooldownTag;
 };
 

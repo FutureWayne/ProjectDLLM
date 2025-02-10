@@ -8,8 +8,10 @@
 #include "Character/ArenaCharacter.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Equipment/ArenaEquipmentInstance.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Inventory/InventoryFragment_GrenadeDef.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Messages/ArenaInteractionDurationMessage.h"
 #include "Player/ArenaPlayerController.h"
 #include "System/ArenaSystemStatics.h"
 #include "Weapon/ArenaGrenadeBase.h"
@@ -123,6 +125,9 @@ AArenaGrenadeBase* UArenaGameplayAbility_Grenade::SpawnGrenade(FVector SpawnLoca
 	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(GetWorld(), SpawnTransform, GrenadeDefinitionData, Owner, Instigator);
 	if (ensureMsgf(RetGrenade, TEXT("UArenaGameplayAbility_Grenade::SpawnGrenade: OutGrenade is nullptr.")))
 	{
+		// Successfully spawned the grenade, broadcast the cooldown message
+		BroadCastCooldownMessage();
+		
 		return RetGrenade;
 	}
 	
@@ -191,6 +196,16 @@ FRotator UArenaGameplayAbility_Grenade::GetSpawnRotation()
 	const float LaunchSpeed = GrenadeDefinitionData->ProjectileSpeed;
 	const float GravityScale = GrenadeDefinitionData->GravityScale;
 	return CalculateLaunchRotation(GetWorld(), GetSpawnLocation(), TargetLocation, LaunchSpeed, GravityScale);
+}
+
+void UArenaGameplayAbility_Grenade::BroadCastCooldownMessage()
+{
+	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GetWorld());
+	FArenaInteractionDurationMessage Message;
+	Message.Duration = GrenadeDefinitionData->GrenadeAbilityCooldownTime;
+	Message.CooldownTag = GrenadeDefinitionData->GrenadeSlotCooldownTag;
+	Message.Instigator = GetArenaCharacterFromActorInfo();
+	MessageSubsystem.BroadcastMessage(ArenaGameplayTags::Ability_Grenade_Duration_Message, Message);
 }
 
 FRotator UArenaGameplayAbility_Grenade::CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, const float LaunchSpeed, const float GravityScale)

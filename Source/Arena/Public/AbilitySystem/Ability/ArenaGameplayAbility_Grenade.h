@@ -36,6 +36,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Spawn Rotation"))
 	FRotator GetSpawnRotation();
 
+	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Target Location"))
+	void BroadCastCooldownMessage();
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Grenade")
 	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
