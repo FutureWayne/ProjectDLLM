@@ -17,6 +17,10 @@ ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnImpact);
 ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnHitValidTarget);
 ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnHitHorizontal);
 
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GrenadeSlot_1);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GrenadeSlot_2);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GrenadeSlot_3);
+
 UENUM(BlueprintType)
 enum class ESpawnPolicy : uint8
 {
@@ -92,6 +96,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TSubclassOf<AActor> CosmeticActorClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	float GrenadeAbilityCooldownTime = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	FGameplayTag GrenadeSlotCooldownTag = FGameplayTag::EmptyTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	float TimeBeforeExplosion = 3.0f;

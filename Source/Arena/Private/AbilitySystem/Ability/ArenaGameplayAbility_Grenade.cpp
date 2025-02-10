@@ -3,9 +3,11 @@
 
 #include "AbilitySystem/Ability/ArenaGameplayAbility_Grenade.h"
 
+#include "AbilitySystemComponent.h"
 #include "ArenaLogChannel.h"
 #include "Character/ArenaCharacter.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
+#include "Equipment/ArenaEquipmentInstance.h"
 #include "Inventory/InventoryFragment_GrenadeDef.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Player/ArenaPlayerController.h"
@@ -22,17 +24,94 @@ void UArenaGameplayAbility_Grenade::ActivateAbility(const FGameplayAbilitySpecHa
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
 	const FGameplayEventData* TriggerEventData)
 {
-	UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
-	if (!ItemInstance)
+	if (!CheckCooldown(Handle, ActorInfo, nullptr))
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 		return;
 	}
+	
+	// Set Cooldown Time Dynamically
+	TSubclassOf<UGameplayEffect> CooldownGameplayEffect = GetCooldownGameplayEffect()->GetClass();
+	check(CooldownGameplayEffect);
+	FGameplayEffectSpecHandle CooldownSpec = MakeOutgoingGameplayEffectSpec(CooldownGameplayEffect, 1.0f);
+	if (CooldownSpec.IsValid())
+	{
+		FGameplayEffectSpec* CooldownSpecPtr = CooldownSpec.Data.Get();
+		if (CooldownSpecPtr)
+		{
+			FGameplayTagContainer CooldownTags;
+			CooldownTags.AddTag(GrenadeDefinitionData->GrenadeSlotCooldownTag);
+			CooldownSpecPtr->DynamicGrantedTags.AppendTags(CooldownTags);
+			CooldownSpecPtr->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Cooldown.Grenade")), GrenadeDefinitionData->GrenadeAbilityCooldownTime);
+		}
 
-	const UInventoryFragment_GrenadeDef* GrenadeDef = ItemInstance->FindFragmentByClass<UInventoryFragment_GrenadeDef>();
-	GrenadeDefinitionData = GrenadeDef->GetGrenadeDefinitionData();
+		CooldownEffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CooldownSpec);
+	}
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+
+void UArenaGameplayAbility_Grenade::OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilitySpec& Spec)
+{
+	// Wait until next frame and call GetGrenadeDefinitionData
+	// Because Equip->SetInstigator is called after OnGiveAbility
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+		{
+			GetGrenadeDefinitionData();
+		});
+	}
+	else
+	{
+		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::OnAvatarSet: GetWorld() is nullptr."));
+	}
+}
+
+bool UArenaGameplayAbility_Grenade::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
+                                                  const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (GrenadeDefinitionData == nullptr)
+	{
+		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeDefinitionData is nullptr."));
+		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
+	}
+	
+	FGameplayTag GrenadeSlotCooldownTag = GrenadeDefinitionData->GrenadeSlotCooldownTag;
+	if (GrenadeSlotCooldownTag == FGameplayTag::EmptyTag)
+	{
+		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeSlotCooldownTag is empty. Using default cooldown"));
+		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
+	}
+
+	if (const UAbilitySystemComponent* AbilitySystemComponent = ActorInfo->AbilitySystemComponent.Get())
+	{
+		return !AbilitySystemComponent->HasMatchingGameplayTag(GrenadeSlotCooldownTag);
+	}
+
+	return false;
+}
+
+bool UArenaGameplayAbility_Grenade::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags,
+	const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	bool bResult = Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags);
+
+	if (bResult)
+	{
+		if (GetAssociatedEquipment() == nullptr)
+		{
+			UE_LOG(LogArenaAbilitySystem, Error, TEXT("Weapon ability %s cannot be activated because there is no associated ranged weapon (equipment instance=%s but needs to be derived from %s)"),
+				*GetPathName(),
+				*GetPathNameSafe(GetAssociatedEquipment()),
+				*UArenaGameplayAbility_Grenade::StaticClass()->GetName());
+			bResult = false;
+		}
+	}
+
+	return bResult;
 }
 
 AArenaGrenadeBase* UArenaGameplayAbility_Grenade::SpawnGrenade(FVector SpawnLocation, FRotator SpawnRotation)
@@ -114,9 +193,12 @@ FRotator UArenaGameplayAbility_Grenade::GetSpawnRotation()
 	return CalculateLaunchRotation(GetWorld(), GetSpawnLocation(), TargetLocation, LaunchSpeed, GravityScale);
 }
 
-// ChatGPT o3-mini-high wrote the following code snippet. Amazing job!
 FRotator UArenaGameplayAbility_Grenade::CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, const float LaunchSpeed, const float GravityScale)
 {
+	/* 
+	 * ChatGPT o3-mini-high wrote the following code snippet. Amazing job!
+	 */
+	
 	// // Draw a start and target as debug spheres
 	// DrawDebugSphere(World, Start, 5.f, 12, FColor::Green, false, 0.1f);
 	// DrawDebugSphere(World, Target, 5.f, 12, FColor::Red, false, 0.1f);
@@ -181,5 +263,18 @@ FRotator UArenaGameplayAbility_Grenade::CalculateLaunchRotation(const UWorld* Wo
 	
 	// Return the rotation corresponding to this direction.
 	return LaunchDirection.Rotation();
+}
+
+void UArenaGameplayAbility_Grenade::GetGrenadeDefinitionData()
+{
+	UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
+	if (!ItemInstance)
+	{
+		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
+		return;
+	}
+
+	const UInventoryFragment_GrenadeDef* GrenadeDef = ItemInstance->FindFragmentByClass<UInventoryFragment_GrenadeDef>();
+	GrenadeDefinitionData = GrenadeDef->GetGrenadeDefinitionData();
 }
 
