@@ -108,10 +108,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	FGameplayTagContainer DetonationPolicy;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect", meta = (ToolTip = "Effect Actor to spawn after detonation"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect")
 	TArray<FEffectActorSpawnData> EffectActorsToSpawn;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect", meta = (ToolTip = "Effect Actor to spawn on direct hit"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect")
 	TArray<FSecondaryGrenadeSpawnData> SecondaryGrenadesToSpawn;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
