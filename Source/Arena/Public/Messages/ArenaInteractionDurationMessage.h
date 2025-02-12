@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "NativeGameplayTags.h"
 
+class AArenaCharacter;
+
 #include "ArenaInteractionDurationMessage.generated.h"
 
 UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_INTERACTION_DURATION_MESSAGE);
@@ -17,7 +19,7 @@ struct FArenaInteractionDurationMessage
 
 public:
 	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<AActor> Instigator = nullptr;
+	TObjectPtr<AArenaCharacter> Instigator = nullptr;
 	
 	UPROPERTY(BlueprintReadWrite)
 	float Duration = 0;

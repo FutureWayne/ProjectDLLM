@@ -82,6 +82,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> CollisionComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Debug", meta = (AllowPrivateAccess = "true"))
+	bool bDrawDebug = false;
+
 private:
 	UPROPERTY(Replicated)
 	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinitionData;

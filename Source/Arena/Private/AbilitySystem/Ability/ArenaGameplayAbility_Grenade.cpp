@@ -31,59 +31,31 @@ void UArenaGameplayAbility_Grenade::ActivateAbility(const FGameplayAbilitySpecHa
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 		return;
 	}
-	
-	// Set Cooldown Time Dynamically
-	TSubclassOf<UGameplayEffect> CooldownGameplayEffect = GetCooldownGameplayEffect()->GetClass();
-	check(CooldownGameplayEffect);
-	FGameplayEffectSpecHandle CooldownSpec = MakeOutgoingGameplayEffectSpec(CooldownGameplayEffect, 1.0f);
-	if (CooldownSpec.IsValid())
-	{
-		FGameplayEffectSpec* CooldownSpecPtr = CooldownSpec.Data.Get();
-		if (CooldownSpecPtr)
-		{
-			FGameplayTagContainer CooldownTags;
-			CooldownTags.AddTag(GrenadeDefinitionData->GrenadeSlotCooldownTag);
-			CooldownSpecPtr->DynamicGrantedTags.AppendTags(CooldownTags);
-			CooldownSpecPtr->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Cooldown.Grenade")), GrenadeDefinitionData->GrenadeAbilityCooldownTime);
-		}
 
-		CooldownEffectHandle = ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CooldownSpec);
+	if (GetGrenadeDefinitionData() == nullptr)
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeDefinitionData is nullptr."));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		return;
 	}
 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
-void UArenaGameplayAbility_Grenade::OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilitySpec& Spec)
-{
-	// Wait until next frame and call GetGrenadeDefinitionData
-	// Because Equip->SetInstigator is called after OnGiveAbility
-	if (GetWorld())
-	{
-		GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
-		{
-			GetGrenadeDefinitionData();
-		});
-	}
-	else
-	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::OnAvatarSet: GetWorld() is nullptr."));
-	}
-}
-
 bool UArenaGameplayAbility_Grenade::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
                                                   const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
 {
+	const UArenaGrenadeDefinitionData* GrenadeDefinitionData = GetGrenadeDefinitionData();
 	if (GrenadeDefinitionData == nullptr)
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeDefinitionData is nullptr."));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeDefinitionData is nullptr."));
 		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
 	}
 	
 	FGameplayTag GrenadeSlotCooldownTag = GrenadeDefinitionData->GrenadeSlotCooldownTag;
 	if (GrenadeSlotCooldownTag == FGameplayTag::EmptyTag)
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeSlotCooldownTag is empty. Using default cooldown"));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::CheckCooldown: GrenadeSlotCooldownTag is empty. Using default cooldown"));
 		return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
 	}
 
@@ -92,7 +64,7 @@ bool UArenaGameplayAbility_Grenade::CheckCooldown(const FGameplayAbilitySpecHand
 		return !AbilitySystemComponent->HasMatchingGameplayTag(GrenadeSlotCooldownTag);
 	}
 
-	return false;
+	return Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags);
 }
 
 bool UArenaGameplayAbility_Grenade::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
@@ -116,18 +88,46 @@ bool UArenaGameplayAbility_Grenade::CanActivateAbility(const FGameplayAbilitySpe
 	return bResult;
 }
 
+bool UArenaGameplayAbility_Grenade::CommitAbilityCooldown(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	const bool ForceCooldown, FGameplayTagContainer* OptionalRelevantTags)
+{
+	BroadCastCooldownMessage();
+	
+	return Super::CommitAbilityCooldown(Handle, ActorInfo, ActivationInfo, ForceCooldown, OptionalRelevantTags);
+}
+
+void UArenaGameplayAbility_Grenade::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	// Set Cooldown Time Dynamically
+	TSubclassOf<UGameplayEffect> CooldownGameplayEffect = GetCooldownGameplayEffect()->GetClass();
+	check(CooldownGameplayEffect);
+	FGameplayEffectSpecHandle CooldownSpec = MakeOutgoingGameplayEffectSpec(CooldownGameplayEffect, 1.0f);
+	if (CooldownSpec.IsValid())
+	{
+		FGameplayEffectSpec* CooldownSpecPtr = CooldownSpec.Data.Get();
+		const UArenaGrenadeDefinitionData* GrenadeDefinitionData = GetGrenadeDefinitionData();
+		if (CooldownSpecPtr && GrenadeDefinitionData)
+		{
+			FGameplayTagContainer CooldownTags;
+			CooldownTags.AddTag(GrenadeDefinitionData->GrenadeSlotCooldownTag);
+			CooldownSpecPtr->DynamicGrantedTags.AppendTags(CooldownTags);
+			CooldownSpecPtr->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Cooldown.Grenade")), GrenadeDefinitionData->GrenadeAbilityCooldownTime);
+		}
+		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CooldownSpec);
+	}
+}
+
 AArenaGrenadeBase* UArenaGameplayAbility_Grenade::SpawnGrenade(FVector SpawnLocation, FRotator SpawnRotation)
 {
 	const FTransform SpawnTransform = FTransform(SpawnRotation, SpawnLocation);
 	AActor* Owner = GetOwningActorFromActorInfo();
 	APawn* Instigator = GetArenaCharacterFromActorInfo();
 	
-	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(GetWorld(), SpawnTransform, GrenadeDefinitionData, Owner, Instigator);
+	AArenaGrenadeBase* RetGrenade = UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(GetWorld(), SpawnTransform, GetGrenadeDefinitionData(), Owner, Instigator);
 	if (ensureMsgf(RetGrenade, TEXT("UArenaGameplayAbility_Grenade::SpawnGrenade: OutGrenade is nullptr.")))
 	{
-		// Successfully spawned the grenade, broadcast the cooldown message
-		BroadCastCooldownMessage();
-		
 		return RetGrenade;
 	}
 	
@@ -193,13 +193,14 @@ FRotator UArenaGameplayAbility_Grenade::GetSpawnRotation()
 		TargetLocation = TraceEnd;
 	}
 
-	const float LaunchSpeed = GrenadeDefinitionData->ProjectileSpeed;
-	const float GravityScale = GrenadeDefinitionData->GravityScale;
+	const float LaunchSpeed = GetGrenadeDefinitionData()->ProjectileSpeed;
+	const float GravityScale = GetGrenadeDefinitionData()->GravityScale;
 	return CalculateLaunchRotation(GetWorld(), GetSpawnLocation(), TargetLocation, LaunchSpeed, GravityScale);
 }
 
 void UArenaGameplayAbility_Grenade::BroadCastCooldownMessage()
 {
+	const UArenaGrenadeDefinitionData* GrenadeDefinitionData = GetGrenadeDefinitionData();
 	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(GetWorld());
 	FArenaInteractionDurationMessage Message;
 	Message.Duration = GrenadeDefinitionData->GrenadeAbilityCooldownTime;
@@ -280,16 +281,22 @@ FRotator UArenaGameplayAbility_Grenade::CalculateLaunchRotation(const UWorld* Wo
 	return LaunchDirection.Rotation();
 }
 
-void UArenaGameplayAbility_Grenade::GetGrenadeDefinitionData()
+const UArenaGrenadeDefinitionData* UArenaGameplayAbility_Grenade::GetGrenadeDefinitionData() const
 {
-	UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
-	if (!ItemInstance)
+	const UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
+	if (!ensure(ItemInstance))
 	{
-		UE_LOG(LogArena, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
-		return;
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
+		return nullptr;
 	}
 
 	const UInventoryFragment_GrenadeDef* GrenadeDef = ItemInstance->FindFragmentByClass<UInventoryFragment_GrenadeDef>();
-	GrenadeDefinitionData = GrenadeDef->GetGrenadeDefinitionData();
+	if (!ensure(GrenadeDef))
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeDef is nullptr."));
+		return nullptr;
+	}
+	
+	return GrenadeDef->GetGrenadeDefinitionData();
 }
 
