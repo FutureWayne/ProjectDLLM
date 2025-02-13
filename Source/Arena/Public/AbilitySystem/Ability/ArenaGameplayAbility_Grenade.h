@@ -21,9 +21,10 @@ public:
 
 	// ~Begin UGameplayAbility Interface
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const override;
 	virtual bool CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const override;
+	virtual bool CommitAbilityCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const bool ForceCooldown, FGameplayTagContainer* OptionalRelevantTags) override;
+	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
 	// ~End UGameplayAbility Interface
 	
 protected:
@@ -36,13 +37,13 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Spawn Rotation"))
 	FRotator GetSpawnRotation();
 
-	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Target Location"))
+	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "BroadCast Cooldown Message"))
 	void BroadCastCooldownMessage();
 
-protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Grenade")
-	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData;
+	UFUNCTION(BlueprintCallable, Category = "Grenade", meta = (DisplayName = "Get Grenade Definition Data"))
+	const UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() const;
 
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade")
 	float TraceDistance = 4500.f;
 
@@ -54,8 +55,7 @@ protected:
 
 private:
 	static FRotator CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, float LaunchSpeed, float GravityScale);
-
-	void GetGrenadeDefinitionData();
+	
 private:
 	FActiveGameplayEffectHandle CooldownEffectHandle;
 };
