@@ -13,6 +13,7 @@
 	"CanContainContent": false,
 	"IsBetaVersion": false,
 	"Installed": false,
+
 	"Modules": [
 		{
 			"Name": "CommonGame",
@@ -37,6 +38,5 @@
 			"Name": "OnlineFramework",
 			"Enabled": true
 		}
-	],
-	"IsExperimentalVersion": false
+	]
 }

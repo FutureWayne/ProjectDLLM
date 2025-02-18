@@ -3,7 +3,7 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
-#include "GameFramework/PlayerController.h"
+#include "CommonPlayerController.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaPlayerController.generated.h"
 
@@ -20,7 +20,7 @@ class AArenaPlayerState;
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerController : public APlayerController, public IArenaTeamAgentInterface
+class ARENA_API AArenaPlayerController : public ACommonPlayerController, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -54,7 +54,9 @@ public:
 
 protected:
 	//~AActor interface
+	virtual void PreInitializeComponents() override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	//~End of AActor interface
 	
