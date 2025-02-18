@@ -16,7 +16,8 @@
 				"EnhancedInput",
 				"AIModule",
 				"ModularGameplay",
-				"CommonUI"
+				"CommonUI",
+				"CommonGame"
 			]
 		}
 	],
@@ -71,6 +72,10 @@
 		{
 			"Name": "CommonUI",
 			"Enabled": true
+		},
+		{
+			"Name": "CommonUser",
+			"Enabled": false
 		}
 	]
 }
