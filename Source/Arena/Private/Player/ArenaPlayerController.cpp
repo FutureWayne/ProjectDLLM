@@ -126,6 +126,11 @@ FOnArenaTeamIndexChangedDelegate* AArenaPlayerController::GetOnTeamIndexChangedD
 	return &OnTeamChangedDelegate;
 }
 
+void AArenaPlayerController::PreInitializeComponents()
+{
+	Super::PreInitializeComponents();
+}
+
 void AArenaPlayerController::InitPlayerState()
 {
 	Super::InitPlayerState();
@@ -154,6 +159,11 @@ void AArenaPlayerController::BeginPlay()
 	{
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
+}
+
+void AArenaPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
 }
 
 void AArenaPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

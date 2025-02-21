@@ -15,7 +15,9 @@
 				"CoreUObject",
 				"EnhancedInput",
 				"AIModule",
-				"ModularGameplay"
+				"ModularGameplay",
+				"CommonUI",
+				"CommonGame"
 			]
 		}
 	],
@@ -69,6 +71,22 @@
 		},
 		{
 			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUser",
+			"Enabled": false
+		},
+		{
+			"Name": "AdvancedSteamSessions",
+			"Enabled": false
+		},
+		{
+			"Name": "AdvancedSessions",
+			"Enabled": false
+		},
+		{
+			"Name": "SteamSockets",
 			"Enabled": true
 		}
 	]

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Engine/LocalPlayer.h"
+#include "CommonLocalPlayer.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaLocalPlayer.generated.h"
 
@@ -10,7 +10,7 @@
  * 
  */
 UCLASS()
-class ARENA_API UArenaLocalPlayer : public ULocalPlayer, public IArenaTeamAgentInterface
+class ARENA_API UArenaLocalPlayer : public UCommonLocalPlayer, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 

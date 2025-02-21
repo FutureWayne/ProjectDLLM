@@ -19,6 +19,7 @@ public class Arena : ModuleRules
 			"AIModule",
 			"Niagara",
 			"ModularGameplay",
+			"ModularGameplayActors",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -30,7 +31,10 @@ public class Arena : ModuleRules
 			"Slate",
 			"SlateCore",
 			"UMG",
-			"CommonUI"
+			"CommonUI",
+			"CommonInput",
+			"CommonGame",
+			"CommonUser",
 		});
 
 		// Uncomment if you are using Slate UI
