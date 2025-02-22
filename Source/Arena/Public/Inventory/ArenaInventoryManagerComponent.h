@@ -88,8 +88,10 @@ public:
 	}
 
 	UArenaInventoryItemInstance* AddEntry(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef, int32 StackCount);
-	void AddEntry(UArenaInventoryItemInstance* ItemInstance);
+	void AddEntry(UArenaInventoryItemInstance* ItemInstance, const int32 StackCount);
 	void RemoveEntry(UArenaInventoryItemInstance* ItemInstance);
+
+	void AddStackCount(FArenaInventoryEntry& Entry, int32 AddedStackCount);
 
 private:
 	void BroadcastChangeMessage(FArenaInventoryEntry& Entry, int32 OldCount, int32 NewCount);
@@ -121,7 +123,7 @@ public:
 	UArenaInventoryItemInstance* AddItemDefinition(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef, const int32 StackCount = 1);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
-	void AddItemInstance(UArenaInventoryItemInstance* ItemInstance);
+	void AddItemInstance(UArenaInventoryItemInstance* ItemInstance, const int32 StackCount);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	void RemoveItemInstance(UArenaInventoryItemInstance* ItemInstance);
@@ -130,10 +132,13 @@ public:
 	TArray<UArenaInventoryItemInstance*> GetAllItems() const;
 
 	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure)
-	UArenaInventoryItemInstance* FindFirstItemStackByDefinition(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef) const;
+	const FArenaInventoryEntry& FindFirstItemStackByDefinition(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef) const;
 
-	int32 GetTotalItemCountByDefinition(const TSubclassOf<class UArenaInventoryItemDefinition>& ItemDef) const;
-	bool ConsumeItemsByDefinition(const TSubclassOf<class UArenaInventoryItemDefinition>& ItemDef, int32 NumToConsume);
+	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure)
+	int32 GetTotalItemCountByDefinition(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef) const;
+
+	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure)
+	bool ConsumeItemsByDefinition(const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef, int32 NumToConsume);
 
 	// ~UObject interface
 	virtual void ReadyForReplication() override;

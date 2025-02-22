@@ -111,7 +111,7 @@ UArenaInventoryItemInstance* FArenaInventoryList::AddEntry(const TSubclassOf<UAr
 	return Result;
 }
 
-void FArenaInventoryList::AddEntry(UArenaInventoryItemInstance* ItemInstance)
+void FArenaInventoryList::AddEntry(UArenaInventoryItemInstance* ItemInstance, const int32 StackCount)
 {
 	check(ItemInstance != nullptr);
 	check(OwnerComponent);
@@ -135,6 +135,7 @@ void FArenaInventoryList::AddEntry(UArenaInventoryItemInstance* ItemInstance)
 		}
 	}
 
+	NewEntry.StackCount = StackCount;
 	MarkItemDirty(NewEntry);
 }
 
@@ -161,6 +162,14 @@ void FArenaInventoryList::RemoveEntry(UArenaInventoryItemInstance* ItemInstance)
 			MarkArrayDirty();
 		}
 	}
+}
+
+void FArenaInventoryList::AddStackCount(FArenaInventoryEntry& Entry, const int32 AddedStackCount)
+{
+	check(OwnerComponent);
+
+	Entry.StackCount += AddedStackCount;
+	MarkItemDirty(Entry);
 }
 
 void FArenaInventoryList::BroadcastChangeMessage(FArenaInventoryEntry& Entry, int32 OldCount, int32 NewCount)
@@ -216,9 +225,9 @@ UArenaInventoryItemInstance* UArenaInventoryManagerComponent::AddItemDefinition(
 	return Result;
 }
 
-void UArenaInventoryManagerComponent::AddItemInstance(UArenaInventoryItemInstance* ItemInstance)
+void UArenaInventoryManagerComponent::AddItemInstance(UArenaInventoryItemInstance* ItemInstance, const int32 StackCount)
 {
-	InventoryList.AddEntry(ItemInstance);
+	InventoryList.AddEntry(ItemInstance, StackCount);
 	if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && ItemInstance)
 	{
 		AddReplicatedSubObject(ItemInstance);
@@ -241,23 +250,22 @@ TArray<UArenaInventoryItemInstance*> UArenaInventoryManagerComponent::GetAllItem
 	return InventoryList.GetAllItems();
 }
 
-UArenaInventoryItemInstance* UArenaInventoryManagerComponent::FindFirstItemStackByDefinition(
+const FArenaInventoryEntry& UArenaInventoryManagerComponent::FindFirstItemStackByDefinition(
 	const TSubclassOf<UArenaInventoryItemDefinition>& ItemDef) const
 {
 	for (const FArenaInventoryEntry& Entry : InventoryList.Entries)
 	{
 		UArenaInventoryItemInstance* Instance = Entry.Instance;
 
-		if (IsValid(Instance))
+		if (IsValid(Instance) && Instance->GetItemDef() == ItemDef)
 		{
-			if (Instance->GetItemDef() == ItemDef)
-			{
-				return Instance;
-			}
+			return Entry;
 		}
 	}
 
-	return nullptr;
+	// Return a default empty entry if nothing is found
+	static const FArenaInventoryEntry EmptyEntry;
+	return EmptyEntry;
 }
 
 int32 UArenaInventoryManagerComponent::GetTotalItemCountByDefinition(
@@ -293,14 +301,25 @@ bool UArenaInventoryManagerComponent::ConsumeItemsByDefinition(const TSubclassOf
 	int32 TotalConsumed = 0;
 	while (TotalConsumed < NumToConsume)
 	{
-		if (UArenaInventoryItemInstance* Instance = FindFirstItemStackByDefinition(ItemDef))
+		const FArenaInventoryEntry& InventoryEntry = FindFirstItemStackByDefinition(ItemDef);
+		if (InventoryEntry.Instance)
 		{
-			InventoryList.RemoveEntry(Instance);
-			++TotalConsumed;
+			const int32 StackCount = InventoryEntry.StackCount;
+			const int32 ConsumedFromStack = FMath::Min(NumToConsume - TotalConsumed, StackCount);
+			if (StackCount <= ConsumedFromStack)
+			{
+				InventoryList.RemoveEntry(InventoryEntry.Instance);
+			}
+			else
+			{
+				InventoryList.AddStackCount(const_cast<FArenaInventoryEntry&>(InventoryEntry), -ConsumedFromStack);
+			}
+			
+			TotalConsumed += ConsumedFromStack;
 		}
 		else
 		{
-			return false;
+			break;
 		}
 	}
 
