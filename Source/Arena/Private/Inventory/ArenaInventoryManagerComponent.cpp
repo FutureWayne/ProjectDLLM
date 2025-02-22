@@ -113,7 +113,29 @@ UArenaInventoryItemInstance* FArenaInventoryList::AddEntry(const TSubclassOf<UAr
 
 void FArenaInventoryList::AddEntry(UArenaInventoryItemInstance* ItemInstance)
 {
-	unimplemented();
+	check(ItemInstance != nullptr);
+	check(OwnerComponent);
+
+	AActor* OwningActor = OwnerComponent->GetOwner();
+	check(OwningActor->HasAuthority());
+
+	APlayerController* PlayerController = Cast<APlayerController>(OwnerComponent->GetOwner());
+	APawn* OwnerPawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+
+	FArenaInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
+	NewEntry.Instance = ItemInstance;
+
+	const TSubclassOf<UArenaInventoryItemDefinition> ItemDef = ItemInstance->GetItemDef();
+	const UArenaInventoryItemDefinition* ItemCDO = GetDefault<UArenaInventoryItemDefinition>(ItemDef);
+	for (UArenaInventoryItemFragment* Fragment : ItemCDO->Fragments)
+	{
+		if (Fragment != nullptr)
+		{
+			Fragment->OnInstanceCreated(NewEntry.Instance, OwnerPawn);
+		}
+	}
+
+	MarkItemDirty(NewEntry);
 }
 
 void FArenaInventoryList::RemoveEntry(UArenaInventoryItemInstance* ItemInstance)
