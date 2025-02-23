@@ -41,6 +41,7 @@ public class Arena : ModuleRules
             "AudioModulation",
             "AudioMixer",
             "DeveloperSettings",
+            "RHI",
 		});
 
 		// Uncomment if you are using Slate UI

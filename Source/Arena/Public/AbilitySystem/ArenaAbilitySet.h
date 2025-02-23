@@ -80,7 +80,7 @@ public:
 };
 
 /**
- * FLyraAbilitySet_GrantedHandles
+ * FArenaAbilitySet_GrantedHandles
  *
  *	Data used to store handles to what has been granted by the ability set.
  */

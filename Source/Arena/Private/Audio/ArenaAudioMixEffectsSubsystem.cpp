@@ -1,7 +1,5 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 
 #include "Audio/ArenaAudioMixEffectsSubsystem.h"
 
@@ -10,7 +8,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "LoadingScreenManager.h"
-#include "Audio/ArenaAudioSettings.h"
+// #include "Audio/ArenaAudioSettings.h"
 #include "Settings/ArenaSettingsLocal.h"
 #include "Sound/SoundEffectSubmix.h"
 #include "SoundControlBus.h"
@@ -53,164 +51,164 @@ bool UArenaAudioMixEffectsSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 void UArenaAudioMixEffectsSubsystem::PostInitialize()
 {
-	if (const UArenaAudioSettings* ArenaAudioSettings = GetDefault<UArenaAudioSettings>())
-	{
-		if (UObject* ObjPath = ArenaAudioSettings->DefaultControlBusMix.TryLoad())
-		{
-			if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
-			{
-				DefaultBaseMix = SoundControlBusMix;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBusMix, TEXT("Default Control Bus Mix reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->LoadingScreenControlBusMix.TryLoad())
-		{
-			if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
-			{
-				LoadingScreenMix = SoundControlBusMix;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBusMix, TEXT("Loading Screen Control Bus Mix reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->UserSettingsControlBusMix.TryLoad())
-		{
-			if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
-			{
-				UserMix = SoundControlBusMix;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBusMix, TEXT("User Control Bus Mix reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->OverallVolumeControlBus.TryLoad())
-		{
-			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
-			{
-				OverallControlBus = SoundControlBus;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBus, TEXT("Overall Control Bus reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->MusicVolumeControlBus.TryLoad())
-		{
-			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
-			{
-				MusicControlBus = SoundControlBus;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBus, TEXT("Music Control Bus reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->SoundFXVolumeControlBus.TryLoad())
-		{
-			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
-			{
-				SoundFXControlBus = SoundControlBus;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBus, TEXT("SoundFX Control Bus reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->DialogueVolumeControlBus.TryLoad())
-		{
-			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
-			{
-				DialogueControlBus = SoundControlBus;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBus, TEXT("Dialogue Control Bus reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		if (UObject* ObjPath = ArenaAudioSettings->VoiceChatVolumeControlBus.TryLoad())
-		{
-			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
-			{
-				VoiceChatControlBus = SoundControlBus;
-			}
-			else
-			{
-				ensureMsgf(SoundControlBus, TEXT("VoiceChat Control Bus reference missing from Arena Audio Settings."));
-			}
-		}
-	
-		// Load HDR Submix Effect Chain
-		for (const FArenaSubmixEffectChainMap& SoftSubmixEffectChain : ArenaAudioSettings->HDRAudioSubmixEffectChain)
-		{
-			FArenaAudioSubmixEffectsChain NewEffectChain;
-	
-			if (UObject* SubmixObjPath = SoftSubmixEffectChain.Submix.LoadSynchronous())
-			{
-				if (USoundSubmix* Submix = Cast<USoundSubmix>(SubmixObjPath))
-				{
-					NewEffectChain.Submix = Submix;
-					TArray<USoundEffectSubmixPreset*> NewPresetChain;
-	
-					for (const TSoftObjectPtr<USoundEffectSubmixPreset>& SoftEffect : SoftSubmixEffectChain.SubmixEffectChain)
-					{
-						if (UObject* EffectObjPath = SoftEffect.LoadSynchronous())
-						{
-							if (USoundEffectSubmixPreset* SubmixPreset = Cast<USoundEffectSubmixPreset>(EffectObjPath))
-							{
-								NewPresetChain.Add(SubmixPreset);
-							}
-						}
-					}
-	
-					NewEffectChain.SubmixEffectChain.Append(NewPresetChain);
-				}
-			}
-	
-			HDRSubmixEffectChain.Add(NewEffectChain);
-		}
-	
-		// Load LDR Submix Effect Chain
-		for (const FArenaSubmixEffectChainMap& SoftSubmixEffectChain : ArenaAudioSettings->LDRAudioSubmixEffectChain)
-		{
-			FArenaAudioSubmixEffectsChain NewEffectChain;
-	
-			if (UObject* SubmixObjPath = SoftSubmixEffectChain.Submix.LoadSynchronous())
-			{
-				if (USoundSubmix* Submix = Cast<USoundSubmix>(SubmixObjPath))
-				{
-					NewEffectChain.Submix = Submix;
-					TArray<USoundEffectSubmixPreset*> NewPresetChain;
-	
-					for (const TSoftObjectPtr<USoundEffectSubmixPreset>& SoftEffect : SoftSubmixEffectChain.SubmixEffectChain)
-					{
-						if (UObject* EffectObjPath = SoftEffect.LoadSynchronous())
-						{
-							if (USoundEffectSubmixPreset* SubmixPreset = Cast<USoundEffectSubmixPreset>(EffectObjPath))
-							{
-								NewPresetChain.Add(SubmixPreset);
-							}
-						}
-					}
-	
-					NewEffectChain.SubmixEffectChain.Append(NewPresetChain);
-				}
-			}
-	
-			LDRSubmixEffectChain.Add(NewEffectChain);
-		}
-	}
+	// if (const UArenaAudioSettings* ArenaAudioSettings = GetDefault<UArenaAudioSettings>())
+	// {
+	// 	if (UObject* ObjPath = ArenaAudioSettings->DefaultControlBusMix.TryLoad())
+	// 	{
+	// 		if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
+	// 		{
+	// 			DefaultBaseMix = SoundControlBusMix;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBusMix, TEXT("Default Control Bus Mix reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->LoadingScreenControlBusMix.TryLoad())
+	// 	{
+	// 		if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
+	// 		{
+	// 			LoadingScreenMix = SoundControlBusMix;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBusMix, TEXT("Loading Screen Control Bus Mix reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->UserSettingsControlBusMix.TryLoad())
+	// 	{
+	// 		if (USoundControlBusMix* SoundControlBusMix = Cast<USoundControlBusMix>(ObjPath))
+	// 		{
+	// 			UserMix = SoundControlBusMix;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBusMix, TEXT("User Control Bus Mix reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->OverallVolumeControlBus.TryLoad())
+	// 	{
+	// 		if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
+	// 		{
+	// 			OverallControlBus = SoundControlBus;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBus, TEXT("Overall Control Bus reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->MusicVolumeControlBus.TryLoad())
+	// 	{
+	// 		if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
+	// 		{
+	// 			MusicControlBus = SoundControlBus;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBus, TEXT("Music Control Bus reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->SoundFXVolumeControlBus.TryLoad())
+	// 	{
+	// 		if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
+	// 		{
+	// 			SoundFXControlBus = SoundControlBus;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBus, TEXT("SoundFX Control Bus reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->DialogueVolumeControlBus.TryLoad())
+	// 	{
+	// 		if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
+	// 		{
+	// 			DialogueControlBus = SoundControlBus;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBus, TEXT("Dialogue Control Bus reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	if (UObject* ObjPath = ArenaAudioSettings->VoiceChatVolumeControlBus.TryLoad())
+	// 	{
+	// 		if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
+	// 		{
+	// 			VoiceChatControlBus = SoundControlBus;
+	// 		}
+	// 		else
+	// 		{
+	// 			ensureMsgf(SoundControlBus, TEXT("VoiceChat Control Bus reference missing from Arena Audio Settings."));
+	// 		}
+	// 	}
+	//
+	// 	// Load HDR Submix Effect Chain
+	// 	for (const FArenaSubmixEffectChainMap& SoftSubmixEffectChain : ArenaAudioSettings->HDRAudioSubmixEffectChain)
+	// 	{
+	// 		FArenaAudioSubmixEffectsChain NewEffectChain;
+	//
+	// 		if (UObject* SubmixObjPath = SoftSubmixEffectChain.Submix.LoadSynchronous())
+	// 		{
+	// 			if (USoundSubmix* Submix = Cast<USoundSubmix>(SubmixObjPath))
+	// 			{
+	// 				NewEffectChain.Submix = Submix;
+	// 				TArray<USoundEffectSubmixPreset*> NewPresetChain;
+	//
+	// 				for (const TSoftObjectPtr<USoundEffectSubmixPreset>& SoftEffect : SoftSubmixEffectChain.SubmixEffectChain)
+	// 				{
+	// 					if (UObject* EffectObjPath = SoftEffect.LoadSynchronous())
+	// 					{
+	// 						if (USoundEffectSubmixPreset* SubmixPreset = Cast<USoundEffectSubmixPreset>(EffectObjPath))
+	// 						{
+	// 							NewPresetChain.Add(SubmixPreset);
+	// 						}
+	// 					}
+	// 				}
+	//
+	// 				NewEffectChain.SubmixEffectChain.Append(NewPresetChain);
+	// 			}
+	// 		}
+	//
+	// 		HDRSubmixEffectChain.Add(NewEffectChain);
+	// 	}
+	//
+	// 	// Load LDR Submix Effect Chain
+	// 	for (const FArenaSubmixEffectChainMap& SoftSubmixEffectChain : ArenaAudioSettings->LDRAudioSubmixEffectChain)
+	// 	{
+	// 		FArenaAudioSubmixEffectsChain NewEffectChain;
+	//
+	// 		if (UObject* SubmixObjPath = SoftSubmixEffectChain.Submix.LoadSynchronous())
+	// 		{
+	// 			if (USoundSubmix* Submix = Cast<USoundSubmix>(SubmixObjPath))
+	// 			{
+	// 				NewEffectChain.Submix = Submix;
+	// 				TArray<USoundEffectSubmixPreset*> NewPresetChain;
+	//
+	// 				for (const TSoftObjectPtr<USoundEffectSubmixPreset>& SoftEffect : SoftSubmixEffectChain.SubmixEffectChain)
+	// 				{
+	// 					if (UObject* EffectObjPath = SoftEffect.LoadSynchronous())
+	// 					{
+	// 						if (USoundEffectSubmixPreset* SubmixPreset = Cast<USoundEffectSubmixPreset>(EffectObjPath))
+	// 						{
+	// 							NewPresetChain.Add(SubmixPreset);
+	// 						}
+	// 					}
+	// 				}
+	//
+	// 				NewEffectChain.SubmixEffectChain.Append(NewPresetChain);
+	// 			}
+	// 		}
+	//
+	// 		LDRSubmixEffectChain.Add(NewEffectChain);
+	// 	}
+	// }
 
 	// Register with the loading screen manager
 	if (ULoadingScreenManager* LoadingScreenManager = UGameInstance::GetSubsystem<ULoadingScreenManager>(GetWorld()->GetGameInstance()))

@@ -118,7 +118,7 @@ UArenaAbilitySystemComponent* FArenaEquipmentList::GetAbilitySystemComponent() c
 }
 
 //////////////////////////////////////////////////////////////////////
-// ULyraEquipmentManagerComponent
+// UArenaEquipmentManagerComponent
 
 UArenaEquipmentManagerComponent::UArenaEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
