@@ -75,9 +75,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraComponent> TrailComponent;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<AActor> SpawnedCosmeticActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	FLinearColor TeamColor;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> CollisionComponent;
@@ -91,7 +94,7 @@ private:
 	
 	TWeakObjectPtr<AActor> DirectHitTarget;
 	
-	FLinearColor TeamColor;
+
 	
 	FTimerHandle ExplosionCountdownTimerHandle;
 	
