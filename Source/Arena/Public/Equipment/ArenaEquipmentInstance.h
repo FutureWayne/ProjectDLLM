@@ -8,7 +8,7 @@
 struct FArenaEquipmentActorToSpawn;
 
 /**
- * ULyraEquipmentInstance
+ * UArenaEquipmentInstance
  *
  * A piece of equipment spawned and applied to a pawn
  */

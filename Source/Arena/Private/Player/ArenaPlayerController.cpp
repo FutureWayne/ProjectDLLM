@@ -11,6 +11,7 @@
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
 
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
 {
@@ -158,6 +159,12 @@ void AArenaPlayerController::BeginPlay()
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
 		Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		
+		if (UEnhancedInputUserSettings* UserSettings =  Subsystem->GetUserSettings())
+		{
+			UserSettings->RegisterInputMappingContext(DefaultMappingContext);
+		}
+ 
 	}
 }
 

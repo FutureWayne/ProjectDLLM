@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Ludens Studio. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -20,6 +20,8 @@ public class Arena : ModuleRules
 			"Niagara",
 			"ModularGameplay",
 			"ModularGameplayActors",
+            "CommonLoadingScreen",
+            "ApplicationCore",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -35,6 +37,11 @@ public class Arena : ModuleRules
 			"CommonInput",
 			"CommonGame",
 			"CommonUser",
+            "GameSettings",
+            "AudioModulation",
+            "AudioMixer",
+            "DeveloperSettings",
+            "RHI",
 		});
 
 		// Uncomment if you are using Slate UI
