@@ -17,7 +17,10 @@
 				"AIModule",
 				"ModularGameplay",
 				"CommonUI",
-				"CommonGame"
+				"CommonGame",
+				"EngineSettings",
+				"GameSettings",
+				"DeveloperSettings"
 			]
 		}
 	],
@@ -75,18 +78,30 @@
 		},
 		{
 			"Name": "CommonUser",
-			"Enabled": false
-		},
-		{
-			"Name": "AdvancedSteamSessions",
-			"Enabled": false
-		},
-		{
-			"Name": "AdvancedSessions",
-			"Enabled": false
+			"Enabled": true
 		},
 		{
 			"Name": "SteamSockets",
+			"Enabled": true
+		},
+		{
+			"Name": "GameSettings",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonLoadingScreen",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioModulation",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplayVolume",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplay",
 			"Enabled": true
 		}
 	]
