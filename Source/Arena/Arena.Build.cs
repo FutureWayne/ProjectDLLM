@@ -20,6 +20,8 @@ public class Arena : ModuleRules
 			"Niagara",
 			"ModularGameplay",
 			"ModularGameplayActors",
+            "CommonLoadingScreen",
+            "ApplicationCore",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -35,6 +37,10 @@ public class Arena : ModuleRules
 			"CommonInput",
 			"CommonGame",
 			"CommonUser",
+            "GameSettings",
+            "AudioModulation",
+            "AudioMixer",
+            "DeveloperSettings",
 		});
 
 		// Uncomment if you are using Slate UI
