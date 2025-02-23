@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Ludens Studio. All Rights Reserved.
 
 #include "Settings/ArenaGameSettingRegistry.h"
 

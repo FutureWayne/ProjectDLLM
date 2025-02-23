@@ -55,21 +55,21 @@ void UArenaGameSettingRegistry::OnInitialize(ULocalPlayer* InLocalPlayer)
 {
 	UArenaLocalPlayer* ArenaLocalPlayer = Cast<UArenaLocalPlayer>(InLocalPlayer);
 
-	// VideoSettings = InitializeVideoSettings(ArenaLocalPlayer);
-	// InitializeVideoSettings_FrameRates(VideoSettings, ArenaLocalPlayer);
-	// RegisterSetting(VideoSettings);
-	//
-	// AudioSettings = InitializeAudioSettings(ArenaLocalPlayer);
-	// RegisterSetting(AudioSettings);
-	//
-	// GameplaySettings = InitializeGameplaySettings(ArenaLocalPlayer);
-	// RegisterSetting(GameplaySettings);
-	//
-	// MouseAndKeyboardSettings = InitializeMouseAndKeyboardSettings(ArenaLocalPlayer);
-	// RegisterSetting(MouseAndKeyboardSettings);
-	//
-	// GamepadSettings = InitializeGamepadSettings(ArenaLocalPlayer);
-	// RegisterSetting(GamepadSettings);
+	VideoSettings = InitializeVideoSettings(ArenaLocalPlayer);
+	InitializeVideoSettings_FrameRates(VideoSettings, ArenaLocalPlayer);
+	RegisterSetting(VideoSettings);
+	
+	AudioSettings = InitializeAudioSettings(ArenaLocalPlayer);
+	RegisterSetting(AudioSettings);
+	
+	GameplaySettings = InitializeGameplaySettings(ArenaLocalPlayer);
+	RegisterSetting(GameplaySettings);
+	
+	MouseAndKeyboardSettings = InitializeMouseAndKeyboardSettings(ArenaLocalPlayer);
+	RegisterSetting(MouseAndKeyboardSettings);
+	
+	GamepadSettings = InitializeGamepadSettings(ArenaLocalPlayer);
+	RegisterSetting(GamepadSettings);
 }
 
 void UArenaGameSettingRegistry::SaveChanges()

@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "DataSource/GameSettingDataSourceDynamic.h" // IWYU pragma: keep
 #include "GameSettingRegistry.h"
+#include "Settings/ArenaSettingsLocal.h" // IWYU pragma: keep
 
 #include "ArenaGameSettingRegistry.generated.h"
 
@@ -49,15 +51,15 @@ protected:
 	virtual void OnInitialize(ULocalPlayer* InLocalPlayer) override;
 	virtual bool IsFinishedInitializing() const override;
 
-	// UGameSettingCollection* InitializeVideoSettings(UArenaLocalPlayer* InLocalPlayer);
-	// void InitializeVideoSettings_FrameRates(UGameSettingCollection* Screen, UArenaLocalPlayer* InLocalPlayer);
-	// void AddPerformanceStatPage(UGameSettingCollection* Screen, UArenaLocalPlayer* InLocalPlayer);
-	//
-	// UGameSettingCollection* InitializeAudioSettings(UArenaLocalPlayer* InLocalPlayer);
-	// UGameSettingCollection* InitializeGameplaySettings(UArenaLocalPlayer* InLocalPlayer);
-	//
-	// UGameSettingCollection* InitializeMouseAndKeyboardSettings(UArenaLocalPlayer* InLocalPlayer);
-	// UGameSettingCollection* InitializeGamepadSettings(UArenaLocalPlayer* InLocalPlayer);
+	UGameSettingCollection* InitializeVideoSettings(UArenaLocalPlayer* InLocalPlayer);
+	void InitializeVideoSettings_FrameRates(UGameSettingCollection* Screen, UArenaLocalPlayer* InLocalPlayer);
+	void AddPerformanceStatPage(UGameSettingCollection* Screen, UArenaLocalPlayer* InLocalPlayer);
+	
+	UGameSettingCollection* InitializeAudioSettings(UArenaLocalPlayer* InLocalPlayer);
+	UGameSettingCollection* InitializeGameplaySettings(UArenaLocalPlayer* InLocalPlayer);
+	
+	UGameSettingCollection* InitializeMouseAndKeyboardSettings(UArenaLocalPlayer* InLocalPlayer);
+	UGameSettingCollection* InitializeGamepadSettings(UArenaLocalPlayer* InLocalPlayer);
 
 	UPROPERTY()
 	TObjectPtr<UGameSettingCollection> VideoSettings;

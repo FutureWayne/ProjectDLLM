@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Ludens Studio. All Rights Reserved.
 
 #include "Settings/CustomSettings/ArenaSettingValueDiscreteDynamic_AudioOutputDevice.h"
 #include "DataSource/GameSettingDataSource.h"
@@ -128,17 +128,17 @@ UGameSettingCollection* UArenaGameSettingRegistry::InitializeAudioSettings(UAren
 		Screen->AddSetting(Sound);
 
 		//----------------------------------------------------------------------------------
-		{
-			UGameSettingCollectionPage* SubtitlePage = NewObject<UGameSettingCollectionPage>();
-			SubtitlePage->SetDevName(TEXT("SubtitlePage"));
-			SubtitlePage->SetDisplayName(LOCTEXT("SubtitlePage_Name", "Subtitles"));
-			SubtitlePage->SetDescriptionRichText(LOCTEXT("SubtitlePage_Description", "Configure the visual appearance of subtitles."));
-			SubtitlePage->SetNavigationText(LOCTEXT("SubtitlePage_Navigation", "Options"));
-		
-			SubtitlePage->AddEditCondition(FWhenPlayingAsPrimaryPlayer::Get());
-		
-			Sound->AddSetting(SubtitlePage);
-		}
+		// {
+		// 	UGameSettingCollectionPage* SubtitlePage = NewObject<UGameSettingCollectionPage>();
+		// 	SubtitlePage->SetDevName(TEXT("SubtitlePage"));
+		// 	SubtitlePage->SetDisplayName(LOCTEXT("SubtitlePage_Name", "Subtitles"));
+		// 	SubtitlePage->SetDescriptionRichText(LOCTEXT("SubtitlePage_Description", "Configure the visual appearance of subtitles."));
+		// 	SubtitlePage->SetNavigationText(LOCTEXT("SubtitlePage_Navigation", "Options"));
+		//
+		// 	SubtitlePage->AddEditCondition(FWhenPlayingAsPrimaryPlayer::Get());
+		//
+		// 	Sound->AddSetting(SubtitlePage);
+		// }
 		
 		// 	// Subtitles
 		// 	////////////////////////////////////////////////////////////////////////////////////
