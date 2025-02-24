@@ -51,6 +51,9 @@ struct FSecondaryGrenadeSpawnData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
 	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
+	int32 SpawnCount = 1;
 };
 
 /**

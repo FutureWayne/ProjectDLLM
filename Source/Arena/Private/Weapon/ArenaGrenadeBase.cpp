@@ -14,6 +14,7 @@
 #include "Actor/ArenaEffectActor.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "System/ArenaSystemStatics.h"
@@ -26,6 +27,9 @@ AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer
 {
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	CollisionComponent->SetCollisionProfileName("BlockAllDynamic");
+	CollisionComponent->SetCollisionObjectType(ECC_GameTraceChannel1);
+	CollisionComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+	CollisionComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Ignore);
 	SetRootComponent(CollisionComponent);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
@@ -178,24 +182,35 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnTransform,
                                                         const TSubclassOf<AArenaEffectActor> EffectActorClass)
 {
-	if (EffectActorClass == nullptr)
+	if (EffectActorClass == nullptr || !HasAuthority())
 	{
 		return;
 	}
 
 	AArenaEffectActor* SpawnedEffectActor = GetWorld()->SpawnActorDeferred<AArenaEffectActor>(EffectActorClass, SpawnTransform);
+	// Ignore collision between the spawned effect actor and the grenade
+	CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
 	SpawnedEffectActor->FinishSpawning(SpawnTransform, true);
 }
 
 void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& SpawnTransform,
-	const UArenaGrenadeDefinitionData* GrenadeDefinition)
+	const UArenaGrenadeDefinitionData* GrenadeDefinition, int32 SpawnCount)
 {
-	if (GrenadeDefinition == nullptr)
+	if (GrenadeDefinition == nullptr || SpawnCount <= 0 || !HasAuthority())
 	{
 		return;
 	}
 
-	UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, SpawnTransform, GrenadeDefinition, GetOwner(), Cast<APawn>(GetInstigator()));
+	// Evenly distribute the spawn count around the spawn transform
+	const float AngleIncrement = 360.0f / SpawnCount;
+	for (int32 i = 0; i < SpawnCount; i++)
+	{
+		const FRotator Rotation = FRotator(30.0f, i * AngleIncrement, 0.0f);
+		FVector ForwardVector = UKismetMathLibrary::GetForwardVector(Rotation);
+		FVector SpawnLocation = SpawnTransform.GetLocation() + (ForwardVector * 50.0f);
+		FTransform NewSpawnTransform = FTransform(Rotation, SpawnLocation);
+		UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, NewSpawnTransform, GrenadeDefinition, GetOwner(), Cast<APawn>(GetInstigator()));
+	}
 }
 
 void AArenaGrenadeBase::LaunchGrenade()
@@ -318,6 +333,11 @@ void AArenaGrenadeBase::SpawnCosmeticActor()
 
 void AArenaGrenadeBase::CheckSpawnConditionOnHit(const FHitResult& Hit)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
 	{
 		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
@@ -352,13 +372,18 @@ void AArenaGrenadeBase::CheckSpawnConditionOnHit(const FHitResult& Hit)
 		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnHit)
 		{
 			FTransform SpawnTransform = FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
-			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData);
+			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData, SecondaryGrenadeSpawnData.SpawnCount);
 		}
 	}
 }
 
 void AArenaGrenadeBase::CheckSpawnConditionOnDetonation()
 {
+	if (!HasAuthority() )
+	{
+		return;
+	}
+	
 	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
 	{
 		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
@@ -393,7 +418,7 @@ void AArenaGrenadeBase::CheckSpawnConditionOnDetonation()
 		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnDetonation)
 		{
 			FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation());
-			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData);
+			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData, SecondaryGrenadeSpawnData.SpawnCount);
 		}
 	}
 }
