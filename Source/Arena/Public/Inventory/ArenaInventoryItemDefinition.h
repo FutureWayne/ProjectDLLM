@@ -46,7 +46,7 @@ public:
 };
 
 UCLASS()
-class UArenaInventoryFunctionLibrary : public UBlueprintFunctionLibrary
+class ARENA_API UArenaInventoryFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 

@@ -16,7 +16,7 @@ class UArenaAbilitySystemComponent;
 
 
 /**
- * FArenaAbilitySet_GameplayAbility
+ * FArenaAbilitySet_GameplayAbility	
  *
  *	Data used by the ability set to grant gameplay abilities.
  */
@@ -80,7 +80,7 @@ public:
 };
 
 /**
- * FLyraAbilitySet_GrantedHandles
+ * FArenaAbilitySet_GrantedHandles
  *
  *	Data used to store handles to what has been granted by the ability set.
  */

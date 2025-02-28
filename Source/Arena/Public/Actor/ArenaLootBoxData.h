@@ -15,10 +15,10 @@ struct FLootSpawningData
 
 public:
 	UPROPERTY(EditDefaultsOnly)
-	TObjectPtr<UArenaWeaponPickupDefinition> PickupDefinition;
+	TObjectPtr<UArenaWeaponPickupDefinition> PickupDefinition = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
-	float SpawnChance;
+	float SpawnChance = 1.0f;
 };
 
 /**

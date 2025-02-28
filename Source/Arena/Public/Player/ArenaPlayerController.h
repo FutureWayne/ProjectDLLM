@@ -3,10 +3,11 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
-#include "GameFramework/PlayerController.h"
+#include "CommonPlayerController.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaPlayerController.generated.h"
 
+struct FInputActionValue;
 class UArenaQuickBarComponent;
 class UArenaInventoryManagerComponent;
 class AArenaHUD;
@@ -14,11 +15,12 @@ class UArenaInputConfig;
 class UInputMappingContext;
 class UArenaAbilitySystemComponent;
 class AArenaPlayerState;
+
 /**
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerController : public APlayerController, public IArenaTeamAgentInterface
+class ARENA_API AArenaPlayerController : public ACommonPlayerController, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -28,8 +30,15 @@ public:
 	/*
 	 * Ability Input
 	 */ 
-	void AbilityInputTagPressed(FGameplayTag InputTag);
-	void AbilityInputTagReleased(FGameplayTag InputTag);
+	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
+	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
+
+	void Input_Move(const FInputActionValue& InputActionValue);
+	void Input_LookMouse(const FInputActionValue& InputActionValue);
+	void Input_Crouch(const FInputActionValue& InputActionValue);
+	void Input_Jump(const FInputActionValue& InputActionValue);
+	void Input_Sprint(const FInputActionValue& InputActionValue);
+	void Input_Walk(const FInputActionValue& InputActionValue);
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerController")
 	AArenaPlayerState* GetArenaPlayerState() const;
@@ -45,7 +54,9 @@ public:
 
 protected:
 	//~AActor interface
+	virtual void PreInitializeComponents() override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	//~End of AActor interface
 	

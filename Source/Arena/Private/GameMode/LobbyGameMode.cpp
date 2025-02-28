@@ -16,7 +16,7 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 	FTimerHandle TimerHandle;
 	GetWorldTimerManager().SetTimer(TimerHandle, this, &ALobbyGameMode::StartGame, 30.0f, false);
 	
-	if (GameState.Get()->PlayerArray.Num() >= 4)
+	if (GameState.Get()->PlayerArray.Num() >= 6)
 	{
 		StartGame();
 	}

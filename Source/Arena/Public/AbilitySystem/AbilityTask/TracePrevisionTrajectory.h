@@ -24,7 +24,7 @@ public:
 	
 	// Factory method to start the task with dynamic delegates
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (DisplayName = "Trace Prevision Trajectory", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "true"))
-	static UTracePrevisionTrajectory* StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetDirectionDelegate LaunchDirectionDelegate, float LaunchSpeed);
+	static UTracePrevisionTrajectory* StartTracing(UGameplayAbility* OwningAbility, FGetLocationDelegate StartLocationDelegate, FGetDirectionDelegate LaunchDirectionDelegate, float LaunchSpeed, float GravityScale);
 
 	// Event triggered when the trajectory is updated
 	UPROPERTY(BlueprintAssignable)
@@ -39,7 +39,8 @@ private:
 	// Delegates for retrieving StartLocation and LaunchVelocity
 	FGetLocationDelegate GetStartLocation;
 	FGetDirectionDelegate GetLaunchDirection;
-	float LaunchSpeed;
+	float LaunchSpeed = 0.0f;
+	float GravityScale = 0.0f;
 
 	UPROPERTY()
 	TObjectPtr<AActor> OwnerActor;

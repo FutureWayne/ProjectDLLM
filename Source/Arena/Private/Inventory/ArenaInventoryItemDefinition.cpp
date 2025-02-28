@@ -4,7 +4,7 @@
 #include "Inventory/ArenaInventoryItemDefinition.h"
 
 //////////////////////////////////////////////////////////////////////
-// ULyraInventoryItemDefinition
+// UArenaInventoryItemDefinition
 
 UArenaInventoryItemDefinition::UArenaInventoryItemDefinition(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

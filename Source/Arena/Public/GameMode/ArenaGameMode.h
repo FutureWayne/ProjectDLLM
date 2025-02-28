@@ -28,6 +28,11 @@ public:
 
 	//~AGameModeBase interface
 	virtual void GenericPlayerInitialization(AController* NewPlayer) override;
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
+	virtual void FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation) override;
+	virtual bool UpdatePlayerStartSpot(AController* Player, const FString& Portal, FString& OutErrorMessage) override;
+	virtual void PostLogin(APlayerController* NewPlayer) override;
+	virtual bool ShouldSpawnAtStartSpot(AController* Player) override;
 	//~End of AGameModeBase interface
 
 	UFUNCTION(BlueprintCallable)
