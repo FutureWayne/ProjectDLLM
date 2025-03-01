@@ -76,7 +76,7 @@ void UDEPRECATED_UCombatComponent::OnRep_EquippedWeapon() const
 
 void UDEPRECATED_UCombatComponent::TraceUnderCrosshair(FHitResult& HitResult)
 {
-	FVector2D ViewportSize;
+	FVector2D ViewportSize = FVector2D(1920.f, 1080.f);
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->GetViewportSize(ViewportSize);

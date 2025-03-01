@@ -4,9 +4,13 @@
 
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "UObject/SoftObjectPtr.h"
+#include "Weapon/ArenaGrenadeBase.h"
 
 #include "ArenaSystemStatics.generated.h"
 
+class UArenaGrenadeDefinitionData;
+class UArenaInventoryItemDefinition;
+class UArenaInventoryItemInstance;
 template <typename T> class TSubclassOf;
 
 class AActor;
@@ -15,7 +19,7 @@ class UObject;
 struct FFrame;
 
 UCLASS()
-class UArenaSystemStatics : public UBlueprintFunctionLibrary
+class ARENA_API UArenaSystemStatics : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
@@ -39,4 +43,19 @@ public:
 	// Gets all the components that inherit from the given class
 	UFUNCTION(BlueprintCallable, Category = "Actor", meta=(DefaultToSelf="TargetActor", ComponentClass="/Script/Engine.ActorComponent", DeterminesOutputType="ComponentClass"))
 	static TArray<UActorComponent*> FindComponentsByClass(AActor* TargetActor, TSubclassOf<UActorComponent> ComponentClass, bool bIncludeChildActors = true);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Grenade", meta = (WorldContext = "WorldContextObject"))
+	static AArenaGrenadeBase* SpawnGrenadeByGrenadeDefinition(const UObject* WorldContextObject, const FTransform& SpawnTransform,
+	                                                          const UArenaGrenadeDefinitionData* GrenadeDefinitionData, AActor* Owner = nullptr,
+	                                                          APawn* Instigator = nullptr);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static UArenaInventoryItemInstance* GiveItemDefinitionToPlayer(APawn* ReceivingPawn, TSubclassOf<UArenaInventoryItemDefinition> ItemDefinitionClass,
+																	int32 Count = 1, bool bAutoEquip = false);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void EquipItemToQuickBar(const APawn* ReceivingPawn, UArenaInventoryItemInstance* ItemInstance);
+	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void DropAllEquippedItemInQuickBar(const APawn* DroppingPawn);
 };

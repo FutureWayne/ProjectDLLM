@@ -22,9 +22,9 @@ public:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gameplay Effect")
-	TSubclassOf<UGameplayEffect> GameplayEffect;
+	TArray<TSubclassOf<UGameplayEffect>> GameplayEffectsToApply;
 
 private:
-	FActiveGameplayEffectHandle ActiveGameplayEffectHandle;
+	TArray<FActiveGameplayEffectHandle> ActiveGameplayEffectHandles;
 
 };

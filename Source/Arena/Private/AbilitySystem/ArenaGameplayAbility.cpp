@@ -12,7 +12,7 @@
 {																																						    \
 	if (!ensure(IsInstantiated()))																														    \
 	{																																					    \
-		UE_LOG(LogTemp, Error, TEXT("%s: " #FunctionName " cannot be called on a non-instanced ability. Check the instancing policy."), *GetPathName());	\
+		UE_LOG(LogAbilitySystemComponent, Error, TEXT("%s: " #FunctionName " cannot be called on a non-instanced ability. Check the instancing policy."), *GetPathName());	\
 		return ReturnValue;																																    \
 	}																																					    \
 }

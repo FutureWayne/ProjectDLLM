@@ -2,13 +2,12 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "ArenaGlobalAbilitySystem.generated.h"
 
 class UGameplayEffect;
-struct FActiveGameplayEffectHandle;
-struct FGameplayAbilitySpecHandle;
 class UGameplayAbility;
 class UArenaAbilitySystemComponent;
 
@@ -77,5 +76,4 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UArenaAbilitySystemComponent>> RegisteredASCs;
-	
 };

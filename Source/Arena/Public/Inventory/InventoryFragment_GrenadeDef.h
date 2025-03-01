@@ -2,9 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Inventory/ArenaInventoryItemDefinition.h"
 #include "InventoryFragment_GrenadeDef.generated.h"
+
+class UArenaGrenadeDefinitionData;
+
 
 /**
  * 
@@ -13,14 +15,12 @@ UCLASS()
 class ARENA_API UInventoryFragment_GrenadeDef : public UArenaInventoryItemFragment
 {
 	GENERATED_BODY()
+	
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	UArenaGrenadeDefinitionData* GrenadeDefinitionData;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
-	TSubclassOf<AActor> GrenadeClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
-	int32 BurstShotCount = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=GrenadeInfo)
-	float ProjectileSpeed = 2500.f;
+	UFUNCTION(BlueprintCallable)
+	UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() const;
 };

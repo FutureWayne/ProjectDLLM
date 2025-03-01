@@ -5,6 +5,7 @@
 
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
+#include "AbilitySystem/ArenaCombatSet.h"
 #include "Character/ArenaHealthComponent.h"
 
 
@@ -76,6 +77,9 @@ void UArenaGameplayAbility_Death::StartDeath()
 			HealthComponent->StartDeath();
 		}
 	}
+
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	
 }
 
 void UArenaGameplayAbility_Death::FinishDeath()
