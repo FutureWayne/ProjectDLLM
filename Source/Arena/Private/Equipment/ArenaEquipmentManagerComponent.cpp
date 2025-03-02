@@ -4,6 +4,7 @@
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 
 #include "AbilitySystemGlobals.h"
+#include "ArenaLogChannel.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
@@ -93,7 +94,11 @@ UArenaEquipmentInstance* FArenaEquipmentList::AddEntry(const TSubclassOf<UArenaE
 void FArenaEquipmentList::RemoveEntry(UArenaEquipmentInstance* EquipmentInstance)
 {
 	UArenaAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	check(ASC);
+	if (!ensure(ASC))
+	{
+		UE_LOG(LogArena, Error, TEXT("FArenaEquipmentList::RemoveEntry: AbilitySystemComponent is null."));
+		return;
+	}	
 	
 	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{

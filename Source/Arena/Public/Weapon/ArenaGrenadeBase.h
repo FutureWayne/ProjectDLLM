@@ -48,7 +48,7 @@ protected:
 	void SpawnEffectActor(const FTransform& SpawnTransform, TSubclassOf<AArenaEffectActor> EffectActorClass);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
-	void SpawnSecondaryGrenade(const FTransform& SpawnTransform, const UArenaGrenadeDefinitionData* GrenadeDefinition);
+	void SpawnSecondaryGrenade(const FTransform& SpawnTransform, const UArenaGrenadeDefinitionData* GrenadeDefinition, int32 SpawnCount);
 
 private:
 	void LaunchGrenade();
@@ -75,9 +75,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraComponent> TrailComponent;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<AActor> SpawnedCosmeticActor;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	FLinearColor TeamColor;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> CollisionComponent;
@@ -90,8 +93,6 @@ private:
 	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinitionData;
 	
 	TWeakObjectPtr<AActor> DirectHitTarget;
-	
-	FLinearColor TeamColor;
 	
 	FTimerHandle ExplosionCountdownTimerHandle;
 	
