@@ -22,6 +22,7 @@ public class Arena : ModuleRules
 			"ModularGameplayActors",
             "CommonLoadingScreen",
             "ApplicationCore",
+            "AsyncMixin",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
