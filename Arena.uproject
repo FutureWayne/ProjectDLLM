@@ -103,6 +103,10 @@
 		{
 			"Name": "AudioGameplay",
 			"Enabled": true
+		},
+		{
+			"Name": "AsyncMixin",
+			"Enabled": true
 		}
 	]
 }
