@@ -163,11 +163,7 @@ void AArenaCharacter::InitAbilityActorInfo()
 	{
 		if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
 		{
-			if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(HUD->GetOwningPlayerController()->Player))
-			{
-				//auto Widget = UCommonUIExtensions::PushContentToLayer_ForPlayer(LocalPlayer, TAG_UI_LAYER_GAME, HUD->OverlayWidgetClass);
-				//Widget->AddToViewport();
-			}
+			HUD->AddOverlayWidget();
 		}
 	}
 

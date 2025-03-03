@@ -28,6 +28,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<UCommonActivatableWidget> OverlayWidgetClass;
 
+	UFUNCTION(BlueprintCallable, Category = "Widgets")
+	void AddOverlayWidget();
+
+	UFUNCTION(BlueprintCallable, Category = "Widgets")
+	void RemoveOverlayWidget();
+
 protected:
 	virtual void BeginPlay() override;
 
