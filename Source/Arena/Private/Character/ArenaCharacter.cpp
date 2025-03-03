@@ -3,7 +3,6 @@
 
 #include "Character/ArenaCharacter.h"
 
-#include "CommonLocalPlayer.h"
 #include "PrimaryGameLayout.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
@@ -14,10 +13,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/ArenaPlayerState.h"
-#include "UI/ArenaActivatableWidget.h"
 #include "UI/HUD/ArenaHUD.h"
 
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_LAYER_GAME, "UI.Layer.Game");
 
 AArenaCharacter::AArenaCharacter()
 {
@@ -166,12 +163,10 @@ void AArenaCharacter::InitAbilityActorInfo()
 	{
 		if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
 		{
-			if (UCommonLocalPlayer* LocalPlayer = Cast<UCommonLocalPlayer>(PC->GetLocalPlayer()))
+			if (ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(HUD->GetOwningPlayerController()->Player))
 			{
-				if (UPrimaryGameLayout* RootLayout = LocalPlayer->GetRootUILayout())
-				{
-					RootLayout->PushWidgetToLayerStack<UArenaActivatableWidget>(TAG_UI_LAYER_GAME, HUD->OverlayWidget);
-				}
+				//auto Widget = UCommonUIExtensions::PushContentToLayer_ForPlayer(LocalPlayer, TAG_UI_LAYER_GAME, HUD->OverlayWidgetClass);
+				//Widget->AddToViewport();
 			}
 		}
 	}
