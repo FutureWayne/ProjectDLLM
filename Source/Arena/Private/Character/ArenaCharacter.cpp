@@ -3,9 +3,10 @@
 
 #include "Character/ArenaCharacter.h"
 
+#include "CommonLocalPlayer.h"
+#include "PrimaryGameLayout.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
-#include "AbilitySystem/ArenaHealthSet.h"
 #include "Camera/CameraComponent.h"
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -13,7 +14,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Player/ArenaPlayerState.h"
+#include "UI/ArenaActivatableWidget.h"
 #include "UI/HUD/ArenaHUD.h"
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_LAYER_GAME, "UI.Layer.Game");
 
 AArenaCharacter::AArenaCharacter()
 {
@@ -162,7 +166,13 @@ void AArenaCharacter::InitAbilityActorInfo()
 	{
 		if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
 		{
-			HUD->InitOverlay(PC, PS, AbilitySystemComponent, ArenaHealthSet.Get());
+			if (UCommonLocalPlayer* LocalPlayer = Cast<UCommonLocalPlayer>(PC->GetLocalPlayer()))
+			{
+				if (UPrimaryGameLayout* RootLayout = LocalPlayer->GetRootUILayout())
+				{
+					RootLayout->PushWidgetToLayerStack<UArenaActivatableWidget>(TAG_UI_LAYER_GAME, HUD->OverlayWidget);
+				}
+			}
 		}
 	}
 

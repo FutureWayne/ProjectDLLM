@@ -108,5 +108,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
 	FORCEINLINE UArenaCombatSet* GetArenaCombatSet() const { return ArenaCombatSet; }
-	
 };
