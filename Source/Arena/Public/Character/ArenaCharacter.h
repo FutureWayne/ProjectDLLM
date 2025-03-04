@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaCharacter.generated.h"
 
 class UArenaEquipmentManagerComponent;
@@ -21,7 +22,7 @@ class UAttributeSet;
 class UAbilitySystemComponent;
 
 UCLASS()
-class ARENA_API AArenaCharacter : public ACharacter, public IAbilitySystemInterface
+class ARENA_API AArenaCharacter : public ACharacter, public IAbilitySystemInterface, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -34,7 +35,7 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-protected:
+private:
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
@@ -60,6 +61,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaEquipmentManagerComponent> EquipmentManagerComponent;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_MyTeamId)
+	FGenericTeamId MyTeamId;
+
+	UPROPERTY()
+	FOnArenaTeamIndexChangedDelegate OnTeamChangedDelegate;
 
 public:	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
@@ -70,7 +77,19 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void UnPossessed() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	// ~End AActor Interface
+
+	//~APawn interface
+	virtual void NotifyControllerChanged() override;
+	//~End of APawn interface
+
+	//~IArenaTeamAgentInterface interface
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual FOnArenaTeamIndexChangedDelegate* GetOnTeamIndexChangedDelegate() override;
+	//~End of IArenaTeamAgentInterface interface
 	
 	void DisableMovementAndCollision() const;
 	void DestroyDueToDeath();
@@ -93,11 +112,23 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnAbilityActorInfoInitialized"))
 	void K2_OnAbilityActorInfoInitialized();
 
+	// Called to determine what happens to the team ID when possession ends
+	virtual FGenericTeamId DetermineNewTeamAfterPossessionEnds(FGenericTeamId OldTeamID) const
+	{
+		// This could be changed to return, e.g., OldTeamID if you want to keep it assigned afterwards, or return an ID for some neutral faction, or etc...
+		return FGenericTeamId::NoTeam;
+	}
 	
 private:
 	void InitAbilityActorInfo();
 	
 	virtual void OnRep_PlayerState() override;
+
+	UFUNCTION()
+	void OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam);
+	
+	UFUNCTION()
+	void OnRep_MyTeamId(FGenericTeamId OldTeamId);
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
