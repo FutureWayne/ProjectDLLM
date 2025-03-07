@@ -3,17 +3,19 @@
 
 #include "Character/ArenaCharacter.h"
 
+#include "ArenaLogChannel.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
-#include "AbilitySystem/ArenaHealthSet.h"
 #include "Camera/CameraComponent.h"
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
 #include "UI/HUD/ArenaHUD.h"
+
 
 AArenaCharacter::AArenaCharacter()
 {
@@ -91,10 +93,105 @@ void AArenaCharacter::Tick(float DeltaTime)
 
 void AArenaCharacter::PossessedBy(AController* NewController)
 {
+	const FGenericTeamId OldTeamId = GetGenericTeamId();
+	
 	Super::PossessedBy(NewController);
+
+	// Grab the current team ID and listen for future changes
+	if (IArenaTeamAgentInterface* ControllerAsTeamProvider = Cast<IArenaTeamAgentInterface>(NewController))
+	{
+		MyTeamId = ControllerAsTeamProvider->GetGenericTeamId();
+		ControllerAsTeamProvider->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnControllerChangedTeam);
+	}
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
 
 	// Init ability actor info for the server
 	InitAbilityActorInfo();
+}
+
+void AArenaCharacter::UnPossessed()
+{
+	AController* const OldController = Controller;
+
+	// Stop listening for changes from the old controller
+	const FGenericTeamId OldTeamId = MyTeamId;
+	if (IArenaTeamAgentInterface* ControllerAsTeamProvider = Cast<IArenaTeamAgentInterface>(OldController))
+	{
+		ControllerAsTeamProvider->GetTeamChangedDelegateChecked().RemoveAll(this);
+	}
+	
+	Super::UnPossessed();
+
+	// Determine what the new team ID should be afterwards
+	MyTeamId = DetermineNewTeamAfterPossessionEnds(OldTeamId);
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+}
+
+void AArenaCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ThisClass, MyTeamId);
+}
+
+void AArenaCharacter::NotifyControllerChanged()
+{
+	const FGenericTeamId OldTeamId = GetGenericTeamId();
+	
+	Super::NotifyControllerChanged();
+
+	// Update our team ID based on the controller
+	if (HasAuthority() && (Controller != nullptr))
+	{
+		if (IArenaTeamAgentInterface* ControllerWithTeam = Cast<IArenaTeamAgentInterface>(Controller))
+		{
+			MyTeamId = ControllerWithTeam->GetGenericTeamId();
+			ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+		}
+	}
+}
+
+void AArenaCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	if (GetController() == nullptr)
+	{
+		if (HasAuthority())
+		{
+			const FGenericTeamId OldTeamId = MyTeamId;
+			MyTeamId = NewTeamID;
+			ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+		}
+		else
+		{
+			UE_LOG(LogArenaTeams, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
+		}
+	}
+	else
+	{
+		UE_LOG(LogArenaTeams, Error, TEXT("You can't set the team ID on a possessed character (%s); it's driven by the associated controller"), *GetPathName(this));
+	}
+}
+
+FGenericTeamId AArenaCharacter::GetGenericTeamId() const
+{
+	return MyTeamId;
+}
+
+FOnArenaTeamIndexChangedDelegate* AArenaCharacter::GetOnTeamIndexChangedDelegate()
+{
+	return &OnTeamChangedDelegate;
+}
+
+void AArenaCharacter::OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam)
+{
+	const FGenericTeamId OldTeamId = MyTeamId;
+	MyTeamId = IntegerToGenericTeamId(NewTeam);
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+}
+
+void AArenaCharacter::OnRep_MyTeamId(FGenericTeamId OldTeamId)
+{
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
 }
 
 void AArenaCharacter::OnDeathStarted(AActor* OwningActor)
@@ -162,7 +259,7 @@ void AArenaCharacter::InitAbilityActorInfo()
 	{
 		if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
 		{
-			HUD->InitOverlay(PC, PS, AbilitySystemComponent, ArenaHealthSet.Get());
+			HUD->AddOverlayWidget();
 		}
 	}
 

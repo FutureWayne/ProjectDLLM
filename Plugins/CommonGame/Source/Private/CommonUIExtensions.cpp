@@ -65,6 +65,12 @@ UCommonActivatableWidget* UCommonUIExtensions::PushContentToLayer_ForPlayer(cons
 		{
 			if (UPrimaryGameLayout* RootLayout = Policy->GetRootLayout(CastChecked<UCommonLocalPlayer>(LocalPlayer)))
 			{
+				if (!RootLayout->IsInViewport())
+				{
+					RootLayout->SetPlayerContext(FLocalPlayerContext(LocalPlayer));
+					RootLayout->AddToPlayerScreen(1000);
+				}
+				
 				return RootLayout->PushWidgetToLayerStack(LayerName, WidgetClass);
 			}
 		}

@@ -6,6 +6,7 @@
 #include "GameFramework/HUD.h"
 #include "ArenaHUD.generated.h"
 
+class UCommonActivatableWidget;
 class UCooldownWidget;
 class UCharacterOverlay;
 class UAgentChooseWidget;
@@ -24,40 +25,19 @@ class ARENA_API AArenaHUD : public AHUD
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UCharacterOverlay> OverlayWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
+	TSubclassOf<UCommonActivatableWidget> OverlayWidgetClass;
 
-	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<UAgentChooseWidget> AgentChooseWidget;
+	UFUNCTION(BlueprintCallable, Category = "Widgets")
+	void AddOverlayWidget();
 
-	TObjectPtr<UCooldownWidget> CooldownWidget;
+	UFUNCTION(BlueprintCallable, Category = "Widgets")
+	void RemoveOverlayWidget();
 
-	UOverlayWidgetController* GetOverlayWidgetController(const FWidgetControllerParams& InWidgetControllerParams);
-
-	void InitOverlay(APlayerController* PlayerController, APlayerState* PlayerState, UAbilitySystemComponent* AbilitySystemComponent, UAttributeSet* AttributeSet);
-
-	void RemoveOverlay();
-	
-	void AddAgentChooseWidget();
-
-	void AddCooldownWidget();
-	
 protected:
 	virtual void BeginPlay() override;
 
-private:
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UCharacterOverlay> OverlayWidgetClass;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UAgentChooseWidget> AgentChooseWidgetClass;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UCooldownWidget> CooldownWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UOverlayWidgetController> OverlayWidgetController;
-
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UOverlayWidgetController> OverlayWidgetControllerClass;
+	TObjectPtr<UCommonActivatableWidget> OverlayWidget;
 };
