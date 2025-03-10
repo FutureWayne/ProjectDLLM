@@ -102,6 +102,7 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	// Deactivate Projectile Movement
 	ProjectileMovementComponent->Deactivate();
 
+	// On Server, capture all pawns and destructible objects within the explosion radius
 	if (HasAuthority())
 	{
 		TArray<AActor*> OverlappingActors;
@@ -122,12 +123,13 @@ void AArenaGrenadeBase::Detonate_Implementation()
 				}
 				
 				IgnoreActors.Remove(OverlappingActor);
+				
 				// Trace to check for valid line of sight while ignoring other pawns in radius, so they don't block the hit
 				FHitResult HitResult;
 				EDrawDebugTrace::Type DrawDebugType = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
 				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, DrawDebugType, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
 
-				if (hit)
+				if (hit && HitResult.GetActor() == OverlappingActor)
 				{
 					if (bDrawDebug)
 					{
