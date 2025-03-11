@@ -32,6 +32,12 @@ EDataValidationResult UArenaGrenadeDefinitionData::IsDataValid(FDataValidationCo
 		Context.AddError(NSLOCTEXT("Arena", "GrenadeClassNotSet", "Grenade class is not set."));
 		Result = EDataValidationResult::Invalid;
 	}
+
+	if (GrenadeSlotCooldownTag == FGameplayTag::EmptyTag)
+	{
+		Context.AddError(NSLOCTEXT("Arena", "GrenadeSlotCooldownTagNotSet", "Grenade slot cooldown tag is not set."));
+		Result = EDataValidationResult::Invalid;
+	}
 	
 	return Result;
 }

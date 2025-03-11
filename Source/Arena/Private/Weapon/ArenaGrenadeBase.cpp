@@ -160,12 +160,12 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 {
 	bool bShouldDetonate = false;
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
 	{
 		bShouldDetonate = true;
 	}
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
 	{
 		if (UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor()))
 		{
@@ -173,7 +173,7 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 		}
 	}
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
 	{
 		bShouldDetonate |= HitResult.ImpactNormal.Z > 0.7f;
 	}
