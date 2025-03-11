@@ -204,9 +204,29 @@ void AArenaCharacter::OnDeathFinished(AActor* OwningActor)
 	DestroyDueToDeath();
 }
 
+void AArenaCharacter::OnSpeedBuffChanged(float OldValue, float NewValue, AActor* EffectInstigator)
+{
+	K2_OnSpeedBuffChanged(OldValue, NewValue, EffectInstigator);
+}
+
 USkeletalMeshComponent* AArenaCharacter::GetDisplayMesh_Implementation()
 {
 	return GetMesh();
+}
+
+void AArenaCharacter::SetWantsToSprint(bool bNewWantsToSprint)
+{
+	K2_OnChangeWantsToSprint(bNewWantsToSprint);
+}
+
+void AArenaCharacter::SetWantsToWalk(bool bNewWantsToWalk)
+{
+	K2_OnChangeWantsToWalk(bNewWantsToWalk);
+}
+
+void AArenaCharacter::SetWantsToAim(bool bNewWantsToAim)
+{
+	K2_OnChangeWantsToAim(bNewWantsToAim);
 }
 
 void AArenaCharacter::DisableMovementAndCollision() const
@@ -266,7 +286,7 @@ void AArenaCharacter::InitAbilityActorInfo()
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
 
-	ArenaCombatSet.Get()->OnSpeedBuffChanged.AddDynamic(this, &ThisClass::K2_OnSpeedBuffChanged);
+	ArenaCombatSet.Get()->OnSpeedBuffChanged.AddDynamic(this, &ThisClass::OnSpeedBuffChanged);
 
 	check(AbilitySet);
 	PS->AddAbilitySet(AbilitySet);

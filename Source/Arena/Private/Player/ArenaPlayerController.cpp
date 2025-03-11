@@ -81,22 +81,6 @@ void AArenaPlayerController::Input_LookMouse(const FInputActionValue& InputActio
 	}
 }
 
-void AArenaPlayerController::Input_Crouch(const FInputActionValue& InputActionValue)
-{
-}
-
-void AArenaPlayerController::Input_Jump(const FInputActionValue& InputActionValue)
-{
-}
-
-void AArenaPlayerController::Input_Sprint(const FInputActionValue& InputActionValue)
-{
-}
-
-void AArenaPlayerController::Input_Walk(const FInputActionValue& InputActionValue)
-{
-}
-
 AArenaPlayerState* AArenaPlayerController::GetArenaPlayerState() const
 {
 	return CastChecked<AArenaPlayerState>(PlayerState, ECastCheckedType::NullAllowed);
@@ -219,10 +203,6 @@ void AArenaPlayerController::SetupInputComponent()
 
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move, /*bLogIfNotFound=*/ false);
 		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_LookMouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse, /*bLogIfNotFound=*/ false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Crouch, ETriggerEvent::Triggered, this, &ThisClass::Input_Crouch, /*bLogIfNotFound=*/ false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Jump, ETriggerEvent::Triggered, this, &ThisClass::Input_Jump, /*bLogIfNotFound=*/ false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Sprint, ETriggerEvent::Triggered, this, &ThisClass::Input_Sprint, /*bLogIfNotFound=*/ false);
-		ArenaIC->BindNativeAction(InputConfig, ArenaGameplayTags::InputTag_Walk, ETriggerEvent::Triggered, this, &ThisClass::Input_Walk, /*bLogIfNotFound=*/ false);
 	}
 }
 

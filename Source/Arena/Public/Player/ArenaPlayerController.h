@@ -35,10 +35,6 @@ public:
 
 	void Input_Move(const FInputActionValue& InputActionValue);
 	void Input_LookMouse(const FInputActionValue& InputActionValue);
-	void Input_Crouch(const FInputActionValue& InputActionValue);
-	void Input_Jump(const FInputActionValue& InputActionValue);
-	void Input_Sprint(const FInputActionValue& InputActionValue);
-	void Input_Walk(const FInputActionValue& InputActionValue);
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerController")
 	AArenaPlayerState* GetArenaPlayerState() const;

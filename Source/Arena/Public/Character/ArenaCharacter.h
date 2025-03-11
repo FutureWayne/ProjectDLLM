@@ -69,9 +69,18 @@ private:
 	FOnArenaTeamIndexChangedDelegate OnTeamChangedDelegate;
 
 public:	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Arena|Character")
 	USkeletalMeshComponent* GetDisplayMesh();
 
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToSprint(bool bNewWantsToSprint);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToWalk(bool bNewWantsToWalk);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToAim(bool bNewWantsToAim);
+	
 protected:
 	// ~Begin AActor Interface
 	virtual void BeginPlay() override;
@@ -102,6 +111,9 @@ protected:
 	UFUNCTION()
 	virtual void OnDeathFinished(AActor* OwningActor);
 
+	UFUNCTION()
+	virtual void OnSpeedBuffChanged(float OldValue, float NewValue, AActor* EffectInstigator);
+
 	// Called when the death sequence for the character has completed
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
 	void K2_OnDeathFinished();
@@ -111,6 +123,15 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnAbilityActorInfoInitialized"))
 	void K2_OnAbilityActorInfoInitialized();
+	
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToSprint"))
+	void K2_OnChangeWantsToSprint(bool bNewWantsToSprint);
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToWalk"))
+	void K2_OnChangeWantsToWalk(bool bNewWantsToWalk);
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToAim"))
+	void K2_OnChangeWantsToAim(bool bNewWantsToAim);
 
 	// Called to determine what happens to the team ID when possession ends
 	virtual FGenericTeamId DetermineNewTeamAfterPossessionEnds(FGenericTeamId OldTeamID) const
