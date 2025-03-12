@@ -123,8 +123,31 @@ bool UArenaGameplayAbility::ChangeActivationGroup(EArenaAbilityActivationGroup N
 	return true;
 }
 
+void UArenaGameplayAbility::SetCameraMode(TSubclassOf<UArenaCameraMode> CameraMode)
+{
+	ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(SetCameraMode, );
+
+	if (AArenaCharacter* ArenaCharacter = GetArenaCharacterFromActorInfo())
+	{
+		ArenaCharacter->SetAbilityCameraMode(CameraMode, CurrentSpecHandle);
+		ActiveCameraMode = CameraMode;
+	}
+	
+}
+
+void UArenaGameplayAbility::ClearCameraMode()
+{
+	ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(ClearCameraMode, );
+	
+	if (AArenaCharacter* ArenaCharacter = GetArenaCharacterFromActorInfo())
+	{
+		ArenaCharacter->ClearAbilityCameraMode(CurrentSpecHandle);
+		ActiveCameraMode = nullptr;
+	}
+}
+
 void UArenaGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo,
-	const FGameplayAbilitySpec& Spec) const
+                                                      const FGameplayAbilitySpec& Spec) const
 {
 	if (ActorInfo && !Spec.IsActive() && (ActivationPolicy == EArenaAbilityActivationPolicy::OnSpawn))
 	{
