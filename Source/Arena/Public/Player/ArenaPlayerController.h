@@ -4,6 +4,7 @@
 
 #include "GameplayTagContainer.h"
 #include "CommonPlayerController.h"
+#include "Camera/ArenaCameraAssistInterface.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaPlayerController.generated.h"
 
@@ -20,7 +21,7 @@ class AArenaPlayerState;
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerController : public ACommonPlayerController, public IArenaTeamAgentInterface
+class ARENA_API AArenaPlayerController : public ACommonPlayerController, public IArenaTeamAgentInterface, public IArenaCameraAssistInterface
 {
 	GENERATED_BODY()
 
@@ -70,6 +71,10 @@ protected:
 	virtual void OnRep_PlayerState() override;
 	//~End of AController interface
 
+	//~IArenaCameraAssistInterface interface
+	virtual void OnCameraPenetratingTarget() override;
+	//~End of IArenaCameraAssistInterface interface
+
 private:
 	UPROPERTY()
 	TObjectPtr<UArenaAbilitySystemComponent> ArenaAbilitySystemComponent;
@@ -92,6 +97,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<APlayerState> LastSeenPlayerState;
+
+	bool bHideViewTargetPawnNextFrame = false;
 
 private:
 	UFUNCTION()

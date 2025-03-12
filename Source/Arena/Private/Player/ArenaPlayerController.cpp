@@ -6,6 +6,7 @@
 #include "ArenaGameplayTags.h"
 #include "ArenaLogChannel.h"
 #include "EnhancedInputSubsystems.h"
+#include "Camera/ArenaPlayerCameraManager.h"
 #include "Equipment/ArenaQuickBarComponent.h"
 #include "Input/ArenaInputComponent.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
@@ -17,6 +18,8 @@ AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectI
 {
 	InventoryManagerComponent = CreateDefaultSubobject<UArenaInventoryManagerComponent>(TEXT("InventoryManagerComponent"));
 	QuickBarComponent = CreateDefaultSubobject<UArenaQuickBarComponent>(TEXT("QuickBarComponent"));
+
+	PlayerCameraManagerClass = AArenaPlayerCameraManager::StaticClass();
 }
 
 void AArenaPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)
@@ -132,6 +135,11 @@ void AArenaPlayerController::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
 	BroadcastOnPlayerStateChanged();
+}
+
+void AArenaPlayerController::OnCameraPenetratingTarget()
+{
+	bHideViewTargetPawnNextFrame = true;
 }
 
 void AArenaPlayerController::BeginPlay()
