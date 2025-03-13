@@ -264,3 +264,22 @@ TArray<UArenaEquipmentInstance*> UArenaEquipmentManagerComponent::GetEquipmentIn
 
 	return Result;
 }
+
+void UArenaEquipmentManagerComponent::UnequipAll()
+{
+	TArray<UArenaEquipmentInstance*> AllEquipmentInstances;
+
+	// gathering all instances before removal to avoid side effects affecting the equipment list iterator	
+	for (const FArenaAppliedEquipmentEntry& Entry : EquipmentList.Entries)
+	{
+		AllEquipmentInstances.Add(Entry.Instance);
+	}
+
+	for (UArenaEquipmentInstance* EquipInstance : AllEquipmentInstances)
+	{
+		if (EquipInstance)
+		{
+			UnequipItem(EquipInstance);
+		}
+	}
+}

@@ -6,10 +6,14 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
+#include "Equipment/ArenaEquipmentDefinition.h"
+#include "Equipment/ArenaEquipmentInstance.h"
+#include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "Equipment/ArenaQuickBarComponent.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Inventory/InventoryFragment_EquippableItem.h"
+#include "Inventory/InventoryFragment_LoadoutItemData.h"
 #include "Weapon/ArenaGrenadeBase.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
 
@@ -228,3 +232,101 @@ void UArenaSystemStatics::DropAllEquippedItemInQuickBar(const APawn* DroppingPaw
 	}
 }
 
+void UArenaSystemStatics::ClearInventory(const APawn* TargetPawn)
+{
+	if (!TargetPawn || !TargetPawn->HasAuthority())
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid Pawn or Pawn is not authoritative"));
+		return;
+	}
+	
+	AController* Controller = TargetPawn->GetController();
+	if (!Controller)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Controller found on %s"), *TargetPawn->GetName());
+		return;
+	}
+
+	UArenaInventoryManagerComponent* InventoryManager = Controller->GetComponentByClass<UArenaInventoryManagerComponent>();
+	if (!InventoryManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *TargetPawn->GetName());
+		return;
+	}
+	
+	UArenaEquipmentManagerComponent* EquipmentManager = TargetPawn->FindComponentByClass<UArenaEquipmentManagerComponent>();
+	if (!EquipmentManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetPawn->GetName());
+		return;
+	}
+
+	DropAllEquippedItemInQuickBar(TargetPawn);
+
+	EquipmentManager->UnequipAll();
+	InventoryManager->ClearInventory();
+}
+
+void UArenaSystemStatics::AddLoadoutToInventory(const APawn* TargetPawn,
+	const TArray<TSubclassOf<UArenaInventoryItemDefinition>>& LoadoutItemList)
+{
+	AController* Controller = TargetPawn->GetController();
+	if (!Controller)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Controller found on %s"), *TargetPawn->GetName());
+		return;
+	}
+	
+	UArenaEquipmentManagerComponent* EquipmentManager = TargetPawn->FindComponentByClass<UArenaEquipmentManagerComponent>();
+	if (!EquipmentManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetPawn->GetName());
+		return;
+	}
+
+	UArenaQuickBarComponent* QuickBar = Controller->FindComponentByClass<UArenaQuickBarComponent>();
+	if (!QuickBar)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *TargetPawn->GetName());
+		return;
+	}
+	
+	for (const TSubclassOf<UArenaInventoryItemDefinition>& ItemClass : LoadoutItemList)
+	{
+		// Simply add the loadout item to the inventory, handle equip logic later based on the loadout type
+		auto LoadoutItemInstance = GiveItemDefinitionToPlayer(const_cast<APawn*>(TargetPawn), ItemClass, 1, false);
+
+		const UInventoryFragment_LoadoutItemData* LoadoutItemData = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_LoadoutItemData>();
+		if (!LoadoutItemData)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Item %s is not a loadout item"), *LoadoutItemInstance->GetName());
+			continue;
+		}
+
+		ELoadoutType LoadoutType = LoadoutItemData->ItemLoadoutType;
+
+		// For grenades loadout, equip them to the quickbar by the corresponding slot index
+		if (LoadoutType > ELoadoutType::Ability)
+		{
+			QuickBar->AddItemToSlot(static_cast<uint8>(LoadoutType) - 1, LoadoutItemInstance);
+			QuickBar->SetActiveSlotIndex(0);
+		}
+
+		// For ability loadout, equip them to the equipment manager so that ability set can be added
+		else
+		{
+			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
+			{
+				TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
+				if (EquipDef != nullptr)
+				{
+					UArenaEquipmentInstance* EquippedItem = EquipmentManager->EquipItem(EquipDef);
+					if (EquippedItem != nullptr)
+					{
+						EquippedItem->SetInstigator(LoadoutItemInstance);
+					}
+				}
+			}
+		}
+	}
+}

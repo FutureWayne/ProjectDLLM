@@ -58,4 +58,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
 	static void DropAllEquippedItemInQuickBar(const APawn* DroppingPawn);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void ClearInventory(const APawn* TargetPawn);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
+	static void AddLoadoutToInventory(const APawn* TargetPawn, const TArray<TSubclassOf<UArenaInventoryItemDefinition>>& LoadoutItemList);
 };
