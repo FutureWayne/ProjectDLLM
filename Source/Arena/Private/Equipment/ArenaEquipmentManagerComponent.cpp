@@ -106,12 +106,12 @@ void FArenaEquipmentList::RemoveEntry(UArenaEquipmentInstance* EquipmentInstance
 		if (Entry.Instance == EquipmentInstance)
 		{
 			Entry.GrantedHandles.TakeFromAbilitySystem(ASC);
+
+			EquipmentInstance->DestroyEquipmentActors();
+
+			EntryIt.RemoveCurrent();
+			MarkArrayDirty();
 		}
-
-		EquipmentInstance->DestroyEquipmentActors();
-
-		EntryIt.RemoveCurrent();
-		MarkArrayDirty();
 	}
 }
 
@@ -267,6 +267,11 @@ TArray<UArenaEquipmentInstance*> UArenaEquipmentManagerComponent::GetEquipmentIn
 
 void UArenaEquipmentManagerComponent::UnequipAll()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	TArray<UArenaEquipmentInstance*> AllEquipmentInstances;
 
 	// gathering all instances before removal to avoid side effects affecting the equipment list iterator	
