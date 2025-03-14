@@ -50,18 +50,18 @@ public:
 	                                                          APawn* Instigator = nullptr);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
-	static UArenaInventoryItemInstance* GiveItemDefinitionToPlayer(APawn* ReceivingPawn, TSubclassOf<UArenaInventoryItemDefinition> ItemDefinitionClass,
-																	int32 Count = 1, bool bAutoEquip = false);
+	static UArenaInventoryItemInstance* GiveItemDefinitionToPlayer(AController* TargetController, TSubclassOf<UArenaInventoryItemDefinition> ItemDefinitionClass,
+																	int32 Count = 1, bool bAutoAddToQuickbar = false);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
-	static void EquipItemToQuickBar(const APawn* ReceivingPawn, UArenaInventoryItemInstance* ItemInstance);
+	static void EquipItemToQuickBar(AController* TargetController, UArenaInventoryItemInstance* ItemInstance);
 	
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
-	static void DropAllEquippedItemInQuickBar(const APawn* DroppingPawn);
+	static void ClearQuickBar(AController* TargetController);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
-	static void ClearInventory(const APawn* TargetPawn);
+	static void ClearInventory(AController* TargetController);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Arena|Inventory")
-	static void AddLoadoutToInventory(const APawn* TargetPawn, const TArray<TSubclassOf<UArenaInventoryItemDefinition>>& LoadoutItemList);
+	static void AddLoadoutToInventory(AController* TargetController, const TArray<TSubclassOf<UArenaInventoryItemDefinition>>& LoadoutItemList);
 };

@@ -7,6 +7,7 @@
 #include "InventoryFragment_EquippableItem.generated.h"
 
 class UArenaEquipmentDefinition;
+
 /**
  * 
  */
