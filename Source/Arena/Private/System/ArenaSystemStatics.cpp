@@ -293,9 +293,20 @@ void UArenaSystemStatics::AddLoadoutToInventory(const APawn* TargetPawn,
 	
 	for (const TSubclassOf<UArenaInventoryItemDefinition>& ItemClass : LoadoutItemList)
 	{
+		if (ItemClass == nullptr)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Invalid item class in loadout"));
+			continue;
+		}
+		
 		// Simply add the loadout item to the inventory, handle equip logic later based on the loadout type
 		auto LoadoutItemInstance = GiveItemDefinitionToPlayer(const_cast<APawn*>(TargetPawn), ItemClass, 1, false);
-
+		if (!LoadoutItemInstance)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Failed to add loadout item %s to inventory"), *ItemClass->GetName());
+			continue;
+		}
+		
 		const UInventoryFragment_LoadoutItemData* LoadoutItemData = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_LoadoutItemData>();
 		if (!LoadoutItemData)
 		{
