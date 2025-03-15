@@ -12,6 +12,7 @@
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
+#include "System/ArenaSystemStatics.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
 
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
