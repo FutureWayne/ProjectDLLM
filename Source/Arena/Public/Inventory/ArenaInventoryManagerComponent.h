@@ -128,6 +128,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	void RemoveItemInstance(UArenaInventoryItemInstance* ItemInstance);
 
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
+	void ClearInventory();
+
 	UFUNCTION(BlueprintCallable, Category=Inventory, BlueprintPure=false)
 	TArray<UArenaInventoryItemInstance*> GetAllItems() const;
 

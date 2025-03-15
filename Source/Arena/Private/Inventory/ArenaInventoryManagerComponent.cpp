@@ -244,6 +244,15 @@ void UArenaInventoryManagerComponent::RemoveItemInstance(UArenaInventoryItemInst
 	}
 }
 
+void UArenaInventoryManagerComponent::ClearInventory()
+{
+	TArray<UArenaInventoryItemInstance*> AllItems = InventoryList.GetAllItems();
+	for (UArenaInventoryItemInstance* ItemInstance : AllItems)
+	{
+		RemoveItemInstance(ItemInstance);
+	}
+}
+
 
 TArray<UArenaInventoryItemInstance*> UArenaInventoryManagerComponent::GetAllItems() const
 {
