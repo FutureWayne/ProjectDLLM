@@ -18,7 +18,7 @@ void UInventoryFragment_AddAbilitySet::OnInstanceCreated(UArenaInventoryItemInst
 	UArenaAbilitySystemComponent* ArenaASC = Cast<UArenaAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerActor));
 	if (ArenaASC)
 	{
-		AbilitySetToApply->GiveToAbilitySystem(Cast<UArenaAbilitySystemComponent>(ArenaASC), &GrantedHandles, Instance);
+		AbilitySetToApply->GiveToAbilitySystem(Cast<UArenaAbilitySystemComponent>(ArenaASC), &Instance->GetGrantedHandles(), Instance);
 	}
 }
 
@@ -33,6 +33,6 @@ void UInventoryFragment_AddAbilitySet::OnInstanceRemoved(UArenaInventoryItemInst
 	UArenaAbilitySystemComponent* ArenaASC = Cast<UArenaAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerActor));
 	if (ArenaASC)
 	{
-		GrantedHandles.TakeFromAbilitySystem(ArenaASC);
+		Instance->GetGrantedHandles().TakeFromAbilitySystem(ArenaASC);
 	}
 }

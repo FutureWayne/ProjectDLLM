@@ -11,6 +11,8 @@
 #include "Misc/DataValidation.h"
 #endif
 
+#include "ArenaLogChannel.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaGameplayAbility_FromEquip)
 
 UArenaGameplayAbility_FromEquip::UArenaGameplayAbility_FromEquip(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -19,12 +21,21 @@ UArenaGameplayAbility_FromEquip::UArenaGameplayAbility_FromEquip(const FObjectIn
 
 UArenaEquipmentInstance* UArenaGameplayAbility_FromEquip::GetAssociatedEquipment() const
 {
-	if (FGameplayAbilitySpec* Spec = UGameplayAbility::GetCurrentAbilitySpec())
+	FGameplayAbilitySpec* Spec = GetCurrentAbilitySpec();
+	if (Spec == nullptr)
 	{
-		return Cast<UArenaEquipmentInstance>(Spec->SourceObject.Get());
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedEquipment: Could not get ability spec"));
+		return nullptr;
 	}
 
-	return nullptr;
+	UArenaEquipmentInstance* Equipment = Cast<UArenaEquipmentInstance>(Spec->SourceObject.Get());
+	if (Equipment == nullptr)
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedEquipment: Could not get associated equipment"));
+		return nullptr;
+	}
+
+	return Equipment;
 }
 
 UArenaInventoryItemInstance* UArenaGameplayAbility_FromEquip::GetAssociatedItem() const
@@ -33,8 +44,12 @@ UArenaInventoryItemInstance* UArenaGameplayAbility_FromEquip::GetAssociatedItem(
 	{
 		return Cast<UArenaInventoryItemInstance>(Equipment->GetInstigator());
 	}
-	
-	return nullptr;
+
+	else
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedItem: Could not get associated equipment"));
+		return nullptr;
+	}
 }
 
 #if WITH_EDITOR
