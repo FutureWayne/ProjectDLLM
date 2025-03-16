@@ -170,14 +170,14 @@ FRotator UArenaGameplayAbility_FromGrenade::CalculateLaunchRotation(const UWorld
 const UArenaGrenadeDefinitionData* UArenaGameplayAbility_FromGrenade::GetGrenadeDefinitionData() const
 {
 	const UArenaInventoryItemInstance* ItemInstance = GetAssociatedItem();
-	if (!ensure(ItemInstance))
+	if (!ItemInstance)
 	{
 		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: ItemInstance is nullptr."));
 		return nullptr;
 	}
 
 	const UInventoryFragment_GrenadeDef* GrenadeDef = ItemInstance->FindFragmentByClass<UInventoryFragment_GrenadeDef>();
-	if (!ensure(GrenadeDef))
+	if (!GrenadeDef)
 	{
 		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_Grenade::ActivateAbility: GrenadeDef is nullptr."));
 		return nullptr;
