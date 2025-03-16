@@ -23,9 +23,4 @@ public:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set")
 	TObjectPtr<UArenaAbilitySet> AbilitySetToApply;
-
-private:
-	// Authority-only list of granted handles
-	UPROPERTY()
-	FArenaAbilitySet_GrantedHandles GrantedHandles;
 };
