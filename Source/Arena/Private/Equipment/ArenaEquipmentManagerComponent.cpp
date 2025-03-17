@@ -4,6 +4,7 @@
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 
 #include "AbilitySystemGlobals.h"
+#include "ArenaLogChannel.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
@@ -93,7 +94,11 @@ UArenaEquipmentInstance* FArenaEquipmentList::AddEntry(const TSubclassOf<UArenaE
 void FArenaEquipmentList::RemoveEntry(UArenaEquipmentInstance* EquipmentInstance)
 {
 	UArenaAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	check(ASC);
+	if (!ensure(ASC))
+	{
+		UE_LOG(LogArena, Error, TEXT("FArenaEquipmentList::RemoveEntry: AbilitySystemComponent is null."));
+		return;
+	}	
 	
 	for (auto EntryIt = Entries.CreateIterator(); EntryIt; ++EntryIt)
 	{
@@ -101,12 +106,12 @@ void FArenaEquipmentList::RemoveEntry(UArenaEquipmentInstance* EquipmentInstance
 		if (Entry.Instance == EquipmentInstance)
 		{
 			Entry.GrantedHandles.TakeFromAbilitySystem(ASC);
+
+			EquipmentInstance->DestroyEquipmentActors();
+
+			EntryIt.RemoveCurrent();
+			MarkArrayDirty();
 		}
-
-		EquipmentInstance->DestroyEquipmentActors();
-
-		EntryIt.RemoveCurrent();
-		MarkArrayDirty();
 	}
 }
 
@@ -118,7 +123,7 @@ UArenaAbilitySystemComponent* FArenaEquipmentList::GetAbilitySystemComponent() c
 }
 
 //////////////////////////////////////////////////////////////////////
-// ULyraEquipmentManagerComponent
+// UArenaEquipmentManagerComponent
 
 UArenaEquipmentManagerComponent::UArenaEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -258,4 +263,28 @@ TArray<UArenaEquipmentInstance*> UArenaEquipmentManagerComponent::GetEquipmentIn
 	}
 
 	return Result;
+}
+
+void UArenaEquipmentManagerComponent::UnequipAll()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
+	TArray<UArenaEquipmentInstance*> AllEquipmentInstances;
+
+	// gathering all instances before removal to avoid side effects affecting the equipment list iterator	
+	for (const FArenaAppliedEquipmentEntry& Entry : EquipmentList.Entries)
+	{
+		AllEquipmentInstances.Add(Entry.Instance);
+	}
+
+	for (UArenaEquipmentInstance* EquipInstance : AllEquipmentInstances)
+	{
+		if (EquipInstance)
+		{
+			UnequipItem(EquipInstance);
+		}
+	}
 }

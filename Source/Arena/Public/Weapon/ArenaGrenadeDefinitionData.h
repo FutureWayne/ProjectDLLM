@@ -51,6 +51,9 @@ struct FSecondaryGrenadeSpawnData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
 	TObjectPtr<UArenaGrenadeDefinitionData> GrenadeDefinitionData = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
+	int32 SpawnCount = 1;
 };
 
 /**
@@ -100,7 +103,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	float GrenadeAbilityCooldownTime = 2.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior", meta = (Categories = "GrenadeSlot"))
 	FGameplayTag GrenadeSlotCooldownTag = FGameplayTag::EmptyTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
@@ -115,8 +118,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	TSubclassOf<UGameplayEffect> DirectHitGameplayEffect = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
-	FGameplayTagContainer DetonationPolicy;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior", meta = (Categories = "DetonationPolicy"))
+	FGameplayTagContainer ImpactDetonationPolicy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect")
 	TArray<FEffectActorSpawnData> EffectActorsToSpawn;

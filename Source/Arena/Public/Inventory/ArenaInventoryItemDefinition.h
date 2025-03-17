@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ArenaInventoryItemDefinition.generated.h"
 
+class UArenaInventoryManagerComponent;
 class UArenaInventoryItemInstance;
 
 //////////////////////////////////////////////////////////////////////
@@ -43,13 +44,4 @@ public:
 
 public:
 	const UArenaInventoryItemFragment* FindFragmentByClass(const TSubclassOf<UArenaInventoryItemFragment>& FragmentClass) const;
-};
-
-UCLASS()
-class ARENA_API UArenaInventoryFunctionLibrary : public UBlueprintFunctionLibrary
-{
-	GENERATED_BODY()
-
-	UFUNCTION(BlueprintCallable, meta=(DeterminesOutputType=FragmentClass))
-	static const UArenaInventoryItemFragment* FindItemDefinitionFragment(TSubclassOf<UArenaInventoryItemDefinition> ItemDef, TSubclassOf<UArenaInventoryItemFragment> FragmentClass);
 };

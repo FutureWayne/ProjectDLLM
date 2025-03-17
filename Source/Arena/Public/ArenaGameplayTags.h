@@ -36,5 +36,5 @@ namespace ArenaGameplayTags
 	ARENA_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Grenade_Effect);
 
 	ARENA_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Grenade_Duration_Message);
-	ARENA_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dash_Duration_Message);
+	ARENA_API	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Mobility_Duration_Message);
 }

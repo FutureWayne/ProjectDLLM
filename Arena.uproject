@@ -15,7 +15,12 @@
 				"CoreUObject",
 				"EnhancedInput",
 				"AIModule",
-				"ModularGameplay"
+				"ModularGameplay",
+				"CommonUI",
+				"CommonGame",
+				"EngineSettings",
+				"GameSettings",
+				"DeveloperSettings"
 			]
 		}
 	],
@@ -69,6 +74,42 @@
 		},
 		{
 			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonUser",
+			"Enabled": true
+		},
+		{
+			"Name": "SteamSockets",
+			"Enabled": true
+		},
+		{
+			"Name": "GameSettings",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonLoadingScreen",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioModulation",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplayVolume",
+			"Enabled": true
+		},
+		{
+			"Name": "AudioGameplay",
+			"Enabled": true
+		},
+		{
+			"Name": "AsyncMixin",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
 			"Enabled": true
 		}
 	]

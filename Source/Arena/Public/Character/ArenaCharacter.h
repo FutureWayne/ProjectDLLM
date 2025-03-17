@@ -5,8 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayAbilitySpecHandle.h"
+#include "Camera/ArenaCameraMode.h"
+#include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaCharacter.generated.h"
 
+struct FGameplayAbilitySpecHandle;
+class UArenaCameraComponent;
 class UArenaEquipmentManagerComponent;
 class USpringArmComponent;
 class UArenaCombatSet;
@@ -21,7 +26,7 @@ class UAttributeSet;
 class UAbilitySystemComponent;
 
 UCLASS()
-class ARENA_API AArenaCharacter : public ACharacter, public IAbilitySystemInterface
+class ARENA_API AArenaCharacter : public ACharacter, public IAbilitySystemInterface, public IArenaTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -34,7 +39,7 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-protected:
+private:
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
@@ -49,31 +54,72 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaAbilitySet> AbilitySet;
-	
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USpringArmComponent> CameraBoom;
-	
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UCameraComponent> CameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UArenaCameraComponent> CameraComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Character", Meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UArenaCameraMode> DefaultCameraMode;
+
+	/** Camera mode set by an ability. */
+	UPROPERTY()
+	TSubclassOf<UArenaCameraMode> AbilityCameraMode;
+
+	/** Spec handle for the last ability to set a camera mode. */
+	FGameplayAbilitySpecHandle AbilityCameraModeOwningSpecHandle;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UArenaEquipmentManagerComponent> EquipmentManagerComponent;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_MyTeamId)
+	FGenericTeamId MyTeamId;
+
+	UPROPERTY()
+	FOnArenaTeamIndexChangedDelegate OnTeamChangedDelegate;
 
 public:	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Arena|Character")
 	USkeletalMeshComponent* GetDisplayMesh();
 
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToSprint(bool bNewWantsToSprint);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToWalk(bool bNewWantsToWalk);
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
+	void SetWantsToAim(bool bNewWantsToAim);
+	
+	/** Overrides the camera from an active gameplay ability */
+	void SetAbilityCameraMode(TSubclassOf<UArenaCameraMode> CameraMode, const FGameplayAbilitySpecHandle& OwningSpecHandle);
+
+	/** Clears the camera override if it is set */
+	void ClearAbilityCameraMode(const FGameplayAbilitySpecHandle& OwningSpecHandle);
+	
 protected:
 	// ~Begin AActor Interface
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void UnPossessed() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void FellOutOfWorld(const UDamageType& dmgType) override;
 	// ~End AActor Interface
+
+	//~APawn interface
+	virtual void NotifyControllerChanged() override;
+	//~End of APawn interface
+
+	//~IArenaTeamAgentInterface interface
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual FOnArenaTeamIndexChangedDelegate* GetOnTeamIndexChangedDelegate() override;
+	//~End of IArenaTeamAgentInterface interface
 	
 	void DisableMovementAndCollision() const;
 	void DestroyDueToDeath();
+
+	TSubclassOf<UArenaCameraMode> DetermineCameraMode();
 	
 	// Begins the death sequence for the character (disables collision, disables movement, etc...)
 	UFUNCTION()
@@ -82,6 +128,9 @@ protected:
 	// Ends the death sequence for the character (detaches controller, destroys pawn, etc...)
 	UFUNCTION()
 	virtual void OnDeathFinished(AActor* OwningActor);
+
+	UFUNCTION()
+	virtual void OnSpeedBuffChanged(float OldValue, float NewValue, AActor* EffectInstigator);
 
 	// Called when the death sequence for the character has completed
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
@@ -92,21 +141,38 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnAbilityActorInfoInitialized"))
 	void K2_OnAbilityActorInfoInitialized();
+	
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToSprint"))
+	void K2_OnChangeWantsToSprint(bool bNewWantsToSprint);
 
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToWalk"))
+	void K2_OnChangeWantsToWalk(bool bNewWantsToWalk);
+
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnChangeWantsToAim"))
+	void K2_OnChangeWantsToAim(bool bNewWantsToAim);
+
+	// Called to determine what happens to the team ID when possession ends
+	virtual FGenericTeamId DetermineNewTeamAfterPossessionEnds(FGenericTeamId OldTeamID) const
+	{
+		// This could be changed to return, e.g., OldTeamID if you want to keep it assigned afterwards, or return an ID for some neutral faction, or etc...
+		return FGenericTeamId::NoTeam;
+	}
 	
 private:
 	void InitAbilityActorInfo();
 	
 	virtual void OnRep_PlayerState() override;
 
-public:
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE UCameraComponent* GetCameraComponent() const { return CameraComponent; }
+	UFUNCTION()
+	void OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam);
+	
+	UFUNCTION()
+	void OnRep_MyTeamId(FGenericTeamId OldTeamId);
 
+public:
 	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
 	FORCEINLINE UArenaHealthSet* GetArenaHealthSet() const { return ArenaHealthSet; }
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|Character")
 	FORCEINLINE UArenaCombatSet* GetArenaCombatSet() const { return ArenaCombatSet; }
-	
 };

@@ -3,7 +3,8 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
-#include "GameFramework/PlayerController.h"
+#include "CommonPlayerController.h"
+#include "Camera/ArenaCameraAssistInterface.h"
 #include "Teams/ArenaTeamAgentInterface.h"
 #include "ArenaPlayerController.generated.h"
 
@@ -20,7 +21,7 @@ class AArenaPlayerState;
  * 
  */
 UCLASS()
-class ARENA_API AArenaPlayerController : public APlayerController, public IArenaTeamAgentInterface
+class ARENA_API AArenaPlayerController : public ACommonPlayerController, public IArenaTeamAgentInterface, public IArenaCameraAssistInterface
 {
 	GENERATED_BODY()
 
@@ -35,10 +36,6 @@ public:
 
 	void Input_Move(const FInputActionValue& InputActionValue);
 	void Input_LookMouse(const FInputActionValue& InputActionValue);
-	void Input_Crouch(const FInputActionValue& InputActionValue);
-	void Input_Jump(const FInputActionValue& InputActionValue);
-	void Input_Sprint(const FInputActionValue& InputActionValue);
-	void Input_Walk(const FInputActionValue& InputActionValue);
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerController")
 	AArenaPlayerState* GetArenaPlayerState() const;
@@ -54,7 +51,9 @@ public:
 
 protected:
 	//~AActor interface
+	virtual void PreInitializeComponents() override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	//~End of AActor interface
 	
@@ -71,6 +70,10 @@ protected:
 	virtual void CleanupPlayerState() override;
 	virtual void OnRep_PlayerState() override;
 	//~End of AController interface
+
+	//~IArenaCameraAssistInterface interface
+	virtual void OnCameraPenetratingTarget() override;
+	//~End of IArenaCameraAssistInterface interface
 
 private:
 	UPROPERTY()
@@ -94,6 +97,8 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<APlayerState> LastSeenPlayerState;
+
+	bool bHideViewTargetPawnNextFrame = false;
 
 private:
 	UFUNCTION()

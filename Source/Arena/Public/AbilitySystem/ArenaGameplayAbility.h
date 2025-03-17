@@ -6,6 +6,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "ArenaGameplayAbility.generated.h"
 
+class UArenaCameraMode;
 class AArenaPlayerController;
 class UArenaAbilitySystemComponent;
 class AArenaCharacter;
@@ -82,6 +83,14 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Arena|Ability", Meta = (ExpandBoolAsExecs = "ReturnValue"))
 	bool ChangeActivationGroup(EArenaAbilityActivationGroup NewGroup);
 
+	// Sets the ability's camera mode.
+	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
+	void SetCameraMode(TSubclassOf<UArenaCameraMode> CameraMode);
+
+	// Clears the ability's camera mode.  Automatically called if needed when the ability ends.
+	UFUNCTION(BlueprintCallable, Category = "Arena|Ability")
+	void ClearCameraMode();
+
 	void TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) const;
 
 protected:
@@ -111,6 +120,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Ability Activation")
 	EArenaAbilityActivationGroup ActivationGroup;
+
+	// Current camera mode set by the ability.
+	TSubclassOf<UArenaCameraMode> ActiveCameraMode;
 
 public:
 	FORCEINLINE EArenaAbilityActivationPolicy GetActivationPolicy() const { return ActivationPolicy; }
