@@ -6,10 +6,14 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
+#include "Equipment/ArenaEquipmentDefinition.h"
+#include "Equipment/ArenaEquipmentInstance.h"
+#include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "Equipment/ArenaQuickBarComponent.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Inventory/InventoryFragment_EquippableItem.h"
+#include "Inventory/InventoryFragment_LoadoutItemData.h"
 #include "Weapon/ArenaGrenadeBase.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
 
@@ -106,27 +110,20 @@ AArenaGrenadeBase* UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(const UO
 	return Grenade;
 }
 
-UArenaInventoryItemInstance* UArenaSystemStatics::GiveItemDefinitionToPlayer(APawn* ReceivingPawn,
+UArenaInventoryItemInstance* UArenaSystemStatics::GiveItemDefinitionToPlayer(AController* TargetController,
                                                                              const TSubclassOf<UArenaInventoryItemDefinition> ItemDefinitionClass,
-                                                                             const int32 Count, const bool bAutoEquip)
+                                                                             const int32 Count, const bool bAutoAddToQuickbar)
 {
-	if (!ReceivingPawn || !ReceivingPawn->HasAuthority())
+	if (!TargetController || !TargetController->HasAuthority())
 	{
 		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid Pawn or Pawn is not authoritative"));
 		return nullptr;
 	}
 	
-	AController* Controller = ReceivingPawn->GetController();
-	if (!Controller)
-	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No Controller found on %s"), *ReceivingPawn->GetName());
-		return nullptr;
-	}
-	
-	UArenaInventoryManagerComponent* InventoryManager = Controller->GetComponentByClass<UArenaInventoryManagerComponent>();
+	UArenaInventoryManagerComponent* InventoryManager = TargetController->GetComponentByClass<UArenaInventoryManagerComponent>();
 	if (!InventoryManager)
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *ReceivingPawn->GetName());
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *TargetController->GetName());
 		return nullptr;
 	}
 
@@ -134,33 +131,33 @@ UArenaInventoryItemInstance* UArenaSystemStatics::GiveItemDefinitionToPlayer(APa
 	UArenaInventoryItemInstance* RetItemInstance = InventoryManager->AddItemDefinition(ItemDefinitionClass, Count);
 
 	// Add the item to quickbar
-	if (bAutoEquip)
+	if (bAutoAddToQuickbar)
 	{
-		EquipItemToQuickBar(ReceivingPawn, RetItemInstance);
+		EquipItemToQuickBar(TargetController, RetItemInstance);
 	}
 
 	return RetItemInstance;
 }
 
-void UArenaSystemStatics::EquipItemToQuickBar(const APawn* ReceivingPawn, UArenaInventoryItemInstance* ItemInstance)
+void UArenaSystemStatics::EquipItemToQuickBar(AController* TargetController, UArenaInventoryItemInstance* ItemInstance)
 {
-	if (!ReceivingPawn || !ReceivingPawn->HasAuthority())
+	if (!TargetController || !TargetController->HasAuthority())
 	{
 		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid Pawn or Pawn is not authoritative"));
 		return;
 	}
 	
-	AController* Controller = ReceivingPawn->GetController();
-	if (!Controller)
-	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No Controller found on %s"), *ReceivingPawn->GetName());
-		return;
-	}
-	
-	UArenaQuickBarComponent* QuickBar = Controller->FindComponentByClass<UArenaQuickBarComponent>();
+	UArenaQuickBarComponent* QuickBar = TargetController->FindComponentByClass<UArenaQuickBarComponent>();
 	if (!QuickBar)
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *ReceivingPawn->GetName());
+		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *TargetController->GetName());
+		return;
+	}
+
+	UArenaEquipmentManagerComponent* EquipmentManager = TargetController->FindComponentByClass<UArenaEquipmentManagerComponent>();
+	if (!EquipmentManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetController->GetName());
 		return;
 	}
 	
@@ -187,32 +184,25 @@ void UArenaSystemStatics::EquipItemToQuickBar(const APawn* ReceivingPawn, UArena
 	}
 }
 
-void UArenaSystemStatics::DropAllEquippedItemInQuickBar(const APawn* DroppingPawn)
+void UArenaSystemStatics::ClearQuickBar(AController* TargetController)
 {
-	if (!DroppingPawn || !DroppingPawn->HasAuthority())
+	if (!TargetController || !TargetController->HasAuthority())
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid Pawn or Pawn is not authoritative"));
-		return;
-	}
-	
-	AController* Controller = DroppingPawn->GetController();
-	if (!Controller)
-	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No Controller found on %s"), *DroppingPawn->GetName());
+		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid TargetController or TargetController is not authoritative"));
 		return;
 	}
 
-	UArenaInventoryManagerComponent* InventoryManager = Controller->GetComponentByClass<UArenaInventoryManagerComponent>();
+	UArenaInventoryManagerComponent* InventoryManager = TargetController->GetComponentByClass<UArenaInventoryManagerComponent>();
 	if (!InventoryManager)
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *DroppingPawn->GetName());
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *TargetController->GetName());
 		return;
 	}
 	
-	UArenaQuickBarComponent* QuickBar = Controller->FindComponentByClass<UArenaQuickBarComponent>();
+	UArenaQuickBarComponent* QuickBar = TargetController->FindComponentByClass<UArenaQuickBarComponent>();
 	if (!QuickBar)
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *DroppingPawn->GetName());
+		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *TargetController->GetName());
 		return;
 	}
 
@@ -228,3 +218,100 @@ void UArenaSystemStatics::DropAllEquippedItemInQuickBar(const APawn* DroppingPaw
 	}
 }
 
+void UArenaSystemStatics::ClearInventory(AController* TargetController)
+{
+	if (!TargetController || !TargetController->HasAuthority())
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid TargetController or TargetController is not authoritative"));
+		return;
+	}
+
+	UArenaInventoryManagerComponent* InventoryManager = TargetController->GetComponentByClass<UArenaInventoryManagerComponent>();
+	if (!InventoryManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Inventory Manager found on %s"), *TargetController->GetName());
+		return;
+	}
+
+	APawn* TargetPawn = TargetController->GetPawn();
+	if (!TargetPawn)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Pawn found on %s"), *TargetController->GetName());
+		return;
+	}
+	
+	UArenaEquipmentManagerComponent* EquipmentManager = TargetPawn->FindComponentByClass<UArenaEquipmentManagerComponent>();
+	if (!EquipmentManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetPawn->GetName());
+		return;
+	}
+
+	// 1. Clear the quickbar to handle unequip logic
+	ClearQuickBar(TargetController);
+
+	// 2. Possible to clear equipment list here, for items that can be equipped but not from quickbar
+
+	// 3. Clear the inventory item that not in quickbar
+	InventoryManager->ClearInventory();
+}
+
+void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
+	const TArray<TSubclassOf<UArenaInventoryItemDefinition>>& LoadoutItemList)
+{
+	APawn* TargetPawn = TargetController->GetPawn();
+	if (!TargetPawn)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Pawn found on %s"), *TargetController->GetName());
+		return;
+	}
+	
+	UArenaEquipmentManagerComponent* EquipmentManager = TargetPawn->FindComponentByClass<UArenaEquipmentManagerComponent>();
+	if (!EquipmentManager)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetPawn->GetName());
+		return;
+	}
+
+	UArenaQuickBarComponent* QuickBar = TargetController->FindComponentByClass<UArenaQuickBarComponent>();
+	if (!QuickBar)
+	{
+		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *TargetController->GetName());
+		return;
+	}
+	
+	for (const TSubclassOf<UArenaInventoryItemDefinition>& ItemClass : LoadoutItemList)
+	{
+		if (ItemClass == nullptr)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Invalid item class in loadout"));
+			continue;
+		}
+		
+		// Simply add the loadout item to the inventory, handle equip logic later based on the loadout type
+		auto LoadoutItemInstance = GiveItemDefinitionToPlayer(TargetController, ItemClass, 1, false);
+		if (!LoadoutItemInstance)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Failed to add loadout item %s to inventory"), *ItemClass->GetName());
+			continue;
+		}
+		
+		const UInventoryFragment_LoadoutItemData* LoadoutItemData = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_LoadoutItemData>();
+		if (!LoadoutItemData)
+		{
+			UE_LOG(LogArenaInventory, Warning, TEXT("Item %s is not a loadout item"), *LoadoutItemInstance->GetName());
+			continue;
+		}
+
+		ELoadoutType LoadoutType = LoadoutItemData->ItemLoadoutType;
+
+		// For grenades loadout, equip them to the quickbar by the corresponding slot index
+		if (LoadoutType > ELoadoutType::Ability)
+		{
+			QuickBar->AddItemToSlot(static_cast<uint8>(LoadoutType) - 1, LoadoutItemInstance);
+			QuickBar->SetActiveSlotIndex(0);
+		}
+
+		// For ability loadout, InventoryFragment_AddAbilitySet handles adding ability
+	}
+}

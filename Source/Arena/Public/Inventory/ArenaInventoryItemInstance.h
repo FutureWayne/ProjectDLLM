@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "System/GameplayTagStack.h"
+#include "AbilitySystem/ArenaAbilitySet.h"
 
 #include "ArenaInventoryItemInstance.generated.h"
 
@@ -56,6 +57,9 @@ public:
 		return (ResultClass*)(FindFragmentByClass(ResultClass::StaticClass()));
 	}
 
+	UFUNCTION(BlueprintCallable, Category=Inventory)
+	FArenaAbilitySet_GrantedHandles& GetGrantedHandles() { return GrantedHandles; }
+
 private:
 	void SetItemDef(const TSubclassOf<UArenaInventoryItemDefinition>& InItemDef);
 
@@ -67,4 +71,7 @@ private:
 
 	UPROPERTY(Replicated)
 	TSubclassOf<UArenaInventoryItemDefinition> ItemDef;
+
+	UPROPERTY()
+	FArenaAbilitySet_GrantedHandles GrantedHandles;
 };

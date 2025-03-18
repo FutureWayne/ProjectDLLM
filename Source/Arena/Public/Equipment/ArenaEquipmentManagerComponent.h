@@ -130,6 +130,9 @@ public:
 	{
 		return static_cast<T*>(GetFirstInstanceOfType(T::StaticClass()));
 	}
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
+	void UnequipAll();
 	
 private:
 	UPROPERTY(Replicated)
