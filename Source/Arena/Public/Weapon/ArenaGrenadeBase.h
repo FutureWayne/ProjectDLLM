@@ -35,6 +35,9 @@ protected:
 	virtual void BeginPlay() override;
 	//~End of AActor interface
 
+	UFUNCTION(BlueprintCallable)
+	void SetupVFX();
+
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	virtual void Detonate();
 
@@ -52,8 +55,6 @@ protected:
 
 private:
 	void LaunchGrenade();
-	
-	void SetupVFX();
 	
 	void PostLaunchCleanup();
 
