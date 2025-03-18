@@ -9,6 +9,7 @@
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/ArenaPlayerController.h"
 
 AArenaPlayerState::AArenaPlayerState()
 {
@@ -33,6 +34,11 @@ void AArenaPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 UAbilitySystemComponent* AArenaPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+AArenaPlayerController* AArenaPlayerState::GetArenaPlayerController() const
+{
+	return Cast<AArenaPlayerController>(GetOwner());
 }
 
 void AArenaPlayerState::AddAbilitySet(const UArenaAbilitySet* AbilitySet)
