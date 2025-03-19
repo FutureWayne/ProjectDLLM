@@ -384,4 +384,3 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, OriginalPredictionKey);
 	}
 }
-

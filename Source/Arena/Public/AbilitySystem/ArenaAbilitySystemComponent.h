@@ -13,7 +13,7 @@ ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_AbilityInputBlocked);
 /**
  * 
  */
-UCLASS()
+UCLASS(meta=(BlueprintSpawnableComponent))
 class ARENA_API UArenaAbilitySystemComponent : public UAbilitySystemComponent
 {
 	GENERATED_BODY()
