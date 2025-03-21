@@ -7,6 +7,7 @@
 #include "InventoryFragment_EquippableItem.generated.h"
 
 class UArenaEquipmentDefinition;
+
 /**
  * 
  */
@@ -18,4 +19,7 @@ class ARENA_API UInventoryFragment_EquippableItem : public UArenaInventoryItemFr
 public:
 	UPROPERTY(EditAnywhere, Category=Arena)
 	TSubclassOf<UArenaEquipmentDefinition> EquipmentDefinition;
+
+
+	// TODO: OnInstanceRemoved, broadcast a message, so that quickbar and equipment manager can react to it
 };

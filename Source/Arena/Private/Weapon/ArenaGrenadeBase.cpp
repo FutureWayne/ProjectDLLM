@@ -102,6 +102,7 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	// Deactivate Projectile Movement
 	ProjectileMovementComponent->Deactivate();
 
+	// On Server, capture all pawns and destructible objects within the explosion radius
 	if (HasAuthority())
 	{
 		TArray<AActor*> OverlappingActors;
@@ -122,12 +123,13 @@ void AArenaGrenadeBase::Detonate_Implementation()
 				}
 				
 				IgnoreActors.Remove(OverlappingActor);
+				
 				// Trace to check for valid line of sight while ignoring other pawns in radius, so they don't block the hit
 				FHitResult HitResult;
 				EDrawDebugTrace::Type DrawDebugType = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
 				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, DrawDebugType, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
 
-				if (hit)
+				if (hit && HitResult.GetActor() == OverlappingActor)
 				{
 					if (bDrawDebug)
 					{
@@ -158,12 +160,12 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 {
 	bool bShouldDetonate = false;
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
 	{
 		bShouldDetonate = true;
 	}
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitValidTarget))
 	{
 		if (UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(HitResult.GetActor()))
 		{
@@ -171,7 +173,7 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 		}
 	}
 
-	if (GrenadeDefinitionData->DetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
+	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnHitHorizontal))
 	{
 		bShouldDetonate |= HitResult.ImpactNormal.Z > 0.7f;
 	}
@@ -289,10 +291,11 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 
 	const float DistanceToCenter = HitResult.Distance;
 	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeDefinitionData->DetonationRadius, 0.1f, 1.0f);
-	const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect;
-	check(ExplosionGameplayEffect);
-	UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
-	InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
+	if(const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect)
+	{
+		UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
+		InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
+	}
 }
 
 void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,

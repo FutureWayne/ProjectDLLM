@@ -3,6 +3,10 @@
 
 #include "Inventory/ArenaInventoryItemDefinition.h"
 
+#include "Inventory/ArenaInventoryItemInstance.h"
+#include "Inventory/ArenaInventoryManagerComponent.h"
+#include "Inventory/InventoryFragment_LoadoutItemData.h"
+
 //////////////////////////////////////////////////////////////////////
 // UArenaInventoryItemDefinition
 
@@ -26,18 +30,3 @@ const UArenaInventoryItemFragment* UArenaInventoryItemDefinition::FindFragmentBy
 
 	return nullptr;
 }
-
-//////////////////////////////////////////////////////////////////////
-// UArenaInventoryFunctionLibrary
-
-const UArenaInventoryItemFragment* UArenaInventoryFunctionLibrary::FindItemDefinitionFragment(
-	TSubclassOf<UArenaInventoryItemDefinition> ItemDef, TSubclassOf<UArenaInventoryItemFragment> FragmentClass)
-{
-	if (ItemDef != nullptr && FragmentClass != nullptr)
-	{
-		return GetDefault<UArenaInventoryItemDefinition>(ItemDef)->FindFragmentByClass(FragmentClass);
-	}
-
-	return nullptr;
-}
-

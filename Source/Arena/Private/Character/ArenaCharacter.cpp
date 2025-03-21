@@ -3,17 +3,18 @@
 
 #include "Character/ArenaCharacter.h"
 
+#include "ArenaLogChannel.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
-#include "AbilitySystem/ArenaHealthSet.h"
-#include "Camera/CameraComponent.h"
+#include "Camera/ArenaCameraComponent.h"
 #include "Character/ArenaHealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerState.h"
 #include "UI/HUD/ArenaHUD.h"
+
 
 AArenaCharacter::AArenaCharacter()
 {
@@ -26,7 +27,10 @@ AArenaCharacter::AArenaCharacter()
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
+
+	CameraComponent = CreateDefaultSubobject<UArenaCameraComponent>(TEXT("CameraComponent"));
+	CameraComponent->SetRelativeLocation(FVector(-300.0f, 0.0f, 75.0f));
+	
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -49,18 +53,7 @@ AArenaCharacter::AArenaCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-
-	// Create a camera boom (pulls in towards the player if there is a collision)
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
-	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
-
-	// Create a follow camera
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	CameraComponent->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
+	
 	EquipmentManagerComponent = CreateDefaultSubobject<UArenaEquipmentManagerComponent>(TEXT("EquipmentManagerComponent"));
 	
 	SetNetUpdateFrequency(66.0f);
@@ -81,6 +74,11 @@ UAbilitySystemComponent* AArenaCharacter::GetAbilitySystemComponent() const
 void AArenaCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (CameraComponent)
+	{
+		CameraComponent->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+	}
 }
 
 // Called every frame
@@ -91,10 +89,110 @@ void AArenaCharacter::Tick(float DeltaTime)
 
 void AArenaCharacter::PossessedBy(AController* NewController)
 {
+	const FGenericTeamId OldTeamId = GetGenericTeamId();
+	
 	Super::PossessedBy(NewController);
+
+	// Grab the current team ID and listen for future changes
+	if (IArenaTeamAgentInterface* ControllerAsTeamProvider = Cast<IArenaTeamAgentInterface>(NewController))
+	{
+		MyTeamId = ControllerAsTeamProvider->GetGenericTeamId();
+		ControllerAsTeamProvider->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnControllerChangedTeam);
+	}
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
 
 	// Init ability actor info for the server
 	InitAbilityActorInfo();
+}
+
+void AArenaCharacter::UnPossessed()
+{
+	AController* const OldController = Controller;
+
+	// Stop listening for changes from the old controller
+	const FGenericTeamId OldTeamId = MyTeamId;
+	if (IArenaTeamAgentInterface* ControllerAsTeamProvider = Cast<IArenaTeamAgentInterface>(OldController))
+	{
+		ControllerAsTeamProvider->GetTeamChangedDelegateChecked().RemoveAll(this);
+	}
+	
+	Super::UnPossessed();
+
+	// Determine what the new team ID should be afterwards
+	MyTeamId = DetermineNewTeamAfterPossessionEnds(OldTeamId);
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+}
+
+void AArenaCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ThisClass, MyTeamId);
+}
+
+void AArenaCharacter::FellOutOfWorld(const UDamageType& dmgType)
+{
+	HealthComponent->DamageSelfDestruct(/*bFellOutOfWorld=*/ true);
+}
+
+void AArenaCharacter::NotifyControllerChanged()
+{
+	const FGenericTeamId OldTeamId = GetGenericTeamId();
+	
+	Super::NotifyControllerChanged();
+
+	// Update our team ID based on the controller
+	if (HasAuthority() && (Controller != nullptr))
+	{
+		if (IArenaTeamAgentInterface* ControllerWithTeam = Cast<IArenaTeamAgentInterface>(Controller))
+		{
+			MyTeamId = ControllerWithTeam->GetGenericTeamId();
+			ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+		}
+	}
+}
+
+void AArenaCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	if (GetController() == nullptr)
+	{
+		if (HasAuthority())
+		{
+			const FGenericTeamId OldTeamId = MyTeamId;
+			MyTeamId = NewTeamID;
+			ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+		}
+		else
+		{
+			UE_LOG(LogArenaTeams, Error, TEXT("Cannot set team for %s on non-authority"), *GetPathName(this));
+		}
+	}
+	else
+	{
+		UE_LOG(LogArenaTeams, Error, TEXT("You can't set the team ID on a possessed character (%s); it's driven by the associated controller"), *GetPathName(this));
+	}
+}
+
+FGenericTeamId AArenaCharacter::GetGenericTeamId() const
+{
+	return MyTeamId;
+}
+
+FOnArenaTeamIndexChangedDelegate* AArenaCharacter::GetOnTeamIndexChangedDelegate()
+{
+	return &OnTeamChangedDelegate;
+}
+
+void AArenaCharacter::OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam)
+{
+	const FGenericTeamId OldTeamId = MyTeamId;
+	MyTeamId = IntegerToGenericTeamId(NewTeam);
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
+}
+
+void AArenaCharacter::OnRep_MyTeamId(FGenericTeamId OldTeamId)
+{
+	ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamId);
 }
 
 void AArenaCharacter::OnDeathStarted(AActor* OwningActor)
@@ -107,9 +205,48 @@ void AArenaCharacter::OnDeathFinished(AActor* OwningActor)
 	DestroyDueToDeath();
 }
 
+void AArenaCharacter::OnSpeedBuffChanged(float OldValue, float NewValue, AActor* EffectInstigator)
+{
+	K2_OnSpeedBuffChanged(OldValue, NewValue, EffectInstigator);
+}
+
 USkeletalMeshComponent* AArenaCharacter::GetDisplayMesh_Implementation()
 {
 	return GetMesh();
+}
+
+void AArenaCharacter::SetWantsToSprint(bool bNewWantsToSprint)
+{
+	K2_OnChangeWantsToSprint(bNewWantsToSprint);
+}
+
+void AArenaCharacter::SetWantsToWalk(bool bNewWantsToWalk)
+{
+	K2_OnChangeWantsToWalk(bNewWantsToWalk);
+}
+
+void AArenaCharacter::SetWantsToAim(bool bNewWantsToAim)
+{
+	K2_OnChangeWantsToAim(bNewWantsToAim);
+}
+
+void AArenaCharacter::SetAbilityCameraMode(TSubclassOf<UArenaCameraMode> CameraMode,
+	const FGameplayAbilitySpecHandle& OwningSpecHandle)
+{
+	if (CameraMode)
+	{
+		AbilityCameraMode = CameraMode;
+		AbilityCameraModeOwningSpecHandle = OwningSpecHandle;
+	}
+}
+
+void AArenaCharacter::ClearAbilityCameraMode(const FGameplayAbilitySpecHandle& OwningSpecHandle)
+{
+	if (AbilityCameraModeOwningSpecHandle == OwningSpecHandle)
+	{
+		AbilityCameraMode = nullptr;
+		AbilityCameraModeOwningSpecHandle = FGameplayAbilitySpecHandle();
+	}
 }
 
 void AArenaCharacter::DisableMovementAndCollision() const
@@ -143,6 +280,15 @@ void AArenaCharacter::DestroyDueToDeath()
 	SetActorHiddenInGame(true);
 }
 
+TSubclassOf<UArenaCameraMode> AArenaCharacter::DetermineCameraMode()
+{
+	if (AbilityCameraMode)
+	{
+		return AbilityCameraMode;
+	}
+	
+	return DefaultCameraMode;
+}
 
 void AArenaCharacter::InitAbilityActorInfo()
 {
@@ -162,14 +308,14 @@ void AArenaCharacter::InitAbilityActorInfo()
 	{
 		if (AArenaHUD* HUD = Cast<AArenaHUD>(PC->GetHUD()))
 		{
-			HUD->InitOverlay(PC, PS, AbilitySystemComponent, ArenaHealthSet.Get());
+			HUD->AddOverlayWidget();
 		}
 	}
 
 	UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent();
 	HealthComponent->InitializeWithAbilitySystem(ArenaASC);
 
-	ArenaCombatSet.Get()->OnSpeedBuffChanged.AddDynamic(this, &ThisClass::K2_OnSpeedBuffChanged);
+	ArenaCombatSet.Get()->OnSpeedBuffChanged.AddDynamic(this, &ThisClass::OnSpeedBuffChanged);
 
 	check(AbilitySet);
 	PS->AddAbilitySet(AbilitySet);

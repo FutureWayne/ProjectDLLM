@@ -32,6 +32,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerState")
 	UArenaAbilitySystemComponent* GetArenaAbilitySystemComponent() const { return AbilitySystemComponent; };
+
+	UFUNCTION(BlueprintCallable, Category = "Arena|PlayerState")
+	AArenaPlayerController* GetArenaPlayerController() const;
 	
 	UArenaHealthSet* GetArenaHealthSet() const { return ArenaHealthSet; }
 
