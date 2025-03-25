@@ -108,6 +108,23 @@ float UArenaHealthComponent::GetHealthNormalized() const
 	return 0.0f;
 }
 
+void UArenaHealthComponent::BroadcastEliminationMessage_Implementation(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec DamageEffectSpec, float DamageMagnitude)
+{
+	const FGameplayEffectSpec* DamageEffectSpecPtr = &DamageEffectSpec;
+	FArenaVerbMessage Message;
+	Message.Verb = TAG_Arena_Elimination_Message;
+	Message.Instigator = DamageInstigator;
+	Message.InstigatorTags = *DamageEffectSpecPtr->CapturedSourceTags.GetAggregatedTags();
+	Message.Target = UArenaVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
+	Message.TargetTags = *DamageEffectSpecPtr->CapturedTargetTags.GetAggregatedTags();
+	//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
+	//@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
+	MessageSystem.BroadcastMessage(Message.Verb, Message);
+}
+
 void UArenaHealthComponent::StartDeath()
 {
 	if (DeathState != EArenaDeathState::NotDead)
@@ -190,7 +207,6 @@ void UArenaHealthComponent::HandleMaxHealthChanged(AActor* DamageInstigator, AAc
 void UArenaHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser,
 	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
 {
-#if WITH_SERVER_CODE
 	if (AbilitySystemComponent && DamageEffectSpec)
 	{
 		// Send the "GameplayEvent.Death" gameplay event through the owner's ability system.  This can be used to trigger a death gameplay ability.
@@ -210,21 +226,8 @@ void UArenaHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* 
 		}
 
 		// Send a standardized verb message that other systems can observe
-		{
-			FArenaVerbMessage Message;
-			Message.Verb = TAG_Arena_Elimination_Message;
-			Message.Instigator = DamageInstigator;
-			Message.InstigatorTags = *DamageEffectSpec->CapturedSourceTags.GetAggregatedTags();
-			Message.Target = UArenaVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
-			Message.TargetTags = *DamageEffectSpec->CapturedTargetTags.GetAggregatedTags();
-			//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
-			//@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
-
-			UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
-			MessageSystem.BroadcastMessage(Message.Verb, Message);
-		}
+		BroadcastEliminationMessage(DamageInstigator, DamageCauser, *DamageEffectSpec, DamageMagnitude);
 	}
-#endif
 }
 
 void UArenaHealthComponent::OnRep_DeathState(EArenaDeathState OldDeathState)
