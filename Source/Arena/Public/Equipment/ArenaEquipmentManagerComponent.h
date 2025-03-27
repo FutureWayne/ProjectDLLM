@@ -94,7 +94,7 @@ struct TStructOpsTypeTraits<FArenaEquipmentList> : public TStructOpsTypeTraitsBa
 /**
  * Manages equipment applied to a pawn
  */
-UCLASS(BlueprintType, Const)
+UCLASS(BlueprintType)
 class ARENA_API UArenaEquipmentManagerComponent : public UPawnComponent
 {
 	GENERATED_BODY()
@@ -135,6 +135,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
 	void UnequipAll();
 
+	UFUNCTION(NetMulticast, Reliable)
 	void BroadcastEquipmentChangedMessage();
 	
 private:

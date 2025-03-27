@@ -297,7 +297,7 @@ void UArenaEquipmentManagerComponent::UnequipAll()
 	}
 }
 
-void UArenaEquipmentManagerComponent::BroadcastEquipmentChangedMessage()
+void UArenaEquipmentManagerComponent::BroadcastEquipmentChangedMessage_Implementation()
 {
 	FArenaEquipmentChangedMessage Message;
 	Message.Owner = GetOwner();
@@ -305,7 +305,7 @@ void UArenaEquipmentManagerComponent::BroadcastEquipmentChangedMessage()
 	{
 		Message.EquipmentList.Add(Entry.Instance);
 	}
-
+	
 	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
 	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
 }
