@@ -310,6 +310,7 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 					if (EquippedItem != nullptr)
 					{
 						EquippedItem->SetInstigator(LoadoutItemInstance);
+						EquipmentManager->BroadcastEquipmentChangedMessage();
 					}
 				}
 			}

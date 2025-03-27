@@ -9,6 +9,7 @@
 #include "ArenaEquipmentManagerComponent.generated.h"
 
 
+class UArenaInventoryItemInstance;
 struct FArenaEquipmentList;
 class UArenaEquipmentManagerComponent;
 class UArenaEquipmentDefinition;
@@ -133,8 +134,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
 	void UnequipAll();
+
+	void BroadcastEquipmentChangedMessage();
 	
 private:
 	UPROPERTY(Replicated)
 	FArenaEquipmentList EquipmentList;
+};
+
+USTRUCT(BlueprintType)
+struct FArenaEquipmentChangedMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TArray<TObjectPtr<UArenaEquipmentInstance>> EquipmentList;
 };

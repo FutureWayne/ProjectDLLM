@@ -9,9 +9,12 @@
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "Equipment/ArenaEquipmentInstance.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaEquipmentManagerComponent)
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Equipment_Message_EquipmentChanged, "Arena.QuickBar.Message.EquipmentChanged");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -158,6 +161,9 @@ UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
 			}
 		}
 	}
+
+	BroadcastEquipmentChangedMessage();
+	
 	return Result;
 }
 
@@ -173,6 +179,8 @@ void UArenaEquipmentManagerComponent::UnequipItem(UArenaEquipmentInstance* ItemI
 		ItemInstance->OnUnequipped();
 		EquipmentList.RemoveEntry(ItemInstance);
 	}
+
+	BroadcastEquipmentChangedMessage();
 }
 
 bool UArenaEquipmentManagerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch,
@@ -287,4 +295,17 @@ void UArenaEquipmentManagerComponent::UnequipAll()
 			UnequipItem(EquipInstance);
 		}
 	}
+}
+
+void UArenaEquipmentManagerComponent::BroadcastEquipmentChangedMessage()
+{
+	FArenaEquipmentChangedMessage Message;
+	Message.Owner = GetOwner();
+	for (const FArenaAppliedEquipmentEntry& Entry : EquipmentList.Entries)
+	{
+		Message.EquipmentList.Add(Entry.Instance);
+	}
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
+	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
 }
