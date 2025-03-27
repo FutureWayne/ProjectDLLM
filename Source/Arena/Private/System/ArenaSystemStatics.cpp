@@ -250,7 +250,8 @@ void UArenaSystemStatics::ClearInventory(AController* TargetController)
 	// 1. Clear the quickbar to handle unequip logic
 	ClearQuickBar(TargetController);
 
-	// 2. Possible to clear equipment list here, for items that can be equipped but not from quickbar
+	// 2. Clear equipment list
+	EquipmentManager->UnequipAll();
 
 	// 3. Clear the inventory item that not in quickbar
 	InventoryManager->ClearInventory();
