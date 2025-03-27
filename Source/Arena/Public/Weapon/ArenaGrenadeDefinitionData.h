@@ -101,6 +101,12 @@ public:
 	TSubclassOf<AActor> CosmeticActorClass = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	int32 BurstFireCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
+	int32 SpreadFireCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior")
 	float GrenadeAbilityCooldownTime = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Behavior", meta = (Categories = "GrenadeSlot"))
