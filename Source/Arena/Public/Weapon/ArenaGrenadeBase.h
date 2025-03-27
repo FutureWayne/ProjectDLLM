@@ -27,6 +27,9 @@ public:
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	void SetGrenadeParameter(const UArenaGrenadeDefinitionData* InGrenadeDefinitionData);
 
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
+	void SetGrenadeExplosionTimer(float TimeBeforeExplosion);
+
 	UFUNCTION(BlueprintCallable)
 	const UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() { return GrenadeDefinitionData; }
 
