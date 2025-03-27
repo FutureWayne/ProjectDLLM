@@ -77,6 +77,8 @@ private:
 
 	friend UArenaEquipmentManagerComponent;
 
+	void BroadcastEquipmentChangedMessage() const;
+
 private:
 	UPROPERTY()
 	TArray<FArenaAppliedEquipmentEntry> Entries;
@@ -103,7 +105,7 @@ public:
     UArenaEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
-    UArenaEquipmentInstance* EquipItem(TSubclassOf<UArenaEquipmentDefinition> EquipmentClass);
+    UArenaEquipmentInstance* EquipItem(TSubclassOf<UArenaEquipmentDefinition> EquipmentClass, UArenaInventoryItemInstance* Instigator);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
 	void UnequipItem(UArenaEquipmentInstance* ItemInstance);
@@ -134,9 +136,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
 	void UnequipAll();
-
-	UFUNCTION(NetMulticast, Reliable)
-	void BroadcastEquipmentChangedMessage();
 	
 private:
 	UPROPERTY(Replicated)

@@ -10,6 +10,7 @@
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "Equipment/ArenaEquipmentInstance.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
+#include "Inventory/ArenaInventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaEquipmentManagerComponent)
@@ -50,6 +51,8 @@ void FArenaEquipmentList::PostReplicatedAdd(const TArrayView<int32> AddedIndices
 			Entry.Instance->OnEquipped();
 		}
 	}
+
+	BroadcastEquipmentChangedMessage();
 }
 
 void FArenaEquipmentList::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
@@ -125,6 +128,19 @@ UArenaAbilitySystemComponent* FArenaEquipmentList::GetAbilitySystemComponent() c
 	return Cast<UArenaAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
 }
 
+void FArenaEquipmentList::BroadcastEquipmentChangedMessage() const
+{
+	FArenaEquipmentChangedMessage Message;
+	Message.Owner = OwnerComponent->GetOwner();
+	for (const FArenaAppliedEquipmentEntry& Entry : Entries)
+	{
+		Message.EquipmentList.Add(Entry.Instance);
+	}
+	
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(OwnerComponent);
+	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
+}
+
 //////////////////////////////////////////////////////////////////////
 // UArenaEquipmentManagerComponent
 
@@ -144,7 +160,7 @@ void UArenaEquipmentManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetim
 }
 
 UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
-	const TSubclassOf<UArenaEquipmentDefinition> EquipmentClass)
+	const TSubclassOf<UArenaEquipmentDefinition> EquipmentClass, UArenaInventoryItemInstance* Instigator)
 {
 	UArenaEquipmentInstance* Result = nullptr;
 
@@ -153,6 +169,7 @@ UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
 		Result = EquipmentList.AddEntry(EquipmentClass);
 		if (Result != nullptr)
 		{
+			Result->SetInstigator(Instigator);
 			Result->OnEquipped();
 
 			if (IsUsingRegisteredSubObjectList() && IsReadyForReplication())
@@ -161,8 +178,6 @@ UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
 			}
 		}
 	}
-
-	BroadcastEquipmentChangedMessage();
 	
 	return Result;
 }
@@ -179,8 +194,6 @@ void UArenaEquipmentManagerComponent::UnequipItem(UArenaEquipmentInstance* ItemI
 		ItemInstance->OnUnequipped();
 		EquipmentList.RemoveEntry(ItemInstance);
 	}
-
-	BroadcastEquipmentChangedMessage();
 }
 
 bool UArenaEquipmentManagerComponent::ReplicateSubobjects(UActorChannel* Channel, FOutBunch* Bunch,
@@ -295,17 +308,4 @@ void UArenaEquipmentManagerComponent::UnequipAll()
 			UnequipItem(EquipInstance);
 		}
 	}
-}
-
-void UArenaEquipmentManagerComponent::BroadcastEquipmentChangedMessage_Implementation()
-{
-	FArenaEquipmentChangedMessage Message;
-	Message.Owner = GetOwner();
-	for (const FArenaAppliedEquipmentEntry& Entry : EquipmentList.Entries)
-	{
-		Message.EquipmentList.Add(Entry.Instance);
-	}
-	
-	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
-	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
 }

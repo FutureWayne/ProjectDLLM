@@ -222,7 +222,7 @@ void UArenaSystemStatics::ClearInventory(AController* TargetController)
 {
 	if (!TargetController || !TargetController->HasAuthority())
 	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid TargetController or TargetController is not authoritative"));
+		UE_LOG(LogArenaInventory, Warning, TEXT("Invalid TargetController"));
 		return;
 	}
 
@@ -300,19 +300,14 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 		ELoadoutType LoadoutType = LoadoutItemData->ItemLoadoutType;
 
 		// For grenades loadout, add to equip list
-		if (LoadoutType > ELoadoutType::Ability)
+		if (LoadoutType > ELoadoutType::MovementAbility)
 		{
 			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
 			{
 				TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
 				if (EquipDef != nullptr)
 				{
-					auto EquippedItem = EquipmentManager->EquipItem(EquipDef);
-					if (EquippedItem != nullptr)
-					{
-						EquippedItem->SetInstigator(LoadoutItemInstance);
-						EquipmentManager->BroadcastEquipmentChangedMessage();
-					}
+					auto EquippedItem = EquipmentManager->EquipItem(EquipDef, LoadoutItemInstance);
 				}
 			}
 		}
