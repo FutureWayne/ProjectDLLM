@@ -272,13 +272,6 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 		UE_LOG(LogArenaInventory, Warning, TEXT("No Equipment Manager found on %s"), *TargetPawn->GetName());
 		return;
 	}
-
-	UArenaQuickBarComponent* QuickBar = TargetController->FindComponentByClass<UArenaQuickBarComponent>();
-	if (!QuickBar)
-	{
-		UE_LOG(LogArenaInventory, Warning, TEXT("No QuickBar found on %s"), *TargetController->GetName());
-		return;
-	}
 	
 	for (const TSubclassOf<UArenaInventoryItemDefinition>& ItemClass : LoadoutItemList)
 	{
@@ -289,7 +282,7 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 		}
 		
 		// Simply add the loadout item to the inventory, handle equip logic later based on the loadout type
-		auto LoadoutItemInstance = GiveItemDefinitionToPlayer(TargetController, ItemClass, 1, false);
+		UArenaInventoryItemInstance* LoadoutItemInstance = GiveItemDefinitionToPlayer(TargetController, ItemClass, 1, false);
 		if (!LoadoutItemInstance)
 		{
 			UE_LOG(LogArenaInventory, Warning, TEXT("Failed to add loadout item %s to inventory"), *ItemClass->GetName());
@@ -305,11 +298,21 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 
 		ELoadoutType LoadoutType = LoadoutItemData->ItemLoadoutType;
 
-		// For grenades loadout, equip them to the quickbar by the corresponding slot index
+		// For grenades loadout, add to equip list
 		if (LoadoutType > ELoadoutType::Ability)
 		{
-			QuickBar->AddItemToSlot(static_cast<uint8>(LoadoutType) - 1, LoadoutItemInstance);
-			QuickBar->SetActiveSlotIndex(0);
+			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
+			{
+				TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
+				if (EquipDef != nullptr)
+				{
+					auto EquippedItem = EquipmentManager->EquipItem(EquipDef);
+					if (EquippedItem != nullptr)
+					{
+						EquippedItem->SetInstigator(LoadoutItemInstance);
+					}
+				}
+			}
 		}
 
 		// For ability loadout, InventoryFragment_AddAbilitySet handles adding ability
