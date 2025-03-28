@@ -9,13 +9,10 @@
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "Equipment/ArenaEquipmentInstance.h"
-#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaEquipmentManagerComponent)
-
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Equipment_Message_EquipmentChanged, "Arena.QuickBar.Message.EquipmentChanged");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -51,8 +48,6 @@ void FArenaEquipmentList::PostReplicatedAdd(const TArrayView<int32> AddedIndices
 			Entry.Instance->OnEquipped();
 		}
 	}
-
-	BroadcastEquipmentChangedMessage();
 }
 
 void FArenaEquipmentList::PostReplicatedChange(const TArrayView<int32> ChangedIndices, int32 FinalSize)
@@ -128,18 +123,7 @@ UArenaAbilitySystemComponent* FArenaEquipmentList::GetAbilitySystemComponent() c
 	return Cast<UArenaAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
 }
 
-void FArenaEquipmentList::BroadcastEquipmentChangedMessage() const
-{
-	FArenaEquipmentChangedMessage Message;
-	Message.Owner = OwnerComponent->GetOwner();
-	for (const FArenaAppliedEquipmentEntry& Entry : Entries)
-	{
-		Message.EquipmentList.Add(Entry.Instance);
-	}
-	
-	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(OwnerComponent);
-	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
-}
+
 
 //////////////////////////////////////////////////////////////////////
 // UArenaEquipmentManagerComponent

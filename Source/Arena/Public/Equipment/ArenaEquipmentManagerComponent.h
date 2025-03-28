@@ -77,8 +77,6 @@ private:
 
 	friend UArenaEquipmentManagerComponent;
 
-	void BroadcastEquipmentChangedMessage() const;
-
 private:
 	UPROPERTY()
 	TArray<FArenaAppliedEquipmentEntry> Entries;
@@ -140,16 +138,4 @@ public:
 private:
 	UPROPERTY(Replicated)
 	FArenaEquipmentList EquipmentList;
-};
-
-USTRUCT(BlueprintType)
-struct FArenaEquipmentChangedMessage
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category=Inventory)
-	TObjectPtr<AActor> Owner = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-	TArray<TObjectPtr<UArenaEquipmentInstance>> EquipmentList;
 };
