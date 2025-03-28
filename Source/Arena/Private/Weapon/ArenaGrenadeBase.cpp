@@ -67,6 +67,16 @@ void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const UArenaGrenadeDe
 	}
 }
 
+void AArenaGrenadeBase::SetGrenadeExplosionTimer_Implementation(float TimeBeforeExplosion)
+{
+	UKismetSystemLibrary::K2_ClearTimerHandle(this, ExplosionCountdownTimerHandle);
+
+	if (TimeBeforeExplosion > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, TimeBeforeExplosion, false);
+	}
+}
+
 void AArenaGrenadeBase::BeginPlay()
 {
 	Super::BeginPlay();

@@ -3,12 +3,15 @@
 
 #include "Equipment/ArenaEquipmentInstance.h"
 
+#include "NativeGameplayTags.h"
 #include "Character/DEPRECATED_ABlasterCharacter.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
-#include "GameFramework/Character.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaEquipmentInstance)
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Equipment_Message_EquipmentChanged, "Arena.Equipment.Message.EquipmentChanged");
 
 UArenaEquipmentInstance::UArenaEquipmentInstance(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -32,6 +35,18 @@ void UArenaEquipmentInstance::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 	DOREPLIFETIME(ThisClass, Instigator);
 	DOREPLIFETIME(ThisClass, SpawnedActors);
+}
+
+void UArenaEquipmentInstance::SetInstigator(UObject* InInstigator)
+{
+	Instigator = InInstigator;
+
+	FArenaEquipmentChangedMessage Message;
+	Message.Owner = GetPawn();
+	Message.EquipmentInstance = this;
+	
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetPawn());
+	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
 }
 
 APawn* UArenaEquipmentInstance::GetPawn() const
@@ -98,4 +113,10 @@ void UArenaEquipmentInstance::OnUnequipped()
 
 void UArenaEquipmentInstance::OnRep_Instigator()
 {
+	FArenaEquipmentChangedMessage Message;
+	Message.Owner = GetPawn();
+	Message.EquipmentInstance = this;
+	
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetPawn());
+	MessageSystem.BroadcastMessage(TAG_Arena_Equipment_Message_EquipmentChanged, Message);
 }

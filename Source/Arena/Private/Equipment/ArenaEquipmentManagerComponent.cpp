@@ -9,6 +9,7 @@
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"
 #include "Equipment/ArenaEquipmentInstance.h"
+#include "Inventory/ArenaInventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaEquipmentManagerComponent)
@@ -122,6 +123,8 @@ UArenaAbilitySystemComponent* FArenaEquipmentList::GetAbilitySystemComponent() c
 	return Cast<UArenaAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
 }
 
+
+
 //////////////////////////////////////////////////////////////////////
 // UArenaEquipmentManagerComponent
 
@@ -141,7 +144,7 @@ void UArenaEquipmentManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetim
 }
 
 UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
-	const TSubclassOf<UArenaEquipmentDefinition> EquipmentClass)
+	const TSubclassOf<UArenaEquipmentDefinition> EquipmentClass, UArenaInventoryItemInstance* Instigator)
 {
 	UArenaEquipmentInstance* Result = nullptr;
 
@@ -150,6 +153,7 @@ UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
 		Result = EquipmentList.AddEntry(EquipmentClass);
 		if (Result != nullptr)
 		{
+			Result->SetInstigator(Instigator);
 			Result->OnEquipped();
 
 			if (IsUsingRegisteredSubObjectList() && IsReadyForReplication())
@@ -158,6 +162,7 @@ UArenaEquipmentInstance* UArenaEquipmentManagerComponent::EquipItem(
 			}
 		}
 	}
+	
 	return Result;
 }
 

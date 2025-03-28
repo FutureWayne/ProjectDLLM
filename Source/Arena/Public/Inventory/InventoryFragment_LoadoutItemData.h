@@ -9,9 +9,9 @@
 UENUM(BlueprintType)
 enum class ELoadoutType : uint8
 {
-	Ability,
-	FragGrenade,
-	EffectGrenade,
+	MovementAbility,
+	PrimaryGrenade,
+	SecondaryGrenade,
 	DeploymentGrenade,
 };
 

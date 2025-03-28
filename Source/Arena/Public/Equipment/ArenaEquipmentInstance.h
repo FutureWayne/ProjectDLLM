@@ -28,7 +28,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = Equipment)
 	UObject* GetInstigator() const { return Instigator; }
 
-	void SetInstigator(UObject* InInstigator) { Instigator = InInstigator; }
+	void SetInstigator(UObject* InInstigator);
 
 	UFUNCTION(BlueprintPure, Category = Equipment)
 	APawn* GetPawn() const;
@@ -62,4 +62,16 @@ private:
 
 	UPROPERTY(Replicated)
 	TArray<TObjectPtr<AActor>> SpawnedActors;
+};
+
+USTRUCT(BlueprintType)
+struct FArenaEquipmentChangedMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TObjectPtr<UArenaEquipmentInstance> EquipmentInstance;
 };

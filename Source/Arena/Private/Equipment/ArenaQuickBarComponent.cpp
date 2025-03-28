@@ -178,7 +178,7 @@ void UArenaQuickBarComponent::EquipItemInSlot()
 			{
 				if (UArenaEquipmentManagerComponent* EquipmentManagerComponent = FindEquipmentManager())
 				{
-					EquippedItem = EquipmentManagerComponent->EquipItem(EquipDef);
+					EquippedItem = EquipmentManagerComponent->EquipItem(EquipDef, SlotItem);
 					if (EquippedItem != nullptr)
 					{
 						EquippedItem->SetInstigator(SlotItem);

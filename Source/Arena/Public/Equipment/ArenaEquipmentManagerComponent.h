@@ -9,6 +9,7 @@
 #include "ArenaEquipmentManagerComponent.generated.h"
 
 
+class UArenaInventoryItemInstance;
 struct FArenaEquipmentList;
 class UArenaEquipmentManagerComponent;
 class UArenaEquipmentDefinition;
@@ -93,7 +94,7 @@ struct TStructOpsTypeTraits<FArenaEquipmentList> : public TStructOpsTypeTraitsBa
 /**
  * Manages equipment applied to a pawn
  */
-UCLASS(BlueprintType, Const)
+UCLASS(BlueprintType)
 class ARENA_API UArenaEquipmentManagerComponent : public UPawnComponent
 {
 	GENERATED_BODY()
@@ -102,7 +103,7 @@ public:
     UArenaEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
-    UArenaEquipmentInstance* EquipItem(TSubclassOf<UArenaEquipmentDefinition> EquipmentClass);
+    UArenaEquipmentInstance* EquipItem(TSubclassOf<UArenaEquipmentDefinition> EquipmentClass, UArenaInventoryItemInstance* Instigator);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = Equipment)
 	void UnequipItem(UArenaEquipmentInstance* ItemInstance);

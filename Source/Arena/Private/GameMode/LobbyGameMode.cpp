@@ -32,6 +32,6 @@ void ALobbyGameMode::StartGame()
 	if (UWorld* World = GetWorld())
 	{
 		bUseSeamlessTravel = true;
-		World->ServerTravel(FString("/Game/Maps/PVP_Map_New?listen"));
+		World->ServerTravel(FString("/Game/Maps/PVP_Resize_and_Design?listen"));
 	}
 }
