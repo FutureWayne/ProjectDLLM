@@ -180,6 +180,12 @@ public:
 public:
 	UArenaIndicatorManagerComponent* GetIndicatorManagerComponent() { return ManagerPtr.Get(); }
 	void SetIndicatorManagerComponent(UArenaIndicatorManagerComponent* InManager);
+
+	UFUNCTION(BlueprintCallable)
+	UUserWidget* GetWidget() const
+	{
+		return IndicatorWidget.Get();
+	}
 	
 	UFUNCTION(BlueprintCallable)
 	void UnregisterIndicator();
