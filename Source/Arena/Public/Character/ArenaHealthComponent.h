@@ -60,9 +60,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Arena|Health", Meta = (ExpandBoolAsExecs = "ReturnValue"))
 	bool IsDeadOrDying() const { return (DeathState > EArenaDeathState::NotDead); }
-
-	UFUNCTION(NetMulticast, Reliable)
-	void BroadcastEliminationMessage(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec DamageEffectSpec, float DamageMagnitude);
+	
+	void BroadcastEliminationMessage(AActor* DamageInstigator, const AActor* DamageCauser, const FGameplayEffectSpec& DamageEffectSpec, float DamageMagnitude) const;
 
 	// Begins the death sequence for the owner.
 	virtual void StartDeath();

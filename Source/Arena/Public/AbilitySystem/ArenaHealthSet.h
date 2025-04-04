@@ -5,7 +5,19 @@
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ArenaAttributeSet.h"
+#include "NativeGameplayTags.h"
+
 #include "ArenaHealthSet.generated.h"
+
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_Damage);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_DamageImmunity);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_DamageSelfDestruct);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_DamageFromEnemy);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_DamageFromAlly);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_FellOutOfWorld);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Arena_Damage_Message);
+
+
 
 struct FGameplayEffectModCallbackData;
 

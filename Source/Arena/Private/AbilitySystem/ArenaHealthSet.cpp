@@ -6,11 +6,17 @@
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
 #include "ArenaGameplayTags.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "Messages/ArenaVerbMessage.h"
 #include "Net/UnrealNetwork.h"
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_Damage, "Gameplay.Damage");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageImmunity, "Gameplay.DamageImmunity");
 UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageSelfDestruct, "Gameplay.Damage.SelfDestruct");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageFromEnemy, "Gameplay.Damage.FromEnemy");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_DamageFromAlly, "Gameplay.Damage.FromAlly");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_FellOutOfWorld, "Gameplay.Damage.FellOutOfWorld");
+UE_DEFINE_GAMEPLAY_TAG(TAG_Arena_Damage_Message, "Arena.Damage.Message");
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaHealthSet)
 
@@ -96,6 +102,22 @@ void UArenaHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 
 	if (Data.EvaluatedData.Attribute == GetDamageAttribute())
 	{
+		// Send a standardized verb message that other systems can observe
+		if (Data.EvaluatedData.Magnitude > 0.0f)
+		{
+			FArenaVerbMessage Message;
+			Message.Verb = TAG_Arena_Damage_Message;
+			Message.Instigator = Data.EffectSpec.GetEffectContext().GetEffectCauser();
+			Message.InstigatorTags = *Data.EffectSpec.CapturedSourceTags.GetAggregatedTags();
+			Message.Target = GetOwningActor();
+			Message.TargetTags = *Data.EffectSpec.CapturedTargetTags.GetAggregatedTags();
+			
+			Message.Magnitude = Data.EvaluatedData.Magnitude;
+
+			UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
+			MessageSystem.BroadcastMessage(Message.Verb, Message);
+		}
+		
 		// Convert into -Health and then clamp
 		SetHealth(FMath::Clamp(GetHealth() - GetDamage(), 0, GetMaxHealth()));
 		SetDamage(0.0f);
