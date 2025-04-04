@@ -202,6 +202,7 @@ void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnT
 	AArenaEffectActor* SpawnedEffectActor = GetWorld()->SpawnActorDeferred<AArenaEffectActor>(EffectActorClass, SpawnTransform);
 	// Ignore collision between the spawned effect actor and the grenade
 	CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
+	SpawnedEffectActor->SetInstigator(GetInstigator());
 	SpawnedEffectActor->FinishSpawning(SpawnTransform, true);
 }
 
@@ -221,7 +222,7 @@ void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& S
 		FVector ForwardVector = UKismetMathLibrary::GetForwardVector(Rotation);
 		FVector SpawnLocation = SpawnTransform.GetLocation() + (ForwardVector * 50.0f);
 		FTransform NewSpawnTransform = FTransform(Rotation, SpawnLocation);
-		UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, NewSpawnTransform, GrenadeDefinition, GetOwner(), Cast<APawn>(GetInstigator()));
+		UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, NewSpawnTransform, GrenadeDefinition, GetOwner(), GetInstigator());
 	}
 }
 
