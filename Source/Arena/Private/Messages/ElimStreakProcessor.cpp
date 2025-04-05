@@ -29,6 +29,8 @@ void UElimStreakProcessor::OnEliminationMessage(FGameplayTag Channel, const FAre
 			int32& StreakCount = PlayerStreakHistory.FindOrAdd(InstigatorPS);
 			StreakCount++;
 
+			StreakCount = FMath::Clamp(StreakCount, 0, 6);
+
 			if (FGameplayTag* pTag = ElimStreakTags.Find(StreakCount))
 			{
 				FArenaVerbMessage ElimStreakMessage;
