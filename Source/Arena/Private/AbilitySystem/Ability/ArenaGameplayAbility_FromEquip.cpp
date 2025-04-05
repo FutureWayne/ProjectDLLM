@@ -11,7 +11,7 @@
 #include "Misc/DataValidation.h"
 #endif
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaGameplayAbility_FromEquip)
 

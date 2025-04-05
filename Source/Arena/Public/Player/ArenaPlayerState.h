@@ -11,6 +11,7 @@
 #include "Teams/ArenaTeamInfo.h"
 #include "ArenaPlayerState.generated.h"
 
+struct FArenaVerbMessage;
 class UArenaCombatSet;
 class UArenaHealthSet;
 
@@ -70,6 +71,11 @@ public:
 	// Returns true if there is at least one stack of the specified tag
 	UFUNCTION(BlueprintCallable, Category=Teams)
 	bool HasStatTag(FGameplayTag Tag) const;
+
+	// Send a message to just this player
+	// (use only for client notifications like accolades, quest toasts, etc... that can handle being occasionally lost)
+	UFUNCTION(Client, Unreliable, BlueprintCallable, Category = "Arena|PlayerState")
+	void ClientBroadcastMessage(const FArenaVerbMessage Message);
 
 protected:
 	UPROPERTY(VisibleAnywhere)

@@ -4,7 +4,7 @@
 #include "Player/ArenaPlayerController.h"
 
 #include "ArenaGameplayTags.h"
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/ArenaPlayerCameraManager.h"
 #include "Equipment/ArenaQuickBarComponent.h"

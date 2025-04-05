@@ -3,7 +3,7 @@
 
 #include "Teams/ArenaTeamInfo.h"
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
 

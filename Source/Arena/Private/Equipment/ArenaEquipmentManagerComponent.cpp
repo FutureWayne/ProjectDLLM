@@ -4,7 +4,7 @@
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 
 #include "AbilitySystemGlobals.h"
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "Engine/ActorChannel.h"
 #include "Equipment/ArenaEquipmentDefinition.h"

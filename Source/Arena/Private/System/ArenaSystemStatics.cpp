@@ -2,7 +2,7 @@
 
 #include "System/ArenaSystemStatics.h"
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"

@@ -4,7 +4,7 @@
 #include "AbilitySystem/Ability/ArenaGameplayAbility_FromGrenade.h"
 
 #include "AbilitySystemComponent.h"
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Character/ArenaCharacter.h"
 #include "Inventory/ArenaInventoryItemInstance.h"
 #include "Inventory/InventoryFragment_GrenadeDef.h"
