@@ -33,8 +33,9 @@ namespace ArenaGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_DirectHit, "DamageType.Grenade.DirectHit", "Damage Tag for Grenade Direct Hit damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_Effect, "DamageType.Grenade.Effect", "Damage Tag for Grenade Effect damage.");
 
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Grenade_Duration_Message, "Ability.Grenade.Duration.Message", "Tag for grenade duration message.");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Mobility_Duration_Message, "Ability.Mobility.Duration.Message", "Tag for Mobility duration message.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Grenade_Duration_Message, "Ability.Grenade.Duration.Message", "Tag for grenade ability duration message.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Mobility_Duration_Message, "Ability.Mobility.Duration.Message", "Tag for mobility ability duration message.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Deployment_Duration_Message, "Ability.Deployment.Duration.Message", "Tag for deployment ability duration message.");
 	
 	FGameplayTag FindTagByString(const FString& TagString, bool bMatchPartialString)
 	{
