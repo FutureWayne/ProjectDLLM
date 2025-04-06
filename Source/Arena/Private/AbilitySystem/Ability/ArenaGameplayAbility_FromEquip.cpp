@@ -40,14 +40,26 @@ UArenaEquipmentInstance* UArenaGameplayAbility_FromEquip::GetAssociatedEquipment
 
 UArenaInventoryItemInstance* UArenaGameplayAbility_FromEquip::GetAssociatedItem() const
 {
+	FGameplayAbilitySpec* Spec = GetCurrentAbilitySpec();
+	if (Spec == nullptr)
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedEquipment: Could not get ability spec"));
+		return nullptr;
+	}
+	
 	if (UArenaEquipmentInstance* Equipment = GetAssociatedEquipment())
 	{
 		return Cast<UArenaInventoryItemInstance>(Equipment->GetInstigator());
 	}
 
+	if (UArenaInventoryItemInstance* InventoryItem = Cast<UArenaInventoryItemInstance>(Spec->SourceObject.Get()))
+	{
+		return InventoryItem;
+	}
+	
 	else
 	{
-		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedItem: Could not get associated equipment"));
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("UArenaGameplayAbility_FromEquip::GetAssociatedItem: Could not get associated item"));
 		return nullptr;
 	}
 }
