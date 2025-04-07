@@ -152,3 +152,16 @@ private:
 	UPROPERTY(Replicated)
 	FArenaInventoryList InventoryList;
 };
+
+
+USTRUCT(BlueprintType)
+struct FArenaInventoryChangedMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	TObjectPtr<UArenaInventoryItemInstance> InventoryInstance;
+};

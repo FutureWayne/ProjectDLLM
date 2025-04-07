@@ -22,9 +22,15 @@ void AArenaEffectActor::ApplyEffectToTarget(AActor* Target, TSubclassOf<UGamepla
 {
 	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
-	if (InstigatorASC == nullptr || TargetASC == nullptr)
+	if (TargetASC == nullptr)
 	{
 		return;
+	}
+
+	// Some effect actors may not have an instigator, such as the respawn chamber
+	if (InstigatorASC == nullptr)
+	{
+		InstigatorASC = TargetASC;
 	}
 
 	check(GameplayEffectClass);

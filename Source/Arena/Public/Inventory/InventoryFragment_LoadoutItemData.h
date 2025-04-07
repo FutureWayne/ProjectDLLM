@@ -3,17 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NativeGameplayTags.h"
 #include "Inventory/ArenaInventoryItemDefinition.h"
 #include "InventoryFragment_LoadoutItemData.generated.h"
 
-UENUM(BlueprintType)
-enum class ELoadoutType : uint8
-{
-	MovementAbility,
-	PrimaryGrenade,
-	SecondaryGrenade,
-	DeploymentGrenade,
-};
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_LoadoutType_Grenade_PrimaryGrenade);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_LoadoutType_Grenade_SecondaryGrenade);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_LoadoutType_Ability_DeploymentAbility);
+ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_LoadoutType_Ability_MovementAbility);
 
 /**
  * 
@@ -34,5 +31,5 @@ public:
 	TObjectPtr<UTexture> IconTexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Loadout")
-	ELoadoutType ItemLoadoutType;
+	FGameplayTag LoadoutTypeTag;
 };

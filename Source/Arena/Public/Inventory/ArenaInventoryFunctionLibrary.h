@@ -6,7 +6,6 @@
 
 #include "ArenaInventoryFunctionLibrary.generated.h"
 
-enum class ELoadoutType : uint8;
 class UArenaInventoryItemDefinition;
 class UArenaInventoryItemFragment;
 
@@ -20,5 +19,5 @@ class ARENA_API UArenaInventoryFunctionLibrary : public UBlueprintFunctionLibrar
 
 	UFUNCTION(BlueprintCallable)
 	static const UArenaInventoryItemInstance* FindFirstItemInstanceByLoadoutType(
-		const UArenaInventoryManagerComponent* InventoryManager, ELoadoutType LoadoutType);
+		const UArenaInventoryManagerComponent* InventoryManager, FGameplayTag LoadoutTypeTag);
 };
