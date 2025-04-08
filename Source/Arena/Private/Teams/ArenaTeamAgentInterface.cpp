@@ -3,7 +3,7 @@
 
 #include "Teams/ArenaTeamAgentInterface.h"
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Teams/ArenaTeamSubsystem.h"
 
 UArenaTeamAgentInterface::UArenaTeamAgentInterface(const FObjectInitializer& ObjectInitializer)

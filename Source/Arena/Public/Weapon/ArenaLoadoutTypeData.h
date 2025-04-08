@@ -3,10 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
 #include "ArenaLoadoutTypeData.generated.h"
-
-enum class ELoadoutType : uint8;
 
 /**
  * 
@@ -27,7 +26,7 @@ public:
 	FText LoadoutDescription;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Loadout")
-	ELoadoutType LoadoutType;
+	FGameplayTag LoadoutTypeTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Loadout")
 	TArray<TSubclassOf<class UArenaInventoryItemDefinition>> InventoryIDList;

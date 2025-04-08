@@ -4,7 +4,7 @@
 #include "Teams/ArenaTeamSubsystem.h"
 
 #include "AbilitySystemGlobals.h"
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Player/ArenaPlayerState.h"
 #include "Logging/LogMacros.h"
 

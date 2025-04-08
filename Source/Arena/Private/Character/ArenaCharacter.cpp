@@ -3,7 +3,7 @@
 
 #include "Character/ArenaCharacter.h"
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaCombatSet.h"
 #include "Camera/ArenaCameraComponent.h"

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Inventory/ArenaInventoryItemInstance.h"
 #include "ArenaEquipmentInstance.generated.h"
 
 struct FArenaEquipmentActorToSpawn;

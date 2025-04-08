@@ -4,6 +4,7 @@
 #include "Actor/ArenaEffectActor.h"
 #include "AbilitySystemGlobals.h"
 #include "AbilitySystem/ArenaHealthSet.h"
+#include "GameFramework/PlayerState.h"
 
 AArenaEffectActor::AArenaEffectActor()
 {
@@ -19,17 +20,24 @@ void AArenaEffectActor::BeginPlay()
 
 void AArenaEffectActor::ApplyEffectToTarget(AActor* Target, TSubclassOf<UGameplayEffect> GameplayEffectClass)
 {
+	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 	if (TargetASC == nullptr)
 	{
 		return;
 	}
 
+	// Some effect actors may not have an instigator, such as the respawn chamber
+	if (InstigatorASC == nullptr)
+	{
+		InstigatorASC = TargetASC;
+	}
+
 	check(GameplayEffectClass);
-	FGameplayEffectContextHandle EffectContext = TargetASC->MakeEffectContext();
+	FGameplayEffectContextHandle EffectContext = InstigatorASC->MakeEffectContext();
 	EffectContext.AddSourceObject(this);
-	const FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(GameplayEffectClass, 1, EffectContext);
-	const FActiveGameplayEffectHandle ActiveEffectHandle = TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+	const FGameplayEffectSpecHandle SpecHandle = InstigatorASC->MakeOutgoingSpec(GameplayEffectClass, 1, EffectContext);
+	const FActiveGameplayEffectHandle ActiveEffectHandle = InstigatorASC->ApplyGameplayEffectSpecToTarget(*SpecHandle.Data.Get(), TargetASC);
 
 	const bool bIsInfinite = SpecHandle.Data.Get()->Def.Get()->DurationPolicy == EGameplayEffectDurationType::Infinite;
 	if (bIsInfinite && InfiniteEffectRemovalPolicy == EEffectRemovalPolicy::RemoveOnEndOverlap)

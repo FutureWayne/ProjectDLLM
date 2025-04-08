@@ -1,7 +1,7 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "GameFramework/Actor.h"
 
 DEFINE_LOG_CATEGORY(LogArena);

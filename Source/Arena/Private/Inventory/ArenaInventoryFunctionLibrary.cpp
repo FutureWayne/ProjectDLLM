@@ -19,7 +19,7 @@ const UArenaInventoryItemFragment* UArenaInventoryFunctionLibrary::FindItemDefin
 }
 
 const UArenaInventoryItemInstance* UArenaInventoryFunctionLibrary::FindFirstItemInstanceByLoadoutType(
-	const UArenaInventoryManagerComponent* InventoryManager, ELoadoutType LoadoutType)
+	const UArenaInventoryManagerComponent* InventoryManager, const FGameplayTag LoadoutTypeTag)
 {
 	if (!InventoryManager)
 	{
@@ -31,7 +31,7 @@ const UArenaInventoryItemInstance* UArenaInventoryFunctionLibrary::FindFirstItem
 	for (UArenaInventoryItemInstance* ItemInstance : InventoryItems)
 	{
 		const UInventoryFragment_LoadoutItemData* LoadoutFragment = ItemInstance->FindFragmentByClass<UInventoryFragment_LoadoutItemData>();
-		if (LoadoutFragment && LoadoutFragment->ItemLoadoutType == LoadoutType)
+		if (LoadoutFragment && LoadoutFragment->LoadoutTypeTag.MatchesTagExact(LoadoutTypeTag))
 		{
 			return ItemInstance;
 		}

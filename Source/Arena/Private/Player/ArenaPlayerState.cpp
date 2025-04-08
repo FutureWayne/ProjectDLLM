@@ -8,6 +8,8 @@
 #include "AbilitySystem/ArenaCombatSet.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Character/DEPRECATED_ABlasterCharacter.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "Messages/ArenaVerbMessage.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/ArenaPlayerController.h"
 
@@ -98,6 +100,15 @@ int32 AArenaPlayerState::GetStatTagStackCount(FGameplayTag Tag) const
 bool AArenaPlayerState::HasStatTag(FGameplayTag Tag) const
 {
 	return StatTags.ContainsTag(Tag);
+}
+
+void AArenaPlayerState::ClientBroadcastMessage_Implementation(const FArenaVerbMessage Message)
+{
+	// This check is needed to prevent running the action when in standalone mode
+	if (GetNetMode() == NM_Client)
+	{
+		UGameplayMessageSubsystem::Get(this).BroadcastMessage(Message.Verb, Message);
+	}
 }
 
 void AArenaPlayerState::OnRep_MyTeamID(FGenericTeamId OldTeamID)

@@ -3,7 +3,7 @@
 #include "AbilitySystem/Ability/ArenaGameplayAbility_GrenadeFire.h"
 
 #include "AbilitySystemComponent.h"
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Character/ArenaCharacter.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "Messages/ArenaInteractionDurationMessage.h"

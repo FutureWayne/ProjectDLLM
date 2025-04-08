@@ -23,6 +23,7 @@ public class Arena : ModuleRules
             "CommonLoadingScreen",
             "ApplicationCore",
             "AsyncMixin",
+            "DataRegistry",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

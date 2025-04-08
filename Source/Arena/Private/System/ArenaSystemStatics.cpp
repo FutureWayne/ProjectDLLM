@@ -2,7 +2,7 @@
 
 #include "System/ArenaSystemStatics.h"
 
-#include "ArenaLogChannel.h"
+#include "ArenaLogChannels.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Components/MeshComponent.h"
@@ -296,11 +296,22 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 			UE_LOG(LogArenaInventory, Warning, TEXT("Item %s is not a loadout item"), *LoadoutItemInstance->GetName());
 			continue;
 		}
-
-		ELoadoutType LoadoutType = LoadoutItemData->ItemLoadoutType;
+		
+		FGameplayTag LoadoutTypeTag = LoadoutItemData->LoadoutTypeTag;
 
 		// For grenades loadout, add to equip list
-		if (LoadoutType > ELoadoutType::MovementAbility)
+		auto GrenadeTypeTag = UGameplayTagsManager::Get().RequestGameplayTag(FName("LoadoutType.Grenade"));
+		if (LoadoutTypeTag.MatchesTag(GrenadeTypeTag))
+		{
+			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
+			{
+				TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
+				if (EquipDef != nullptr)
+				{
+					auto EquippedItem = EquipmentManager->EquipItem(EquipDef, LoadoutItemInstance);
+				}
+			}
+		}
 		{
 			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
 			{

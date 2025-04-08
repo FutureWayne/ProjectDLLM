@@ -13,6 +13,7 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaInventoryManagerComponent)
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Inventory_Message_StackChanged, "Arena.Inventory.Message.StackChanged");
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Inventory_Message_InventoryChanged, "Arena.Inventory.Message.InventoryChanged");
 
 //////////////////////////////////////////////////////////////////////
 // FArenaInventoryEntry
@@ -220,6 +221,16 @@ UArenaInventoryItemInstance* UArenaInventoryManagerComponent::AddItemDefinition(
 		{
 			AddReplicatedSubObject(Result);
 		}
+	}
+
+	// Broadcast inventory change message
+	{
+		FArenaInventoryChangedMessage Message;
+		Message.Owner = GetOwner();
+		Message.InventoryInstance = Result;
+
+		UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
+		MessageSystem.BroadcastMessage(TAG_Arena_Inventory_Message_InventoryChanged, Message);
 	}
 
 	return Result;

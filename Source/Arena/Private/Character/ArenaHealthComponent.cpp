@@ -11,6 +11,7 @@
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Teams/ArenaTeamSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaHealthComponent)
 
@@ -108,8 +109,8 @@ float UArenaHealthComponent::GetHealthNormalized() const
 	return 0.0f;
 }
 
-void UArenaHealthComponent::BroadcastEliminationMessage_Implementation(AActor* DamageInstigator, AActor* DamageCauser,
-	const FGameplayEffectSpec DamageEffectSpec, float DamageMagnitude)
+void UArenaHealthComponent::BroadcastEliminationMessage(AActor* DamageInstigator, const AActor* DamageCauser,
+	const FGameplayEffectSpec& DamageEffectSpec, float DamageMagnitude) const
 {
 	const FGameplayEffectSpec* DamageEffectSpecPtr = &DamageEffectSpec;
 	FArenaVerbMessage Message;
@@ -119,8 +120,30 @@ void UArenaHealthComponent::BroadcastEliminationMessage_Implementation(AActor* D
 	Message.Target = UArenaVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
 	Message.TargetTags = *DamageEffectSpecPtr->CapturedTargetTags.GetAggregatedTags();
 	//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
-	//@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
+	
+	if (DamageInstigator == Message.Target)
+	{
+		Message.TargetTags.AddTag(TAG_Gameplay_DamageSelfDestruct);
+	}
 
+	else if (UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
+	{
+		EArenaTeamComparison ComparisonResult = TeamSubsystem->CompareTeams(DamageInstigator, Message.Target);
+
+		if (ComparisonResult == EArenaTeamComparison::OnSameTeam)
+		{
+			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromAlly);
+		}
+		else if (ComparisonResult == EArenaTeamComparison::DifferentTeams)
+		{
+			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromEnemy);
+		}
+		else if (ComparisonResult == EArenaTeamComparison::InvalidArgument)
+		{
+			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromEnemy);
+		}
+	}
+	
 	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
 	MessageSystem.BroadcastMessage(Message.Verb, Message);
 }
