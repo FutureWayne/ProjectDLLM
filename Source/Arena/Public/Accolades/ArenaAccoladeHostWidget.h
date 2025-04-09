@@ -29,6 +29,9 @@ struct FPendingAccoladeEntry
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UObject> Icon = nullptr;
 
+	UPROPERTY(BlueprintReadOnly)
+	FString TargetPlayerName;
+
 	UPROPERTY()
 	TObjectPtr<UUserWidget> AllocatedWidget = nullptr;
 
@@ -80,7 +83,7 @@ private:
 
 
 	void OnNotificationMessage(FGameplayTag Channel, const FArenaNotificationMessage& Notification);
-	void OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID);
+	void OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, FString TargetPlayerName);
 
 	void ConsiderLoadedAccolades();
 	void PopDisplayedAccolade();

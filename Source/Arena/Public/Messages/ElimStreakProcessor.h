@@ -24,12 +24,24 @@ public:
 protected:
 	// The event to rebroadcast when a user gets a streak of a certain length
 	UPROPERTY(EditDefaultsOnly)
-	TMap<int32, FGameplayTag> ElimStreakTags;
+	TMap<int32, FGameplayTag> EnemyElimStreakTags;
+
+	UPROPERTY(EditDefaultsOnly)
+	TMap<int32, FGameplayTag> SelfElimStreakTags;
+
+	UPROPERTY(EditDefaultsOnly)
+	TMap<int32, FGameplayTag> FriendlyElimStreakTags;
 
 private:
 	void OnEliminationMessage(FGameplayTag Channel, const FArenaVerbMessage& Payload);
 
 private:
 	UPROPERTY(Transient)
-	TMap<TObjectPtr<APlayerState>, int32> PlayerStreakHistory;
+	TMap<TObjectPtr<APlayerState>, int32> PlayerEnemyElimHistory;
+
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<APlayerState>, int32> PlayerSelfElimHistory;
+
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<APlayerState>, int32> PlayerFriendlyElimHistory;
 };
