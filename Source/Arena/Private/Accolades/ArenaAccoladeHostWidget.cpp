@@ -7,6 +7,7 @@
 #include "Messages/ArenaNotificationMessage.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "GameFramework/PlayerState.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaAccoladeHostWidget)
 
@@ -42,7 +43,7 @@ void UArenaAccoladeHostWidget::OnNotificationMessage(FGameplayTag Channel, const
 		if (Notification.TargetPlayer != nullptr)
 		{
 			APlayerController* PC = GetOwningPlayer();
-			if ((PC == nullptr) || (PC->PlayerState != Notification.TargetPlayer))
+			if ((PC == nullptr))
 			{
 				return;
 			}
@@ -52,8 +53,10 @@ void UArenaAccoladeHostWidget::OnNotificationMessage(FGameplayTag Channel, const
 		const int32 NextID = AllocatedSequenceID;
 		++AllocatedSequenceID;
 
+		const FString TargetPlayerName = Notification.TargetPlayer ? Notification.TargetPlayer->GetPlayerName() : TEXT("");
+
 		FDataRegistryId ItemID(NAME_AccoladeRegistryID, Notification.PayloadTag.GetTagName());
-		if (!UDataRegistrySubsystem::Get()->AcquireItem(ItemID, FDataRegistryItemAcquiredCallback::CreateUObject(this, &ThisClass::OnRegistryLoadCompleted, NextID)))
+		if (!UDataRegistrySubsystem::Get()->AcquireItem(ItemID, FDataRegistryItemAcquiredCallback::CreateUObject(this, &ThisClass::OnRegistryLoadCompleted, NextID, TargetPlayerName)))
 		{
 			UE_LOG(LogArena, Error, TEXT("Failed to find accolade registry for tag %s, accolades will not appear"), *Notification.PayloadTag.GetTagName().ToString());
 			--AllocatedSequenceID;
@@ -61,13 +64,14 @@ void UArenaAccoladeHostWidget::OnNotificationMessage(FGameplayTag Channel, const
 	}
 }
 
-void UArenaAccoladeHostWidget::OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID)
+void UArenaAccoladeHostWidget::OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, FString TargetPlayerName)
 {
 	if (const FArenaAccoladeDefinitionRow* AccoladeRow = AccoladeHandle.GetItem<FArenaAccoladeDefinitionRow>())
 	{
 		FPendingAccoladeEntry& PendingEntry = PendingAccoladeLoads.AddDefaulted_GetRef();
 		PendingEntry.Row = *AccoladeRow;
 		PendingEntry.SequenceID = SequenceID;
+		PendingEntry.TargetPlayerName = TargetPlayerName;
 
 		TArray<FSoftObjectPath> AssetsToLoad;
 		AssetsToLoad.Add(AccoladeRow->Sound.ToSoftObjectPath());

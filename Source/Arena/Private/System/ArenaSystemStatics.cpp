@@ -312,16 +312,6 @@ void UArenaSystemStatics::AddLoadoutToInventory(AController* TargetController,
 				}
 			}
 		}
-		{
-			if (const UInventoryFragment_EquippableItem* EquipInfo = LoadoutItemInstance->FindFragmentByClass<UInventoryFragment_EquippableItem>())
-			{
-				TSubclassOf<UArenaEquipmentDefinition> EquipDef = EquipInfo->EquipmentDefinition;
-				if (EquipDef != nullptr)
-				{
-					auto EquippedItem = EquipmentManager->EquipItem(EquipDef, LoadoutItemInstance);
-				}
-			}
-		}
 
 		// For ability loadout, InventoryFragment_AddAbilitySet handles adding ability
 	}

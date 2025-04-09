@@ -170,6 +170,11 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 {
 	bool bShouldDetonate = false;
 
+	if (GrenadeDefinitionData == nullptr)
+	{
+		return bShouldDetonate;
+	}
+
 	if (GrenadeDefinitionData->ImpactDetonationPolicy.HasTagExact(TAG_DetonationPolicy_OnImpact))
 	{
 		bShouldDetonate = true;
