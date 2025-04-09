@@ -69,12 +69,16 @@ void UArenaHealthComponent::InitializeWithAbilitySystem(UArenaAbilitySystemCompo
 
 	AbilitySystemComponent->SetNumericAttributeBase(UArenaHealthSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
 
+	ClearGameplayTags();
+	
 	OnHealthChanged.Broadcast(this, HealthSet->GetHealth(), HealthSet->GetHealth(), nullptr);
 	OnMaxHealthChanged.Broadcast(this, HealthSet->GetMaxHealth(), HealthSet->GetMaxHealth(), nullptr);
 }
 
 void UArenaHealthComponent::UninitializeFromAbilitySystem()
 {
+	ClearGameplayTags();
+	
 	if (HealthSet)
 	{
 		HealthSet->OnHealthChanged.RemoveAll(this);
