@@ -19,7 +19,7 @@ struct FArenaInteractionDurationMessage
 
 public:
 	UPROPERTY(BlueprintReadWrite)
-	TObjectPtr<AArenaCharacter> Instigator = nullptr;
+	TObjectPtr<AActor> Instigator = nullptr;
 	
 	UPROPERTY(BlueprintReadWrite)
 	float Duration = 0;
