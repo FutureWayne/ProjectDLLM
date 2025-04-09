@@ -13,7 +13,6 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaInventoryManagerComponent)
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Inventory_Message_StackChanged, "Arena.Inventory.Message.StackChanged");
-UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Inventory_Message_InventoryChanged, "Arena.Inventory.Message.InventoryChanged");
 
 //////////////////////////////////////////////////////////////////////
 // FArenaInventoryEntry
@@ -193,6 +192,8 @@ UArenaInventoryManagerComponent::UArenaInventoryManagerComponent(const FObjectIn
 	, InventoryList(this)
 {
 	SetIsReplicatedByDefault(true);
+
+	bReplicateUsingRegisteredSubObjectList = true;
 }
 
 void UArenaInventoryManagerComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -225,12 +226,12 @@ UArenaInventoryItemInstance* UArenaInventoryManagerComponent::AddItemDefinition(
 
 	// Broadcast inventory change message
 	{
-		FArenaInventoryChangedMessage Message;
-		Message.Owner = GetOwner();
-		Message.InventoryInstance = Result;
+		FArenaInventoryChangeMessage Message;
+		Message.InventoryOwner = this;
+		Message.Instance = Result;
 
 		UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
-		MessageSystem.BroadcastMessage(TAG_Arena_Inventory_Message_InventoryChanged, Message);
+		MessageSystem.BroadcastMessage(TAG_Arena_Inventory_Message_StackChanged, Message);
 	}
 
 	return Result;
