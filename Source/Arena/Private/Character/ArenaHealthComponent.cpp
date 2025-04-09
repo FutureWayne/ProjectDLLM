@@ -123,7 +123,7 @@ void UArenaHealthComponent::BroadcastEliminationMessage(AActor* DamageInstigator
 	
 	if (DamageInstigator == Message.Target)
 	{
-		Message.TargetTags.AddTag(TAG_Gameplay_DamageSelfDestruct);
+		Message.ContextTags.AddTag(TAG_Gameplay_DamageSelfDestruct);
 	}
 
 	else if (UArenaTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
@@ -132,16 +132,16 @@ void UArenaHealthComponent::BroadcastEliminationMessage(AActor* DamageInstigator
 
 		if (ComparisonResult == EArenaTeamComparison::OnSameTeam)
 		{
-			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromAlly);
+			Message.ContextTags.AddTag(TAG_Gameplay_DamageFromAlly);
 		}
 		else if (ComparisonResult == EArenaTeamComparison::DifferentTeams)
 		{
-			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromEnemy);
+			Message.ContextTags.AddTag(TAG_Gameplay_DamageFromEnemy);
 		}
 		else if (ComparisonResult == EArenaTeamComparison::InvalidArgument)
 		{
-			Message.TargetTags.AddTag(TAG_Gameplay_DamageFromEnemy);
-		}
+			Message.ContextTags.AddTag(TAG_Gameplay_DamageFromEnemy);
+		} 
 	}
 	
 	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
