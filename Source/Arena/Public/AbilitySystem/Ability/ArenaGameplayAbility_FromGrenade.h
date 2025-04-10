@@ -42,5 +42,5 @@ protected:
 	FVector SpawnLocationOffset = FVector(5.f, -25.f, 25.f);
 
 private:
-	static FRotator CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, float LaunchSpeed, float GravityScale);
+	static FRotator CalculateLaunchRotation(const UWorld* World, const FVector& Start, const FVector& Target, const float LaunchSpeed, const float GravityScale);
 };
