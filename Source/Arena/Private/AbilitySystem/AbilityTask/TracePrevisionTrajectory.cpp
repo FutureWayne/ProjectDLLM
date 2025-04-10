@@ -54,6 +54,7 @@ void UTracePrevisionTrajectory::TickTask(float DeltaTime)
 		PathParams.bTraceWithCollision = true;
 		PathParams.OverrideGravityZ = GetWorld()->GetGravityZ() * GravityScale - 0.1f; // Adjust gravity scale;
 		PathParams.ActorsToIgnore = ActorsToIgnore;
+		PathParams.MaxSimTime = 5.f; // Adjust as needed
 
 		FPredictProjectilePathResult PathResult;
 		UGameplayStatics::PredictProjectilePath(GetWorld(), PathParams, PathResult);
