@@ -145,10 +145,8 @@ FRotator UArenaGameplayAbility_FromGrenade::CalculateLaunchRotation(const UWorld
 	if (Discriminant < 0.f)
 	{
 		// The target is unreachable with the given LaunchSpeed. Fall back to a default angle.
-		// For level ground this gives 45 degrees, which is the maximum-range angle.
-		// But when 45 degrees looks weird in tracing trajectory, we can use 30 degrees.
 		// The player need to aim higher for maximum range.
-		Theta = FMath::DegreesToRadians(30.f);
+		Theta = FMath::DegreesToRadians(15.f);
 	}
 	else
 	{

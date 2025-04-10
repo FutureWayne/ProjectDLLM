@@ -2,12 +2,15 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Net/Serialization/FastArraySerializer.h"
+
 #include "ArenaInventoryManagerComponent.generated.h"
 
+struct FFrame;
 struct FArenaInventoryList;
+struct FNetDeltaSerializeInfo;
+struct FReplicationFlags;
 class UArenaInventoryItemDefinition;
 class UArenaInventoryManagerComponent;
 class UArenaInventoryItemInstance;
@@ -35,7 +38,7 @@ struct FArenaInventoryChangeMessage
 USTRUCT(BlueprintType)
 struct FArenaInventoryEntry : public FFastArraySerializerItem
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	FArenaInventoryEntry()
 	{}
@@ -108,6 +111,17 @@ private:
 };
 
 
+template<>
+struct TStructOpsTypeTraits< FArenaInventoryList > : public TStructOpsTypeTraitsBase2< FArenaInventoryList >
+{
+	enum
+	{
+		WithNetDeltaSerializer = true,
+    };
+};
+
+
+
 UCLASS(BlueprintType)
 class ARENA_API UArenaInventoryManagerComponent : public UActorComponent
 {
@@ -151,17 +165,4 @@ public:
 private:
 	UPROPERTY(Replicated)
 	FArenaInventoryList InventoryList;
-};
-
-
-USTRUCT(BlueprintType)
-struct FArenaInventoryChangedMessage
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly, Category=Inventory)
-	TObjectPtr<AActor> Owner = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-	TObjectPtr<UArenaInventoryItemInstance> InventoryInstance;
 };
