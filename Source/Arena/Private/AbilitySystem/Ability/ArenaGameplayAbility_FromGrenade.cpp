@@ -146,7 +146,7 @@ FRotator UArenaGameplayAbility_FromGrenade::CalculateLaunchRotation(const UWorld
 	{
 		// The target is unreachable with the given LaunchSpeed. Fall back to a default angle.
 		// The player need to aim higher for maximum range.
-		Theta = FMath::DegreesToRadians(15.f);
+		Theta = FMath::DegreesToRadians(30.f);
 	}
 	else
 	{
