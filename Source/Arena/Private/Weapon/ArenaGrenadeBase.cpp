@@ -91,7 +91,7 @@ void AArenaGrenadeBase::BeginPlay()
 
 void AArenaGrenadeBase::Detonate_Implementation()
 {
-	if (bDetonationFired)
+	if (bDetonationFired || GrenadeDefinitionData == nullptr)
 	{
 		return;
 	}
