@@ -34,8 +34,7 @@
 		},
 		{
 			"Name": "OnlineSubsystemSteam",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [ "Win64" ]
+			"Enabled": true
 		},
 		{
 			"Name": "MotionTrajectory",
