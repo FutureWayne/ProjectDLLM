@@ -126,7 +126,7 @@ void UArenaAudioMixEffectsSubsystem::PostInitialize()
 			}
 		}
 	
-		if (UObject* ObjPath = ArenaAudioSettings->DialogueVolumeControlBus.TryLoad())
+		if (UObject* ObjPath = ArenaAudioSettings->UIVolumeControlBus.TryLoad())
 		{
 			if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
 			{
@@ -242,7 +242,7 @@ void UArenaAudioMixEffectsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 					const FSoundControlBusMixStage OverallControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, OverallControlBus, ArenaSettingsLocal->GetOverallVolume());
 					const FSoundControlBusMixStage MusicControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, MusicControlBus, ArenaSettingsLocal->GetMusicVolume());
 					const FSoundControlBusMixStage SoundFXControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, SoundFXControlBus, ArenaSettingsLocal->GetSoundFXVolume());
-					const FSoundControlBusMixStage DialogueControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, DialogueControlBus, ArenaSettingsLocal->GetDialogueVolume());
+					const FSoundControlBusMixStage DialogueControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, DialogueControlBus, ArenaSettingsLocal->GetUIVolume());
 					const FSoundControlBusMixStage VoiceChatControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, VoiceChatControlBus, ArenaSettingsLocal->GetVoiceChatVolume());
 		
 					TArray<FSoundControlBusMixStage> ControlBusMixStageArray;

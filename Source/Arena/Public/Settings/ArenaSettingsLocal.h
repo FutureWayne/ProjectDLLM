@@ -295,9 +295,9 @@ public:
 	void SetSoundFXVolume(float InVolume);
 
 	UFUNCTION()
-	float GetDialogueVolume() const;
+	float GetUIVolume() const;
 	UFUNCTION()
-	void SetDialogueVolume(float InVolume);
+	void SetUIVolume(float InVolume);
 
 	UFUNCTION()
 	float GetVoiceChatVolume() const;
@@ -357,7 +357,7 @@ private:
 	UPROPERTY(Config)
 	float SoundFXVolume = 1.0f;
 	UPROPERTY(Config)
-	float DialogueVolume = 1.0f;
+	float UIVolume = 1.0f;
 	UPROPERTY(Config)
 	float VoiceChatVolume = 1.0f;
 
