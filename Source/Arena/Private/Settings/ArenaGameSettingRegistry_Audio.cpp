@@ -87,13 +87,13 @@ UGameSettingCollection* UArenaGameSettingRegistry::InitializeAudioSettings(UAren
 		//----------------------------------------------------------------------------------
 		{
 			UGameSettingValueScalarDynamic* Setting = NewObject<UGameSettingValueScalarDynamic>();
-			Setting->SetDevName(TEXT("DialogueVolume"));
-			Setting->SetDisplayName(LOCTEXT("DialogueVolume_Name", "Dialogue"));
-			Setting->SetDescriptionRichText(LOCTEXT("DialogueVolume_Description", "Adjusts the volume of dialogue for game characters and voice overs."));
+			Setting->SetDevName(TEXT("UIVolume"));
+			Setting->SetDisplayName(LOCTEXT("UIVolume_Name", "UI"));
+			Setting->SetDescriptionRichText(LOCTEXT("UIVolume_Description", "Adjusts the volume of UI audio effects."));
 
-			Setting->SetDynamicGetter(GET_LOCAL_SETTINGS_FUNCTION_PATH(GetDialogueVolume));
-			Setting->SetDynamicSetter(GET_LOCAL_SETTINGS_FUNCTION_PATH(SetDialogueVolume));
-			Setting->SetDefaultValue(GetDefault<UArenaSettingsLocal>()->GetDialogueVolume());
+			Setting->SetDynamicGetter(GET_LOCAL_SETTINGS_FUNCTION_PATH(GetUIVolume));
+			Setting->SetDynamicSetter(GET_LOCAL_SETTINGS_FUNCTION_PATH(SetUIVolume));
+			Setting->SetDefaultValue(GetDefault<UArenaSettingsLocal>()->GetUIVolume());
 			Setting->SetDisplayFormat(UGameSettingValueScalarDynamic::ZeroToOnePercent);
 
 			Setting->AddEditCondition(FWhenPlayingAsPrimaryPlayer::Get());

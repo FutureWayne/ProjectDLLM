@@ -1019,15 +1019,15 @@ void UArenaSettingsLocal::SetSoundFXVolume(float InVolume)
 	}
 }
 
-float UArenaSettingsLocal::GetDialogueVolume() const
+float UArenaSettingsLocal::GetUIVolume() const
 {
-	return DialogueVolume;
+	return UIVolume;
 }
 
-void UArenaSettingsLocal::SetDialogueVolume(float InVolume)
+void UArenaSettingsLocal::SetUIVolume(float InVolume)
 {
 	// Cache the incoming volume value
-	DialogueVolume = InVolume;
+	UIVolume = InVolume;
 
 	// Check to see if references to the control buses and control bus mixes have been loaded yet
 	// Will likely need to be loaded if this function is the first time a setter has been called from the UI
@@ -1040,11 +1040,11 @@ void UArenaSettingsLocal::SetDialogueVolume(float InVolume)
 	ensureMsgf(bSoundControlBusMixLoaded, TEXT("UserControlBusMix Settings Failed to Load."));
 
 	// Locate the locally cached bus and set the volume on it
-	if (TObjectPtr<USoundControlBus>* ControlBusDblPtr = ControlBusMap.Find(TEXT("Dialogue")))
+	if (TObjectPtr<USoundControlBus>* ControlBusDblPtr = ControlBusMap.Find(TEXT("UI")))
 	{
 		if (USoundControlBus* ControlBusPtr = *ControlBusDblPtr)
 		{
-			SetVolumeForControlBus(ControlBusPtr, DialogueVolume);
+			SetVolumeForControlBus(ControlBusPtr, UIVolume);
 		}
 	}
 }
@@ -1164,11 +1164,11 @@ void UArenaSettingsLocal::ApplyNonResolutionSettings()
 			}
 		}
 
-		if (TObjectPtr<USoundControlBus>* ControlBusDblPtr = ControlBusMap.Find(TEXT("Dialogue")))
+		if (TObjectPtr<USoundControlBus>* ControlBusDblPtr = ControlBusMap.Find(TEXT("UI")))
 		{
 			if (USoundControlBus* ControlBusPtr = *ControlBusDblPtr)
 			{
-				SetVolumeForControlBus(ControlBusPtr, DialogueVolume);
+				SetVolumeForControlBus(ControlBusPtr, UIVolume);
 			}
 		}
 
@@ -1274,7 +1274,7 @@ void UArenaSettingsLocal::LoadUserControlBusMix()
 				USoundControlBus* OverallControlBus = nullptr;
 				USoundControlBus* MusicControlBus = nullptr;
 				USoundControlBus* SoundFXControlBus = nullptr;
-				USoundControlBus* DialogueControlBus = nullptr;
+				USoundControlBus* UIControlBus = nullptr;
 				USoundControlBus* VoiceChatControlBus = nullptr;
 	
 				ControlBusMap.Empty();
@@ -1318,16 +1318,16 @@ void UArenaSettingsLocal::LoadUserControlBusMix()
 					}
 				}
 	
-				if (UObject* ObjPath = ArenaAudioSettings->DialogueVolumeControlBus.TryLoad())
+				if (UObject* ObjPath = ArenaAudioSettings->UIVolumeControlBus.TryLoad())
 				{
 					if (USoundControlBus* SoundControlBus = Cast<USoundControlBus>(ObjPath))
 					{
-						DialogueControlBus = SoundControlBus;
-						ControlBusMap.Add(TEXT("Dialogue"), DialogueControlBus);
+						UIControlBus = SoundControlBus;
+						ControlBusMap.Add(TEXT("UI"), UIControlBus);
 					}
 					else
 					{
-						ensureMsgf(SoundControlBus, TEXT("Dialogue Control Bus reference missing from Arena Audio Settings."));
+						ensureMsgf(SoundControlBus, TEXT("UI Control Bus reference missing from Arena Audio Settings."));
 					}
 				}
 	
@@ -1353,14 +1353,14 @@ void UArenaSettingsLocal::LoadUserControlBusMix()
 						const FSoundControlBusMixStage OverallControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, OverallControlBus, OverallVolume);
 						const FSoundControlBusMixStage MusicControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, MusicControlBus, MusicVolume);
 						const FSoundControlBusMixStage SoundFXControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, SoundFXControlBus, SoundFXVolume);
-						const FSoundControlBusMixStage DialogueControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, DialogueControlBus, DialogueVolume);
+						const FSoundControlBusMixStage UIControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, UIControlBus, UIVolume);
 						const FSoundControlBusMixStage VoiceChatControlBusMixStage = UAudioModulationStatics::CreateBusMixStage(World, VoiceChatControlBus, VoiceChatVolume);
 	
 						TArray<FSoundControlBusMixStage> ControlBusMixStageArray;
 						ControlBusMixStageArray.Add(OverallControlBusMixStage);
 						ControlBusMixStageArray.Add(MusicControlBusMixStage);
 						ControlBusMixStageArray.Add(SoundFXControlBusMixStage);
-						ControlBusMixStageArray.Add(DialogueControlBusMixStage);
+						ControlBusMixStageArray.Add(UIControlBusMixStage);
 						ControlBusMixStageArray.Add(VoiceChatControlBusMixStage);
 	
 						UAudioModulationStatics::UpdateMix(World, ControlBusMix, ControlBusMixStageArray);

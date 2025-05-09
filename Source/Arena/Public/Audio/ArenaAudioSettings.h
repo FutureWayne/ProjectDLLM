@@ -60,7 +60,7 @@ public:
 
 	/** Control Bus assigned to the Dialogue sound volume setting */
 	UPROPERTY(config, EditAnywhere, Category = UserMixSettings, meta = (AllowedClasses = "/Script/AudioModulation.SoundControlBus"))
-	FSoftObjectPath DialogueVolumeControlBus;
+	FSoftObjectPath UIVolumeControlBus;
 
 	/** Control Bus assigned to the VoiceChat sound volume setting */
 	UPROPERTY(config, EditAnywhere, Category = UserMixSettings, meta = (AllowedClasses = "/Script/AudioModulation.SoundControlBus"))
