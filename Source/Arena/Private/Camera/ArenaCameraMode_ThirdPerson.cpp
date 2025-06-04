@@ -73,7 +73,6 @@ void UArenaCameraMode_ThirdPerson::UpdateView(float DeltaTime)
 
 void UArenaCameraMode_ThirdPerson::UpdateForTarget(float DeltaTime)
 {
-
 	if (const ACharacter* TargetCharacter = Cast<ACharacter>(GetTargetActor()))
 	{
 		if (TargetCharacter->bIsCrouched)
@@ -164,6 +163,34 @@ void UArenaCameraMode_ThirdPerson::UpdatePreventPenetration(float DeltaTime)
 				{
 					// camera is too close, tell the assists
 					Assist->OnCameraPenetratingTarget();
+				}
+			}
+		}
+	}
+
+	if (ACharacter* Char = Cast<ACharacter>(TargetActor))
+	{
+		USkeletalMeshComponent* Mesh = Char->GetMesh();
+		if (Mesh)
+		{
+			FVector CameraLoc = View.Location;
+			bool bCameraInsideCharacter = GetWorld()->OverlapBlockingTestByChannel(
+			    CameraLoc,
+			    FQuat::Identity,
+			    ECC_Pawn,
+			    FCollisionShape::MakeSphere(4.0f)
+			);
+			
+			Mesh->SetOwnerNoSee(bCameraInsideCharacter);
+			
+			// Apply to children too
+			TArray<USceneComponent*> Children;
+			Mesh->GetChildrenComponents(true, Children);
+			for (USceneComponent* Child : Children)
+			{
+				if (UMeshComponent* ChildMesh = Cast<UMeshComponent>(Child))
+				{
+					ChildMesh->SetOwnerNoSee(bCameraInsideCharacter);
 				}
 			}
 		}
