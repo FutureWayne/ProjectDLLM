@@ -444,10 +444,14 @@ protected:
 	enum class EOperation : uint8 { None, Hosting, Joining, QuickPlay };
 	friend class FCommonSessionRequestLifecycleTest;
 	friend class FCommonSessionSearchReentryTest;
+	friend class FCommonSessionRecoveryRegressionTest;
 	EOperation ActiveOperation = EOperation::None;
 	bool bAwaitingTravel = false;
 	bool bOwnsPendingSession = false;
 	bool bOfflineTravel = false;
+	bool bLeftPreviousSession = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UCommonSession_SearchSessionRequest> QuickPlaySearchRequest;
 	double OperationDeadline = 0.0;
 	FTSTicker::FDelegateHandle OperationTicker;
 	TWeakObjectPtr<UWorld> TravelSourceWorld;
@@ -457,6 +461,7 @@ protected:
 	void BeginOperation(EOperation Operation);
 	void CompleteOperation(const FOnlineResultInformation& Result);
 	void FailOperation(const FString& ErrorId, const FText& ErrorText);
+	void CancelActiveSearch(const FText& ErrorText);
 	void FinishCleanup(bool bSucceeded);
 	void ContinueQueuedJoin();
 	bool TickOperation(float DeltaTime);

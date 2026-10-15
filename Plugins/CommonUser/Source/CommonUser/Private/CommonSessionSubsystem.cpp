@@ -870,6 +870,7 @@ void UCommonSessionSubsystem::QuickPlaySession(APlayerController* JoiningOrHosti
 	TWeakObjectPtr<APlayerController> JoiningOrHostingPlayerPtr = TWeakObjectPtr<APlayerController>(JoiningOrHostingPlayer);
 
 	UCommonSession_SearchSessionRequest* QuickPlayRequest = CreateOnlineSearchSessionRequest();
+	QuickPlaySearchRequest = QuickPlayRequest;
 	QuickPlayRequest->OnSearchFinished.AddUObject(this, &UCommonSessionSubsystem::HandleQuickPlaySearchFinished, JoiningOrHostingPlayerPtr, HostRequestPtr, QuickPlayRequest);
 
 	// We enable presence by default on the primary session used for matchmaking. For online systems that care about presence, only the primary session should have presence enabled
@@ -937,7 +938,7 @@ TSharedRef<FCommonOnlineSearchSettings> UCommonSessionSubsystem::CreateQuickPlay
 
 void UCommonSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, const FText& ErrorMessage, TWeakObjectPtr<APlayerController> JoiningOrHostingPlayer, TStrongObjectPtr<UCommonSession_HostSessionRequest> HostRequest, UCommonSession_SearchSessionRequest* SearchRequest)
 {
-	if (ActiveOperation != EOperation::QuickPlay) { return; }
+	if (ActiveOperation != EOperation::QuickPlay || SearchRequest != QuickPlaySearchRequest) { return; }
 	if (!bSucceeded || !JoiningOrHostingPlayer.IsValid())
 	{
 		FailOperation(TEXT("QuickPlaySearchFailed"), ErrorMessage.IsEmpty() ? LOCTEXT("QuickPlayFailed", "Could not find a game. Please try again.") : ErrorMessage);
@@ -966,6 +967,7 @@ void UCommonSessionSubsystem::CleanUpSessions()
 		Result.bWasSuccessful = false;
 		Result.ErrorId = TEXT("Cancelled");
 		Result.ErrorText = LOCTEXT("SessionCancelled", "The session request was cancelled.");
+		CancelActiveSearch(Result.ErrorText);
 		CompleteOperation(Result);
 	}
 	if (bAlreadyCleaning) { return; }
@@ -1032,12 +1034,15 @@ void UCommonSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 
 	const TSharedPtr<FCommonOnlineSearchSettingsOSSv1> CompletedSearch = SearchSettings;
 	FCommonOnlineSearchSettingsOSSv1& SearchSettingsV1 = *CompletedSearch;
-	if (SearchSettingsV1.SearchState == EOnlineAsyncTaskState::InProgress)
+	if (SearchSettingsV1.SearchState == EOnlineAsyncTaskState::InProgress || SearchSettingsV1.SearchState == EOnlineAsyncTaskState::NotStarted)
 	{
-		UE_LOG(LogCommonSession, Error, TEXT("OnFindSessionsComplete called when search is still in progress!"));
+		UE_LOG(LogCommonSession, Verbose, TEXT("Ignoring completion while the active search has not finished"));
 		return;
 	}
 
+	// OSSv1 broadcasts no request identity. Cancelled Steam queries can still broadcast;
+	// only the active search object's own terminal state is authoritative.
+	bWasSuccessful = SearchSettingsV1.SearchState == EOnlineAsyncTaskState::Done;
 	if (!ensure(SearchSettingsV1.SearchRequest))
 	{
 		UE_LOG(LogCommonSession, Error, TEXT("OnFindSessionsComplete called with invalid search request object!"));
@@ -1577,6 +1582,7 @@ void UCommonSessionSubsystem::BeginOperation(EOperation Operation)
 	bAwaitingTravel = false;
 	bOwnsPendingSession = false;
 	bOfflineTravel = false;
+	bLeftPreviousSession = false;
 	OperationDeadline = FPlatformTime::Seconds() + 60.0;
 }
 
@@ -1584,10 +1590,27 @@ void UCommonSessionSubsystem::CompleteOperation(const FOnlineResultInformation& 
 {
 	const EOperation Completed = ActiveOperation;
 	ActiveOperation = EOperation::None;
+	QuickPlaySearchRequest = nullptr;
+	bLeftPreviousSession = false;
 	bAwaitingTravel = false;
 	OperationDeadline = 0.0;
 	if (Completed == EOperation::Joining) { NotifyJoinSessionComplete(Result); }
 	else if (Completed != EOperation::None) { NotifyCreateSessionComplete(Result); }
+}
+
+void UCommonSessionSubsystem::CancelActiveSearch(const FText& ErrorText)
+{
+#if COMMONUSER_OSSV1
+	TSharedPtr<FCommonOnlineSearchSettings> CancelledSearch = MoveTemp(SearchSettings);
+	if (!CancelledSearch) { return; }
+	CancelledSearch->SearchRequest->OnSearchFinished.RemoveAll(this);
+	if (UWorld* World = GetWorld())
+	{
+		if (const IOnlineSessionPtr Sessions = Online::GetSessionInterface(World)) { Sessions->CancelFindSessions(); }
+	}
+	CancelledSearch->SearchRequest->Results.Reset();
+	CancelledSearch->SearchRequest->NotifySearchFinished(false, ErrorText);
+#endif
 }
 
 void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText& ErrorText)
@@ -1598,14 +1621,17 @@ void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText&
 	Result.ErrorText = ErrorText;
 	UE_LOG(LogCommonSession, Warning, TEXT("Session request failed (%s): %s"), *ErrorId, *ErrorText.ToString());
 	// Set cleanup state before invoking observers so retries cannot overlap destruction.
+	const bool bRecover = bAwaitingTravel || bLeftPreviousSession;
 	const bool bCleanup = bOwnsPendingSession;
 	if (bCleanup) { bWantToDestroyPendingSession = true; }
 	QueuedJoin = nullptr;
+	CancelActiveSearch(ErrorText);
 	CompleteOperation(Result);
 	NotifySessionInformationUpdated(ECommonSessionInformationState::OutOfGame);
 #if COMMONUSER_OSSV1
 	if (bCleanup) { CleanUpSessionsOSSv1(); }
 #endif
+	if (bRecover) { OnSessionConnectionFailureEvent.Broadcast(Result); }
 }
 
 void UCommonSessionSubsystem::FinishCleanup(bool bSucceeded)
@@ -1615,7 +1641,7 @@ void UCommonSessionSubsystem::FinishCleanup(bool bSucceeded)
 	OnSessionCleanupCompleteEvent.Broadcast(bSucceeded);
 	if (QueuedJoin)
 	{
-		if (bSucceeded) { ContinueQueuedJoin(); }
+		if (bSucceeded) { bLeftPreviousSession = true; ContinueQueuedJoin(); }
 		else { FailOperation(TEXT("CleanupFailed"), LOCTEXT("CleanupFailed", "Could not leave the previous session. Please try again.")); }
 	}
 }
@@ -1635,6 +1661,13 @@ void UCommonSessionSubsystem::ContinueQueuedJoin()
 
 bool UCommonSessionSubsystem::TickOperation(float DeltaTime)
 {
+#if COMMONUSER_OSSV1
+	if (SearchSettings && (SearchSettings->SearchState == EOnlineAsyncTaskState::Done ||
+		SearchSettings->SearchState == EOnlineAsyncTaskState::Failed))
+	{
+		OnFindSessionsComplete(SearchSettings->SearchState == EOnlineAsyncTaskState::Done);
+	}
+#endif
 	if (ActiveOperation != EOperation::None && FPlatformTime::Seconds() >= OperationDeadline)
 	{
 		RecoverConnection(TEXT("Timeout"), LOCTEXT("SessionTimeout", "The session request timed out. Please try again."));
@@ -1657,16 +1690,7 @@ void UCommonSessionSubsystem::RecoverConnection(const FString& ErrorId, const FT
 {
 	if (ActiveOperation != EOperation::None)
 	{
-		const bool bTravelStarted = bAwaitingTravel;
 		FailOperation(ErrorId, ErrorText);
-		if (bTravelStarted)
-		{
-			FOnlineResultInformation Failure;
-			Failure.bWasSuccessful = false;
-			Failure.ErrorId = ErrorId;
-			Failure.ErrorText = ErrorText;
-			OnSessionConnectionFailureEvent.Broadcast(Failure);
-		}
 		return;
 	}
 	if (!HasActiveSession() || bWantToDestroyPendingSession) { return; }
@@ -1783,6 +1807,113 @@ bool FCommonSessionSearchReentryTest::RunTest(const FString& Parameters)
 	Session->SearchSettings.Reset();
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionRecoveryRegressionTest, "CommonUser.Session.RecoveryRegressions",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCommonSessionRecoveryRegressionTest::RunTest(const FString& Parameters)
+{
+	TStrongObjectPtr<UGameInstance> Instance(NewObject<UGameInstance>());
+	TStrongObjectPtr<UCommonSessionSubsystem> Session(NewObject<UCommonSessionSubsystem>(Instance.Get()));
+	int32 RecoveryCount = 0;
+	int32 JoinCount = 0;
+	Session->OnSessionConnectionFailureEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++RecoveryCount;
+		TestFalse(TEXT("Recovery reports failure"), Result.bWasSuccessful);
+	});
+	Session->OnJoinSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation&) { ++JoinCount; });
+
+	// Exercise the actual cleanup continuation: the controller disappears while leaving A.
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->QueuedJoin = NewObject<UCommonSession_SearchResult>(Session.Get());
+	Session->bWantToDestroyPendingSession = true;
+	Session->FinishCleanup(true);
+	TestEqual(TEXT("Failure after leaving old session requests frontend recovery"), RecoveryCount, 1);
+	TestEqual(TEXT("Cleanup continuation completes join exactly once"), JoinCount, 1);
+
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->bLeftPreviousSession = true;
+	Session->OnJoinSessionComplete(NAME_GameSession, EOnJoinSessionCompleteResult::UnknownError);
+	Session->OnJoinSessionComplete(NAME_GameSession, EOnJoinSessionCompleteResult::UnknownError);
+	TestEqual(TEXT("Rejected replacement lobby recovers once before travel"), RecoveryCount, 2);
+	TestEqual(TEXT("Duplicate join callback does not complete twice"), JoinCount, 2);
+
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->bLeftPreviousSession = true;
+	Session->InternalTravelToSession(NAME_GameSession);
+	TestEqual(TEXT("Replacement travel setup failure requests recovery"), RecoveryCount, 3);
+
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->bLeftPreviousSession = true;
+	Session->OperationDeadline = 0;
+	Session->TickOperation(0);
+	Session->TickOperation(0);
+	TestEqual(TEXT("Replacement join timeout requests recovery once"), RecoveryCount, 4);
+
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->QueuedJoin = NewObject<UCommonSession_SearchResult>(Session.Get());
+	Session->bWantToDestroyPendingSession = true;
+	Session->FinishCleanup(false);
+	TestEqual(TEXT("Failure to leave old session does not force recovery"), RecoveryCount, 4);
+
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::QuickPlay);
+	UCommonSession_SearchSessionRequest* OldRequest = NewObject<UCommonSession_SearchSessionRequest>(Session.Get());
+	const auto OldSettings = MakeShared<FCommonOnlineSearchSettingsOSSv1>(OldRequest);
+	OldSettings->SearchState = EOnlineAsyncTaskState::InProgress;
+	Session->SearchSettings = OldSettings;
+	Session->QuickPlaySearchRequest = OldRequest;
+	OldRequest->OnSearchFinished.AddUObject(Session.Get(), &UCommonSessionSubsystem::HandleQuickPlaySearchFinished,
+		TWeakObjectPtr<APlayerController>(), TStrongObjectPtr<UCommonSession_HostSessionRequest>(), OldRequest);
+	int32 SearchFailures = 0;
+	OldRequest->OnSearchFinished.AddLambda([&](bool bSuccess, const FText&)
+	{
+		++SearchFailures;
+		TestFalse(TEXT("Timed-out search reports failure"), bSuccess);
+		TestFalse(TEXT("Search ownership released before cancellation notification"), Session->SearchSettings.IsValid());
+	});
+	int32 QuickPlayCompletions = 0;
+	Session->OnCreateSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++QuickPlayCompletions;
+		TestEqual(TEXT("Quick Play retains timeout error"), Result.ErrorId, FString(TEXT("Timeout")));
+		TestFalse(TEXT("Timed-out Quick Play releases Busy before UI completion"), Session->IsSessionBusy());
+	});
+	Session->OperationDeadline = 0;
+	Session->TickOperation(0);
+	Session->TickOperation(0);
+	TestEqual(TEXT("Timed-out search completes once"), SearchFailures, 1);
+	TestEqual(TEXT("Timed-out Quick Play completes once"), QuickPlayCompletions, 1);
+
+	// A retry starts before the cancelled Steam query emits its global completion.
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::QuickPlay);
+	UCommonSession_SearchSessionRequest* RetryRequest = NewObject<UCommonSession_SearchSessionRequest>(Session.Get());
+	const auto RetrySettings = MakeShared<FCommonOnlineSearchSettingsOSSv1>(RetryRequest);
+	RetrySettings->SearchState = EOnlineAsyncTaskState::InProgress;
+	Session->SearchSettings = RetrySettings;
+	Session->QuickPlaySearchRequest = RetryRequest;
+	int32 RetryCompletions = 0;
+	RetryRequest->OnSearchFinished.AddLambda([&](bool bSuccess, const FText&)
+	{
+		++RetryCompletions;
+		TestTrue(TEXT("Retry uses its own successful state despite stale failure callback"), bSuccess);
+	});
+	OldSettings->SearchState = EOnlineAsyncTaskState::Failed;
+	Session->OnFindSessionsComplete(false);
+	Session->HandleQuickPlaySearchFinished(false, FText(), TWeakObjectPtr<APlayerController>(),
+		TStrongObjectPtr<UCommonSession_HostSessionRequest>(), OldRequest);
+	TestTrue(TEXT("Late callbacks preserve the retry search"), Session->SearchSettings == RetrySettings);
+	TestEqual(TEXT("Late callbacks do not finish retry"), RetryCompletions, 0);
+	TestEqual(TEXT("Late callbacks do not fail retry operation"), QuickPlayCompletions, 1);
+	RetrySettings->SearchState = EOnlineAsyncTaskState::Done;
+	Session->OnFindSessionsComplete(false);
+	Session->OnFindSessionsComplete(true);
+	TestEqual(TEXT("Retry completes exactly once using its own results"), RetryCompletions, 1);
+	Session->ActiveOperation = UCommonSessionSubsystem::EOperation::None;
+	Session->QuickPlaySearchRequest = nullptr;
+	return true;
+}
+
 #endif
 
 #undef LOCTEXT_NAMESPACE
