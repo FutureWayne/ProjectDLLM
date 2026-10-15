@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Containers/Ticker.h"
 
 #include "Engine/GameInstance.h"
 
@@ -67,9 +68,14 @@ public:
 	virtual int32 AddLocalPlayer(ULocalPlayer* NewPlayer, FPlatformUserId UserId) override;
 	virtual bool RemoveLocalPlayer(ULocalPlayer* ExistingPlayer) override;
 	virtual void Init() override;
+	virtual void Shutdown() override;
 	virtual void ReturnToMainMenu() override;
 
 private:
+	void HandleSessionConnectionFailure(const FOnlineResultInformation& Result);
+	void HandleRequestedSessionJoinResult(const FOnlineResultInformation& Result);
+	bool bJoiningRequestedSession = false;
+	FTSTicker::FDelegateHandle RecoveryMessageTicker;
 	/** This is the primary player*/
 	TWeakObjectPtr<ULocalPlayer> PrimaryPlayer;
 	/** Session the player has requested to join */

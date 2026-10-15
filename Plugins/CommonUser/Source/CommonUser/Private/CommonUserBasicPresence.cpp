@@ -5,6 +5,8 @@
 #include "Engine/LocalPlayer.h"
 #include "CommonUserTypes.h"
 
+#include UE_INLINE_GENERATED_CPP_BY_NAME(CommonUserBasicPresence)
+
 
 #if COMMONUSER_OSSV1
 #include "OnlineSubsystemUtils.h"

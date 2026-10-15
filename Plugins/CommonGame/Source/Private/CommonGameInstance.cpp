@@ -11,6 +11,9 @@
 #include "LogCommonGame.h"
 #include "Messaging/CommonGameDialog.h"
 #include "Messaging/CommonMessagingSubsystem.h"
+#include "Containers/Ticker.h"
+#include "PrimaryGameLayout.h"
+#include "HAL/PlatformTime.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CommonGameInstance)
 
@@ -100,6 +103,8 @@ void UCommonGameInstance::Init()
 	{
 		SessionSubsystem->OnUserRequestedSessionEvent.AddUObject(this, &UCommonGameInstance::OnUserRequestedSession);
 		SessionSubsystem->OnDestroySessionRequestedEvent.AddUObject(this, &UCommonGameInstance::OnDestroySessionRequested);
+		SessionSubsystem->OnSessionConnectionFailureEvent.AddUObject(this, &UCommonGameInstance::HandleSessionConnectionFailure);
+		SessionSubsystem->OnJoinSessionCompleteEvent.AddUObject(this, &UCommonGameInstance::HandleRequestedSessionJoinResult);
 	}
 }
 
@@ -128,6 +133,12 @@ void UCommonGameInstance::ReturnToMainMenu()
 
 void UCommonGameInstance::OnUserRequestedSession(const FPlatformUserId& PlatformUserId, UCommonSession_SearchResult* InRequestedSession, const FOnlineResultInformation& RequestedSessionResult)
 {
+	if (GetSubsystem<UCommonSessionSubsystem>()->IsSessionBusy())
+	{
+		HandleSystemMessage(FCommonUserTags::SystemMessage_Error, NSLOCTEXT("CommonGame", "InviteBusy", "Join Session"),
+			NSLOCTEXT("CommonGame", "InviteBusyBody", "Please wait for the current session request to finish, then accept the invitation again."));
+		return;
+	}
 	if (InRequestedSession)
 	{
 		SetRequestedSession(InRequestedSession);
@@ -165,8 +176,51 @@ void UCommonGameInstance::SetRequestedSession(UCommonSession_SearchResult* InReq
 
 bool UCommonGameInstance::CanJoinRequestedSession() const
 {
-	// Default behavior is always allow joining the requested session
+	// CommonSessionSubsystem serializes joining with destruction of an existing session.
 	return true;
+}
+
+void UCommonGameInstance::Shutdown()
+{
+	FTSTicker::GetCoreTicker().RemoveTicker(RecoveryMessageTicker);
+	if (UCommonSessionSubsystem* Sessions = GetSubsystem<UCommonSessionSubsystem>())
+	{
+		Sessions->OnSessionConnectionFailureEvent.RemoveAll(this);
+		Sessions->OnJoinSessionCompleteEvent.RemoveAll(this);
+	}
+	Super::Shutdown();
+}
+
+void UCommonGameInstance::HandleSessionConnectionFailure(const FOnlineResultInformation& Result)
+{
+	const TWeakObjectPtr<UWorld> FailedWorld = GetWorld();
+	// Wait for the new frontend's UI root, so travel cannot immediately destroy the error dialog.
+	FTSTicker::GetCoreTicker().RemoveTicker(RecoveryMessageTicker);
+	RecoveryMessageTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this,
+		[this, FailedWorld, bReturned = false, Deadline = FPlatformTime::Seconds() + 30.0, Error = Result.ErrorText](float) mutable
+		{
+			// Do not mutate the pending NetDriver inside the engine's failure broadcast.
+			if (!bReturned) { bReturned = true; ReturnToMainMenu(); return true; }
+			if (FPlatformTime::Seconds() > Deadline)
+			{
+				UE_LOG(LogCommonGame, Warning, TEXT("Connection recovery UI unavailable: %s"), *Error.ToString());
+				return false;
+			}
+			UPrimaryGameLayout* Layout = UPrimaryGameLayout::GetPrimaryGameLayoutForPrimaryPlayer(this);
+			if (GetWorld() == FailedWorld.Get() || !Layout || !Layout->IsInViewport()) { return true; }
+			HandleSystemMessage(FCommonUserTags::SystemMessage_Error, NSLOCTEXT("CommonGame", "ConnectionFailed", "Connection Lost"), Error);
+			return false;
+		}), 0.25f);
+}
+
+void UCommonGameInstance::HandleRequestedSessionJoinResult(const FOnlineResultInformation& Result)
+{
+	if (!bJoiningRequestedSession) { return; }
+	bJoiningRequestedSession = false;
+	if (!Result.bWasSuccessful)
+	{
+		HandleSystemMessage(FCommonUserTags::SystemMessage_Error, NSLOCTEXT("CommonGame", "InviteJoinFailed", "Join Session"), Result.ErrorText);
+	}
 }
 
 void UCommonGameInstance::JoinRequestedSession()
@@ -181,6 +235,7 @@ void UCommonGameInstance::JoinRequestedSession()
 				// Clear our current requested session since we are now acting on it.
 				UCommonSession_SearchResult* LocalRequestedSession = RequestedSession;
 				RequestedSession = nullptr;
+				bJoiningRequestedSession = true;
 				SessionSubsystem->JoinSession(FirstPlayer->PlayerController, LocalRequestedSession);
 			}
 		}

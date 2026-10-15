@@ -11,11 +11,14 @@
 #include "PartyBeaconClient.h"
 #include "PartyBeaconHost.h"
 #include "PartyBeaconState.h"
+#include "Containers/Ticker.h"
 
 class APlayerController;
 class AOnlineBeaconHost;
 class ULocalPlayer;
+class UNetDriver;
 namespace ETravelFailure { enum Type : int; }
+namespace ENetworkFailure { enum Type : int; }
 struct FOnlineResultInformation;
 
 #if COMMONUSER_OSSV1
@@ -208,16 +211,14 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FCommonSessionOnUserRequestedSession, con
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FCommonSessionOnUserRequestedSession_Dynamic, const FPlatformUserId&, LocalPlatformUserId, UCommonSession_SearchResult*, RequestedSession, const FOnlineResultInformation&, RequestedSessionResult);
 
 /**
- * Event triggered when a session join has completed, after joining the underlying session and before traveling to the server if it was successful.
- * The event parameters indicate if this was successful, or if there was an error that will stop it from traveling.
+ * Event triggered once a join fails or the client has loaded the destination with a network connection.
  * @param Result result of the session join
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FCommonSessionOnJoinSessionComplete, const FOnlineResultInformation& /*Result*/);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCommonSessionOnJoinSessionComplete_Dynamic, const FOnlineResultInformation&, Result);
 
 /**
- * Event triggered when a session creation for hosting has completed, right before it travels to the map.
- * The event parameters indicate if this was successful, or if there was an error that will stop it from traveling.
+ * Event triggered once hosting fails or the destination map has loaded with its listen driver.
  * @param Result result of the session join
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FCommonSessionOnCreateSessionComplete, const FOnlineResultInformation& /*Result*/);
@@ -237,6 +238,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCommonSessionOnDestroySessionReque
  * @param URL resolved connection string for the session with any additional arguments
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FCommonSessionOnPreClientTravel, FString& /*URL*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FCommonSessionOnCleanupComplete, bool);
 
 /**
  * Event triggered at different points in the session ecosystem that represent a user-presentable state of the session.
@@ -300,6 +302,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Session)
 	virtual void CleanUpSessions();
 
+	UFUNCTION(BlueprintPure, Category=Session)
+	bool IsSessionBusy() const;
+
+	bool HasActiveSession() const;
+	FCommonSessionOnCleanupComplete OnSessionCleanupCompleteEvent;
+	/** Connection failures after a completed operation, such as a host disconnect. */
+	FCommonSessionOnJoinSessionComplete OnSessionConnectionFailureEvent;
+
 	//////////////////////////////////////////////////////////////////////
 	// Events
 
@@ -357,7 +367,7 @@ protected:
 	virtual TSharedRef<FCommonOnlineSearchSettings> CreateQuickPlaySearchSettings(UCommonSession_HostSessionRequest* Request, UCommonSession_SearchSessionRequest* QuickPlayRequest);
 
 	/** Called when a quick play search finishes, can be overridden for game-specific behavior */
-	virtual void HandleQuickPlaySearchFinished(bool bSucceeded, const FText& ErrorMessage, TWeakObjectPtr<APlayerController> JoiningOrHostingPlayer, TStrongObjectPtr<UCommonSession_HostSessionRequest> HostRequest);
+	virtual void HandleQuickPlaySearchFinished(bool bSucceeded, const FText& ErrorMessage, TWeakObjectPtr<APlayerController> JoiningOrHostingPlayer, TStrongObjectPtr<UCommonSession_HostSessionRequest> HostRequest, UCommonSession_SearchSessionRequest* SearchRequest);
 
 	/** Called when traveling to a session fails */
 	virtual void TravelLocalSessionFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ReasonString);
@@ -431,6 +441,28 @@ protected:
 	void DestroyHostReservationBeacon();
 
 protected:
+	enum class EOperation : uint8 { None, Hosting, Joining, QuickPlay };
+	friend class FCommonSessionRequestLifecycleTest;
+	friend class FCommonSessionSearchReentryTest;
+	EOperation ActiveOperation = EOperation::None;
+	bool bAwaitingTravel = false;
+	bool bOwnsPendingSession = false;
+	bool bOfflineTravel = false;
+	double OperationDeadline = 0.0;
+	FTSTicker::FDelegateHandle OperationTicker;
+	TWeakObjectPtr<UWorld> TravelSourceWorld;
+	TWeakObjectPtr<APlayerController> JoiningPlayer;
+	UPROPERTY(Transient)
+	TObjectPtr<UCommonSession_SearchResult> QueuedJoin;
+	void BeginOperation(EOperation Operation);
+	void CompleteOperation(const FOnlineResultInformation& Result);
+	void FailOperation(const FString& ErrorId, const FText& ErrorText);
+	void FinishCleanup(bool bSucceeded);
+	void ContinueQueuedJoin();
+	bool TickOperation(float DeltaTime);
+	void NetworkSessionFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& Reason);
+	void RecoverConnection(const FString& ErrorId, const FText& ErrorText);
+
 	/** The travel URL that will be used after session operations are complete */
 	FString PendingTravelURL;
 
