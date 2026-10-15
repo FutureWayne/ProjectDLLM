@@ -350,8 +350,6 @@ void UCommonSessionSubsystem::BindOnlineDelegatesOSSv1()
 	SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete));
 	SessionInterface->AddOnStartSessionCompleteDelegate_Handle(FOnStartSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnStartSessionComplete));
 	SessionInterface->AddOnUpdateSessionCompleteDelegate_Handle(FOnUpdateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnUpdateSessionComplete));
-	SessionInterface->AddOnEndSessionCompleteDelegate_Handle(FOnEndSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnEndSessionComplete));
-	SessionInterface->AddOnDestroySessionCompleteDelegate_Handle(FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySessionComplete));
 	SessionInterface->AddOnDestroySessionRequestedDelegate_Handle(FOnDestroySessionRequestedDelegate::CreateUObject(this, &ThisClass::OnDestroySessionRequested));
 
 //	SessionInterface->AddOnMatchmakingCompleteDelegate_Handle(FOnMatchmakingCompleteDelegate::CreateUObject(this, &ThisClass::OnMatchmakingComplete));
@@ -425,6 +423,10 @@ void UCommonSessionSubsystem::Deinitialize()
 	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
 	FTSTicker::GetCoreTicker().RemoveTicker(OperationTicker);
+	ResetCleanupCallbacks();
+#if COMMONUSER_OSSV1
+	AbandonedSessionInterface.Reset();
+#endif
 	QueuedJoin = nullptr;
 	SearchSettings.Reset();
 	Super::Deinitialize();
@@ -474,6 +476,7 @@ void UCommonSessionSubsystem::HostSession(APlayerController* HostingPlayer, UCom
 		return;
 	}
 	BeginOperation(EOperation::Hosting);
+	if (RejectQuarantinedOperation()) { return; }
 	ULocalPlayer* LocalPlayer = HostingPlayer ? HostingPlayer->GetLocalPlayer() : nullptr;
 	FText Error;
 	if (!Request || (!LocalPlayer && !bIsDedicatedServer) || !GetWorld())
@@ -708,16 +711,16 @@ void UCommonSessionSubsystem::OnUpdateSessionComplete(FName SessionName, bool bW
 	UE_LOG(LogCommonSession, Log, TEXT("OnUpdateSessionComplete(SessionName: %s, bWasSuccessful: %s"), *SessionName.ToString(), bWasSuccessful ? TEXT("true") : TEXT("false"));
 }
 
-void UCommonSessionSubsystem::OnEndSessionComplete(FName SessionName, bool bWasSuccessful)
+void UCommonSessionSubsystem::OnEndSessionComplete(FName SessionName, bool bWasSuccessful, uint64 CleanupId)
 {
-	if (SessionName != NAME_GameSession || !bWantToDestroyPendingSession) { return; }
+	if (SessionName != NAME_GameSession || !bWantToDestroyPendingSession || bCleanupQuarantined || CleanupId != CleanupGeneration) { return; }
 	if (!bWasSuccessful) { FinishCleanup(false); return; }
 	CleanUpSessionsOSSv1();
 }
 
-void UCommonSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
+void UCommonSessionSubsystem::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful, uint64 CleanupId)
 {
-	if (SessionName == NAME_GameSession && bWantToDestroyPendingSession) { FinishCleanup(bWasSuccessful); }
+	if (SessionName == NAME_GameSession && bWantToDestroyPendingSession && !bCleanupQuarantined && CleanupId == CleanupGeneration) { FinishCleanup(bWasSuccessful); }
 }
 
 void UCommonSessionSubsystem::OnDestroySessionRequested(int32 LocalUserNum, FName SessionName)
@@ -745,6 +748,11 @@ void UCommonSessionSubsystem::FindSessions(APlayerController* SearchingPlayer, U
 
 void UCommonSessionSubsystem::FindSessionsInternal(APlayerController* SearchingPlayer, const TSharedRef<FCommonOnlineSearchSettings>& InSearchSettings)
 {
+	if (bCleanupQuarantined)
+	{
+		InSearchSettings->SearchRequest->NotifySearchFinished(false, LOCTEXT("CleanupQuarantinedSearch", "Steam is still leaving the previous session. Please wait, or restart the game if Steam does not recover."));
+		return;
+	}
 	if (SearchSettings.IsValid())
 	{
 		//@TODO: This is a poor user experience for the API user, we should let the additional search piggyback and
@@ -860,6 +868,7 @@ void UCommonSessionSubsystem::QuickPlaySession(APlayerController* JoiningOrHosti
 
 	if (IsSessionBusy()) { return; }
 	BeginOperation(EOperation::QuickPlay);
+	if (RejectQuarantinedOperation()) { return; }
 	if (HostRequest == nullptr)
 	{
 		FailOperation(TEXT("InvalidRequest"), LOCTEXT("InvalidQuickPlay", "A valid hosting request is required."));
@@ -958,10 +967,11 @@ void UCommonSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, con
 
 void UCommonSessionSubsystem::CleanUpSessions()
 {
+	if (bCleanupQuarantined) { return; }
 	bRecoverAfterCleanup = false;
 	QueuedJoin = nullptr;
 	const bool bAlreadyCleaning = bWantToDestroyPendingSession;
-	bWantToDestroyPendingSession = true;
+	BeginCleanup();
 	if (ActiveOperation != EOperation::None)
 	{
 		FOnlineResultInformation Result;
@@ -984,10 +994,12 @@ void UCommonSessionSubsystem::CleanUpSessions()
 #if COMMONUSER_OSSV1
 void UCommonSessionSubsystem::CleanUpSessionsOSSv1()
 {
-	const IOnlineSessionPtr Sessions = Online::GetSessionInterface(GetWorld());
+	const IOnlineSessionPtr Sessions = CleanupSessionInterface.IsValid() ? CleanupSessionInterface : Online::GetSessionInterface(GetWorld());
 	if (!Sessions.IsValid()) { FinishCleanup(!bOwnsPendingSession); return; }
 	const EOnlineSessionState::Type State = Sessions->GetSessionState(NAME_GameSession);
-	if (State == EOnlineSessionState::NoSession) { FinishCleanup(true); return; }
+	if (!Sessions->GetNamedSession(NAME_GameSession)) { FinishCleanup(true); return; }
+	// Steam lobby joins may own a named session whose state is still NoSession.
+	if (State == EOnlineSessionState::NoSession) { return; }
 	if (State == EOnlineSessionState::Creating || State == EOnlineSessionState::Starting ||
 		State == EOnlineSessionState::Ending || State == EOnlineSessionState::Destroying) { return; }
 	if (State == EOnlineSessionState::InProgress)
@@ -1099,6 +1111,7 @@ void UCommonSessionSubsystem::JoinSession(APlayerController* Player, UCommonSess
 {
 	if (IsSessionBusy()) { return; }
 	BeginOperation(EOperation::Joining);
+	if (RejectQuarantinedOperation()) { return; }
 	JoiningPlayer = Player;
 	ULocalPlayer* LocalPlayer = Player ? Player->GetLocalPlayer() : nullptr;
 	if (!Request || !LocalPlayer)
@@ -1116,7 +1129,7 @@ void UCommonSessionSubsystem::JoinSession(APlayerController* Player, UCommonSess
 	if (HasActiveSession())
 	{
 		QueuedJoin = Request;
-		bWantToDestroyPendingSession = true;
+		BeginCleanup();
 #if COMMONUSER_OSSV1
 		CleanUpSessionsOSSv1();
 #endif
@@ -1631,7 +1644,7 @@ void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText&
 		bRecoverAfterCleanup = true;
 		DeferredCleanupFailure = Result;
 	}
-	if (bCleanup) { bWantToDestroyPendingSession = true; }
+	if (bCleanup) { BeginCleanup(); }
 	QueuedJoin = nullptr;
 	CancelActiveSearch(ErrorText);
 	CompleteOperation(Result);
@@ -1642,8 +1655,95 @@ void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText&
 	if (bRecover) { OnSessionConnectionFailureEvent.Broadcast(Result); }
 }
 
+bool UCommonSessionSubsystem::RejectQuarantinedOperation()
+{
+	if (!bCleanupQuarantined) { return false; }
+	FailOperation(TEXT("CleanupUnavailable"), LOCTEXT("CleanupQuarantined", "Steam is still leaving the previous session. Please wait, or restart the game if Steam does not recover."));
+	return true;
+}
+
+void UCommonSessionSubsystem::BeginCleanup()
+{
+	if (bWantToDestroyPendingSession || bCleanupQuarantined) { return; }
+	bWantToDestroyPendingSession = true;
+	CleanupDeadline = FPlatformTime::Seconds() + 30.0;
+	++CleanupGeneration;
+#if COMMONUSER_OSSV1
+	CleanupSessionInterface = Online::GetSessionInterface(GetWorld());
+	if (CleanupSessionInterface)
+	{
+		CleanupEndHandle = CleanupSessionInterface->AddOnEndSessionCompleteDelegate_Handle(
+			FOnEndSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnEndSessionComplete, CleanupGeneration));
+		CleanupDestroyHandle = CleanupSessionInterface->AddOnDestroySessionCompleteDelegate_Handle(
+			FOnDestroySessionCompleteDelegate::CreateUObject(this, &ThisClass::OnDestroySessionComplete, CleanupGeneration));
+	}
+#endif
+}
+
+void UCommonSessionSubsystem::ResetCleanupCallbacks()
+{
+#if COMMONUSER_OSSV1
+	if (CleanupSessionInterface)
+	{
+		CleanupSessionInterface->ClearOnEndSessionCompleteDelegate_Handle(CleanupEndHandle);
+		CleanupSessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(CleanupDestroyHandle);
+	}
+	CleanupSessionInterface.Reset();
+	CleanupEndHandle.Reset();
+	CleanupDestroyHandle.Reset();
+#endif
+}
+
+void UCommonSessionSubsystem::ExpireCleanup()
+{
+	FOnlineResultInformation Failure;
+	Failure.bWasSuccessful = false;
+	Failure.ErrorId = TEXT("CleanupTimeout");
+	Failure.ErrorText = LOCTEXT("CleanupTimeout", "Leaving the previous session timed out. Returning to the main menu.");
+#if COMMONUSER_OSSV1
+	AbandonedSessionInterface = CleanupSessionInterface;
+#endif
+	ResetCleanupCallbacks();
+	++CleanupGeneration;
+	bCleanupQuarantined = true;
+	bWantToDestroyPendingSession = false;
+	bOwnsPendingSession = false;
+	bRecoverAfterCleanup = false;
+	QueuedJoin = nullptr;
+	CleanupDeadline = 0.0;
+	CancelActiveSearch(Failure.ErrorText);
+	CompleteOperation(Failure);
+	NotifySessionInformationUpdated(ECommonSessionInformationState::OutOfGame);
+	OnSessionCleanupCompleteEvent.Broadcast(false);
+	OnSessionConnectionFailureEvent.Broadcast(Failure);
+}
+
+void UCommonSessionSubsystem::TickAbandonedCleanup()
+{
+#if COMMONUSER_OSSV1
+	if (!bCleanupQuarantined || !AbandonedSessionInterface) { return; }
+	// Keep NAME_GameSession reserved until the old SDK tasks have actually removed it.
+	// End/Destroy callbacks are detached; polling cannot complete a newer request.
+	if (!AbandonedSessionInterface->GetNamedSession(NAME_GameSession))
+	{
+		AbandonedSessionInterface.Reset();
+		bCleanupQuarantined = false;
+		return;
+	}
+	const EOnlineSessionState::Type State = AbandonedSessionInterface->GetSessionState(NAME_GameSession);
+	if (State == EOnlineSessionState::InProgress) { AbandonedSessionInterface->EndSession(NAME_GameSession); }
+	else if (State == EOnlineSessionState::Ended || State == EOnlineSessionState::Pending)
+	{
+		AbandonedSessionInterface->DestroySession(NAME_GameSession);
+	}
+#endif
+}
+
 void UCommonSessionSubsystem::FinishCleanup(bool bSucceeded)
 {
+	if (bCleanupQuarantined) { return; }
+	ResetCleanupCallbacks();
+	CleanupDeadline = 0.0;
 	const bool bDeferredRecovery = bRecoverAfterCleanup;
 	const FOnlineResultInformation DeferredFailure = DeferredCleanupFailure;
 	bRecoverAfterCleanup = false;
@@ -1673,6 +1773,12 @@ void UCommonSessionSubsystem::ContinueQueuedJoin()
 
 bool UCommonSessionSubsystem::TickOperation(float DeltaTime)
 {
+	TickAbandonedCleanup();
+	if (bWantToDestroyPendingSession && CleanupDeadline > 0.0 && FPlatformTime::Seconds() >= CleanupDeadline)
+	{
+		ExpireCleanup();
+		return true;
+	}
 #if COMMONUSER_OSSV1
 	if (SearchSettings && (SearchSettings->SearchState == EOnlineAsyncTaskState::Done ||
 		SearchSettings->SearchState == EOnlineAsyncTaskState::Failed))
@@ -1700,6 +1806,7 @@ void UCommonSessionSubsystem::NetworkSessionFailure(UWorld* World, UNetDriver* N
 
 void UCommonSessionSubsystem::RecoverConnection(const FString& ErrorId, const FText& ErrorText)
 {
+	if (bCleanupQuarantined) { return; }
 	if (ActiveOperation != EOperation::None)
 	{
 		FailOperation(ErrorId, ErrorText);
@@ -1718,6 +1825,7 @@ void UCommonSessionSubsystem::RecoverConnection(const FString& ErrorId, const FT
 #include "Misc/AutomationTest.h"
 #include "Engine/PendingNetGame.h"
 #include "IpNetDriver.h"
+#include "Misc/ScopeExit.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionRequestLifecycleTest, "CommonUser.Session.RequestLifecycle",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -1971,6 +2079,120 @@ bool FCommonSessionCleanupTimeoutTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Failed cleanup clears deferred recovery"), Session->bRecoverAfterCleanup);
 	Session->FinishCleanup(true);
 	TestEqual(TEXT("Unrelated cleanup cannot replay stale recovery"), Recoveries, 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionCleanupWatchdogTest, "CommonUser.Session.CleanupWatchdog",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCommonSessionCleanupWatchdogTest::RunTest(const FString& Parameters)
+{
+	IOnlineSubsystem* NullOSS = IOnlineSubsystem::Get(FName(TEXT("NULL")));
+	const IOnlineSessionPtr Backend = NullOSS ? NullOSS->GetSessionInterface() : nullptr;
+	if (!TestTrue(TEXT("OSSv1 NULL backend is available for deterministic cleanup tests"), Backend.IsValid())) { return false; }
+	if (!TestNull(TEXT("Test backend has no existing GameSession"), Backend->GetNamedSession(NAME_GameSession))) { return false; }
+	ON_SCOPE_EXIT { Backend->RemoveNamedSession(NAME_GameSession); };
+
+	TStrongObjectPtr<UGameInstance> Instance(NewObject<UGameInstance>());
+	TStrongObjectPtr<UCommonSessionSubsystem> Session(NewObject<UCommonSessionSubsystem>(Instance.Get()));
+	int32 Recoveries = 0;
+	int32 CleanupCompletions = 0;
+	int32 JoinCompletions = 0;
+	int32 RetryRejections = 0;
+	Session->OnSessionConnectionFailureEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++Recoveries;
+		TestEqual(TEXT("Watchdog reports cleanup timeout"), Result.ErrorId, FString(TEXT("CleanupTimeout")));
+		TestFalse(TEXT("Recovery observes released Busy state"), Session->IsSessionBusy());
+	});
+	Session->OnSessionCleanupCompleteEvent.AddLambda([&](bool) { ++CleanupCompletions; });
+	Session->OnJoinSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		if (Result.ErrorId == TEXT("CleanupUnavailable")) { ++RetryRejections; }
+		else { ++JoinCompletions; TestEqual(TEXT("Pending join fails with cleanup timeout"), Result.ErrorId, FString(TEXT("CleanupTimeout"))); }
+	});
+	Session->OnCreateSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		if (Result.ErrorId == TEXT("CleanupUnavailable")) { ++RetryRejections; }
+	});
+
+	FOnlineSessionSettings Settings;
+	Settings.bShouldAdvertise = false;
+	if (!TestTrue(TEXT("Create deterministic backend session"), Backend->CreateSession(0, NAME_GameSession, Settings))) { return false; }
+	FNamedOnlineSession* OldSession = Backend->GetNamedSession(NAME_GameSession);
+	if (!TestNotNull(TEXT("Backend owns test session"), OldSession)) { return false; }
+	OldSession->SessionState = EOnlineSessionState::Destroying;
+	Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+	Session->QueuedJoin = NewObject<UCommonSession_SearchResult>(Session.Get());
+	Session->BeginCleanup();
+	Session->ResetCleanupCallbacks();
+	Session->CleanupSessionInterface = Backend;
+	const uint64 OldGeneration = Session->CleanupGeneration;
+	const FOnEndSessionCompleteDelegate OldEndCallback = FOnEndSessionCompleteDelegate::CreateUObject(
+		Session.Get(), &UCommonSessionSubsystem::OnEndSessionComplete, OldGeneration);
+	const FOnDestroySessionCompleteDelegate OldDestroyCallback = FOnDestroySessionCompleteDelegate::CreateUObject(
+		Session.Get(), &UCommonSessionSubsystem::OnDestroySessionComplete, OldGeneration);
+	Session->CleanupEndHandle = Backend->AddOnEndSessionCompleteDelegate_Handle(OldEndCallback);
+	Session->CleanupDestroyHandle = Backend->AddOnDestroySessionCompleteDelegate_Handle(OldDestroyCallback);
+	const double OriginalDeadline = Session->CleanupDeadline;
+	Session->BeginCleanup();
+	TestEqual(TEXT("Repeated cleanup does not extend its deadline"), Session->CleanupDeadline, OriginalDeadline);
+	Session->CleanupDeadline = FPlatformTime::Seconds() - 1;
+	Session->TickOperation(0);
+	Session->TickOperation(0);
+	TestEqual(TEXT("Missing callback completes join once"), JoinCompletions, 1);
+	TestEqual(TEXT("Missing callback reports cleanup failure once"), CleanupCompletions, 1);
+	TestEqual(TEXT("Missing callback requests frontend recovery once"), Recoveries, 1);
+	TestNull(TEXT("Timed-out invitation is not replayed"), Session->QueuedJoin.Get());
+	TestFalse(TEXT("No permanent Busy after timeout"), Session->IsSessionBusy());
+	TestTrue(TEXT("Backend remains isolated while old named session exists"), Session->bCleanupQuarantined);
+
+	Backend->TriggerOnEndSessionCompleteDelegates(NAME_GameSession, true);
+	Backend->TriggerOnDestroySessionCompleteDelegates(NAME_GameSession, true);
+	OldEndCallback.Execute(NAME_GameSession, true);
+	OldDestroyCallback.Execute(NAME_GameSession, true);
+	Session->FinishCleanup(true);
+	Session->CleanUpSessions();
+	Session->HostSession(nullptr, nullptr);
+	Session->JoinSession(nullptr, nullptr);
+	Session->QuickPlaySession(nullptr, nullptr);
+	TestEqual(TEXT("Retries fail explicitly while backend is quarantined"), RetryRejections, 3);
+	TestEqual(TEXT("Old callbacks cannot replay cleanup completion"), CleanupCompletions, 1);
+	TestEqual(TEXT("Old callbacks do not repeat frontend recovery"), Recoveries, 1);
+	TestTrue(TEXT("Retry cannot destroy or replace old backend session"), Backend->GetNamedSession(NAME_GameSession) == OldSession);
+
+	OldSession->SessionState = EOnlineSessionState::NoSession;
+	Session->TickOperation(0);
+	TestTrue(TEXT("NoSession state alone cannot retire an in-flight named session"), Session->bCleanupQuarantined);
+
+	// Old SDK work finally progresses. Polling destroys it without reusing its callbacks.
+	OldSession->SessionState = EOnlineSessionState::Pending;
+	Session->TickOperation(0);
+	Session->TickOperation(0);
+	TestFalse(TEXT("Quarantine releases only after backend removed the old session"), Session->bCleanupQuarantined);
+	TestNull(TEXT("Abandoned named session was removed"), Backend->GetNamedSession(NAME_GameSession));
+	TestEqual(TEXT("Backend retirement does not replay recovery"), Recoveries, 1);
+
+	// Captured delegates from generation A must not complete a later cleanup B.
+	Session->BeginCleanup();
+	const uint64 NewGeneration = Session->CleanupGeneration;
+	Session->OnEndSessionComplete(NAME_GameSession, true, OldGeneration);
+	Session->OnDestroySessionComplete(NAME_GameSession, true, OldGeneration);
+	TestTrue(TEXT("Old generation does not finish new cleanup"), Session->bWantToDestroyPendingSession);
+	Session->OnDestroySessionComplete(NAME_GameSession, true, NewGeneration);
+	TestEqual(TEXT("New cleanup completes through its own callback"), CleanupCompletions, 2);
+	TestFalse(TEXT("New cleanup releases Busy"), Session->IsSessionBusy());
+
+	// No active join is needed: an already-cancelled cleanup has its own deadline.
+	Session->BeginCleanup();
+	Session->ResetCleanupCallbacks();
+	Session->CleanupSessionInterface = Backend;
+	Session->CleanupDeadline = FPlatformTime::Seconds() - 1;
+	Session->TickOperation(0);
+	TestEqual(TEXT("Cleanup watchdog runs with ActiveOperation None"), Recoveries, 2);
+	TestEqual(TEXT("Idle cleanup does not complete the old join again"), JoinCompletions, 1);
+	Session->TickOperation(0);
+	TestFalse(TEXT("Already-idle backend retires quarantine on next tick"), Session->bCleanupQuarantined);
 	return true;
 }
 

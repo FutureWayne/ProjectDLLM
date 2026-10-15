@@ -12,4 +12,8 @@ Review [LOCAL_CHANGES.patch](LOCAL_CHANGES.patch) for the focused changes agains
 
 Each task owns a thread-safe expected/received lobby set. Lobby update events accept only IDs expected by the active query; duplicates do not advance completion. Cancelled tasks retire without clearing another task's state. Steam supplies no query ID with a LobbyDataUpdate: a late update for an ID also expected by the retry may refresh that lobby, but unrelated lobby IDs cannot enter the retry.
 
-Validation: ArenaEditor Win64 Development built with UE 5.8.3; CommonUser.Session (4 tests) and Online.Steam.Session.LateLobbyDataIsolation passed. Tests exercise query collection and session recovery without a live Steam connection; dual-account integration remains outstanding.
+Validation: ArenaEditor Win64 Development built with UE 5.8.3; CommonUser.Session (5 tests) and Online.Steam.Session.LateLobbyDataIsolation passed. Tests exercise query collection and session recovery without a live Steam connection; dual-account integration remains outstanding.
+
+CommonUser cleanup has an independent 30-second watchdog. Expiry detaches its End/Destroy delegates, invalidates the cleanup generation, completes pending UI work, and requests frontend recovery once. The old OSS session interface remains quarantined and is polled to finish End/Destroy work. Its named session must actually disappear (a NoSession enum alone is insufficient) before multiplayer requests are accepted again. While quarantined, requests fail explicitly instead of leaving the UI Busy. A permanently stalled Steam backend may require restarting the game; removing the local session prematurely would allow old SDK tasks to affect a new GameSession.
+
+CommonUser.Session.CleanupWatchdog uses an OSSv1 NULL-backend fixture for deterministic missing-callback, late-callback, generation, quarantine, and independent-deadline checks. It does not change the project's Steam configuration.
