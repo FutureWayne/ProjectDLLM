@@ -3,6 +3,8 @@
 #include "CommonUIExtensions.h"
 
 #include "CommonInputSubsystem.h"
+#include "CommonSessionMenuSubsystem.h"
+#include "Blueprint/UserWidget.h"
 #include "CommonInputTypeEnum.h"
 #include "CommonLocalPlayer.h"
 #include "Engine/GameInstance.h"
@@ -14,6 +16,22 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(CommonUIExtensions)
 
 int32 UCommonUIExtensions::InputSuspensions = 0;
+
+void UCommonUIExtensions::HostSessionWithProgress(UUserWidget* Menu, UCommonSession_HostSessionRequest* Request, bool bQuickPlay)
+{
+	if (Menu && Menu->GetOwningLocalPlayer())
+	{
+		Menu->GetOwningLocalPlayer()->GetSubsystem<UCommonSessionMenuSubsystem>()->Host(Menu, Request, bQuickPlay);
+	}
+}
+
+void UCommonUIExtensions::JoinSessionWithProgress(UUserWidget* Menu, UCommonSession_SearchResult* Request)
+{
+	if (Menu && Menu->GetOwningLocalPlayer())
+	{
+		Menu->GetOwningLocalPlayer()->GetSubsystem<UCommonSessionMenuSubsystem>()->Join(Menu, Request);
+	}
+}
 
 ECommonInputType UCommonUIExtensions::GetOwningPlayerInputType(const UUserWidget* WidgetContextObject)
 {

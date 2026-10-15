@@ -15,6 +15,8 @@ class UCommonActivatableWidget;
 class ULocalPlayer;
 class UObject;
 class UUserWidget;
+class UCommonSession_HostSessionRequest;
+class UCommonSession_SearchResult;
 struct FFrame;
 struct FGameplayTag;
 
@@ -25,6 +27,12 @@ class COMMONGAME_API UCommonUIExtensions : public UBlueprintFunctionLibrary
 	
 public:
 	UCommonUIExtensions() { }
+
+	UFUNCTION(BlueprintCallable, Category="Session", meta=(DefaultToSelf="Menu"))
+	static void HostSessionWithProgress(UUserWidget* Menu, UCommonSession_HostSessionRequest* Request, bool bQuickPlay);
+
+	UFUNCTION(BlueprintCallable, Category="Session", meta=(DefaultToSelf="Menu"))
+	static void JoinSessionWithProgress(UUserWidget* Menu, UCommonSession_SearchResult* Request);
 	
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category = "Global UI Extensions", meta = (WorldContext = "WidgetContextObject"))
 	static ECommonInputType GetOwningPlayerInputType(const UUserWidget* WidgetContextObject);
