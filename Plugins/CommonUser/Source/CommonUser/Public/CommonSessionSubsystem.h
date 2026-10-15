@@ -445,11 +445,14 @@ protected:
 	friend class FCommonSessionRequestLifecycleTest;
 	friend class FCommonSessionSearchReentryTest;
 	friend class FCommonSessionRecoveryRegressionTest;
+	friend class FCommonSessionCleanupTimeoutTest;
 	EOperation ActiveOperation = EOperation::None;
 	bool bAwaitingTravel = false;
 	bool bOwnsPendingSession = false;
 	bool bOfflineTravel = false;
 	bool bLeftPreviousSession = false;
+	bool bRecoverAfterCleanup = false;
+	FOnlineResultInformation DeferredCleanupFailure;
 	UPROPERTY(Transient)
 	TObjectPtr<UCommonSession_SearchSessionRequest> QuickPlaySearchRequest;
 	double OperationDeadline = 0.0;

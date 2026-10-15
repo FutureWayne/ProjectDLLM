@@ -958,6 +958,7 @@ void UCommonSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, con
 
 void UCommonSessionSubsystem::CleanUpSessions()
 {
+	bRecoverAfterCleanup = false;
 	QueuedJoin = nullptr;
 	const bool bAlreadyCleaning = bWantToDestroyPendingSession;
 	bWantToDestroyPendingSession = true;
@@ -1623,6 +1624,13 @@ void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText&
 	// Set cleanup state before invoking observers so retries cannot overlap destruction.
 	const bool bRecover = bAwaitingTravel || bLeftPreviousSession;
 	const bool bCleanup = bOwnsPendingSession;
+	// Destruction can outlive the join deadline. Remember why the queued join was
+	// abandoned so its late successful destruction still returns to the frontend.
+	if (QueuedJoin && bWantToDestroyPendingSession && !bLeftPreviousSession)
+	{
+		bRecoverAfterCleanup = true;
+		DeferredCleanupFailure = Result;
+	}
 	if (bCleanup) { bWantToDestroyPendingSession = true; }
 	QueuedJoin = nullptr;
 	CancelActiveSearch(ErrorText);
@@ -1636,9 +1644,13 @@ void UCommonSessionSubsystem::FailOperation(const FString& ErrorId, const FText&
 
 void UCommonSessionSubsystem::FinishCleanup(bool bSucceeded)
 {
+	const bool bDeferredRecovery = bRecoverAfterCleanup;
+	const FOnlineResultInformation DeferredFailure = DeferredCleanupFailure;
+	bRecoverAfterCleanup = false;
 	bWantToDestroyPendingSession = false;
 	bOwnsPendingSession = false;
 	OnSessionCleanupCompleteEvent.Broadcast(bSucceeded);
+	if (bDeferredRecovery && bSucceeded) { OnSessionConnectionFailureEvent.Broadcast(DeferredFailure); }
 	if (QueuedJoin)
 	{
 		if (bSucceeded) { bLeftPreviousSession = true; ContinueQueuedJoin(); }
@@ -1911,6 +1923,54 @@ bool FCommonSessionRecoveryRegressionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Retry completes exactly once using its own results"), RetryCompletions, 1);
 	Session->ActiveOperation = UCommonSessionSubsystem::EOperation::None;
 	Session->QuickPlaySearchRequest = nullptr;
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionCleanupTimeoutTest, "CommonUser.Session.CleanupTimeoutRecovery",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCommonSessionCleanupTimeoutTest::RunTest(const FString& Parameters)
+{
+	TStrongObjectPtr<UGameInstance> Instance(NewObject<UGameInstance>());
+	TStrongObjectPtr<UCommonSessionSubsystem> Session(NewObject<UCommonSessionSubsystem>(Instance.Get()));
+	int32 Joins = 0;
+	int32 Recoveries = 0;
+	Session->OnJoinSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++Joins;
+		TestEqual(TEXT("Join preserves timeout result"), Result.ErrorId, FString(TEXT("Timeout")));
+	});
+	Session->OnSessionConnectionFailureEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++Recoveries;
+		TestEqual(TEXT("Late cleanup recovery preserves timeout reason"), Result.ErrorId, FString(TEXT("Timeout")));
+	});
+	auto TimeoutDuringCleanup = [&]()
+	{
+		Session->BeginOperation(UCommonSessionSubsystem::EOperation::Joining);
+		Session->QueuedJoin = NewObject<UCommonSession_SearchResult>(Session.Get());
+		Session->bWantToDestroyPendingSession = true;
+		Session->OperationDeadline = 0;
+		Session->TickOperation(0);
+		Session->TickOperation(0);
+		TestNull(TEXT("Timeout discards invitation without starting it"), Session->QueuedJoin.Get());
+		TestTrue(TEXT("Cleanup remains busy until backend finishes"), Session->IsSessionBusy());
+	};
+	TimeoutDuringCleanup();
+	TestEqual(TEXT("Timeout completes join once"), Joins, 1);
+	TestEqual(TEXT("Recovery waits for cleanup result"), Recoveries, 0);
+	Session->FinishCleanup(true);
+	Session->FinishCleanup(true);
+	TestEqual(TEXT("Late successful cleanup requests recovery exactly once"), Recoveries, 1);
+	TestEqual(TEXT("Cleanup does not complete join again"), Joins, 1);
+	TestFalse(TEXT("Completed cleanup releases Busy"), Session->IsSessionBusy());
+
+	TimeoutDuringCleanup();
+	Session->FinishCleanup(false);
+	TestEqual(TEXT("Failed cleanup leaves existing world alone"), Recoveries, 1);
+	TestFalse(TEXT("Failed cleanup clears deferred recovery"), Session->bRecoverAfterCleanup);
+	Session->FinishCleanup(true);
+	TestEqual(TEXT("Unrelated cleanup cannot replay stale recovery"), Recoveries, 1);
 	return true;
 }
 
