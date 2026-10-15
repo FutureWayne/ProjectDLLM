@@ -447,6 +447,7 @@ protected:
 	friend class FCommonSessionRecoveryRegressionTest;
 	friend class FCommonSessionCleanupTimeoutTest;
 	friend class FCommonSessionCleanupWatchdogTest;
+	friend class FCommonSessionCleanupRecoveryHostTest;
 	EOperation ActiveOperation = EOperation::None;
 	bool bAwaitingTravel = false;
 	bool bOwnsPendingSession = false;

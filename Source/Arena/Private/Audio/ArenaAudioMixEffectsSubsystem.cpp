@@ -52,6 +52,7 @@ bool UArenaAudioMixEffectsSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 void UArenaAudioMixEffectsSubsystem::PostInitialize()
 {
+	Super::PostInitialize();
 	if (const UArenaAudioSettings* ArenaAudioSettings = GetDefault<UArenaAudioSettings>())
 	{
 		if (UObject* ObjPath = ArenaAudioSettings->DefaultControlBusMix.TryLoad())
@@ -221,6 +222,7 @@ void UArenaAudioMixEffectsSubsystem::PostInitialize()
 
 void UArenaAudioMixEffectsSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
+	Super::OnWorldBeginPlay(InWorld);
 	if (const UWorld* World = InWorld.GetWorld())
 	{
 		// Activate the default base mix

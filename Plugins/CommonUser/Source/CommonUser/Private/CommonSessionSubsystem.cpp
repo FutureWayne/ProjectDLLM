@@ -1826,6 +1826,7 @@ void UCommonSessionSubsystem::RecoverConnection(const FString& ErrorId, const FT
 #include "Engine/PendingNetGame.h"
 #include "IpNetDriver.h"
 #include "Misc/ScopeExit.h"
+#include "AssetRegistry/AssetBundleData.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionRequestLifecycleTest, "CommonUser.Session.RequestLifecycle",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -2193,6 +2194,135 @@ bool FCommonSessionCleanupWatchdogTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Idle cleanup does not complete the old join again"), JoinCompletions, 1);
 	Session->TickOperation(0);
 	TestFalse(TEXT("Already-idle backend retires quarantine on next tick"), Session->bCleanupQuarantined);
+	return true;
+}
+
+// Run in an isolated editor process with a runtime-only DefaultPlatformService=NULL
+// override. This performs real OSSv1 creation and listen-server map travel.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCommonSessionCleanupRecoveryHostTest, "CommonUser.Integration.CleanupRecoveryHost",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FCommonSessionCleanupRecoveryHostTest::RunTest(const FString& Parameters)
+{
+	IOnlineSubsystem* OSS = IOnlineSubsystem::Get();
+	if (!OSS || OSS->GetSubsystemName() != FName(TEXT("NULL")))
+	{
+		AddError(TEXT("Run this integration fixture in an isolated editor with -ini:Engine:[OnlineSubsystem]:DefaultPlatformService=NULL"));
+		return false;
+	}
+	const IOnlineSessionPtr Backend = OSS->GetSessionInterface();
+	if (!TestTrue(TEXT("OSSv1 integration backend exists"), Backend.IsValid()) ||
+		!TestNull(TEXT("Fixture does not overwrite an existing session"), Backend->GetNamedSession(NAME_GameSession))) { return false; }
+
+	UWorld* SavedWorld = GWorld;
+	const TArray<FNetDriverDefinition> SavedDrivers = GEngine->NetDriverDefinitions;
+	for (FNetDriverDefinition& Driver : GEngine->NetDriverDefinitions)
+	{
+		if (Driver.DefName == NAME_GameNetDriver)
+		{
+			Driver.DriverClassName = FName(TEXT("/Script/OnlineSubsystemUtils.IpNetDriver"));
+			Driver.DriverClassNameFallback = Driver.DriverClassName;
+		}
+	}
+	TStrongObjectPtr<UGameInstance> Instance(NewObject<UGameInstance>(GEngine));
+	Instance->InitializeStandalone(FName(TEXT("CleanupRecoveryHostFixture")));
+	FWorldContext& Context = GEngine->GetWorldContextFromWorldChecked(Instance->GetWorld());
+	Context.PIEInstance = 6777; // Force an independent copy if Entry is already the editor world.
+	const FPrimaryAssetId MapId(FPrimaryAssetType(TEXT("AutomationCleanupRecoveryHost")), FName(TEXT("CleanupRecoveryEntry")));
+	ON_SCOPE_EXIT
+	{
+		Backend->RemoveNamedSession(NAME_GameSession);
+		UAssetManager::Get().RemovePrimaryAssetType(MapId.PrimaryAssetType);
+		UWorld* World = Instance->GetWorld();
+		Instance->Shutdown();
+		if (World)
+		{
+			World->DestroyWorld(false);
+			GEngine->DestroyWorldContext(World);
+		}
+		GEngine->NetDriverDefinitions = SavedDrivers;
+		GWorld = SavedWorld;
+	};
+	UCommonSessionSubsystem* Session = Instance->GetSubsystem<UCommonSessionSubsystem>();
+	if (!TestNotNull(TEXT("Fixture uses the initialized production session subsystem"), Session)) { return false; }
+	Session->bIsDedicatedServer = true; // Exercise the supported server-host path without a viewport/player.
+	Session->bUseBeacons = false;
+	TestTrue(TEXT("Fixture resolves the same OSS backend as public HostSession"), Online::GetSessionInterface(Instance->GetWorld()) == Backend);
+	FAssetBundleData MapBundle;
+	MapBundle.AddBundleAsset(FName(TEXT("AutomationMap")), FTopLevelAssetPath(TEXT("/Engine/Maps/Entry.Entry")));
+	UAssetManager::Get().AddDynamicAsset(MapId, FSoftObjectPath(TEXT("/Engine/Maps/Entry.Entry")), MapBundle);
+	TStrongObjectPtr<UCommonSession_HostSessionRequest> Request(Session->CreateOnlineHostSessionRequest());
+	Request->MapID = MapId;
+	Request->OnlineMode = ECommonSessionOnlineMode::LAN;
+	Request->bUseLobbies = false;
+	Request->bUsePresence = false;
+	Request->MaxPlayerCount = 2;
+	Request->ExtraArgs.Add(TEXT("game"), TEXT("/Script/Engine.GameModeBase"));
+	FText ValidationError;
+	if (!TestTrue(TEXT("Host request resolves a real engine map"), Request->ValidateAndLogErrors(ValidationError))) { return false; }
+
+	int32 Recoveries = 0;
+	int32 RejectedRetries = 0;
+	int32 HostSuccesses = 0;
+	const FDelegateHandle RecoveryHandle = Session->OnSessionConnectionFailureEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		++Recoveries;
+		TestEqual(TEXT("Cleanup timeout triggers recovery"), Result.ErrorId, FString(TEXT("CleanupTimeout")));
+	});
+	const FDelegateHandle HostHandle = Session->OnCreateSessionCompleteEvent.AddLambda([&](const FOnlineResultInformation& Result)
+	{
+		if (Result.bWasSuccessful) { ++HostSuccesses; }
+		else if (Result.ErrorId == TEXT("CleanupUnavailable")) { ++RejectedRetries; }
+		else { AddError(FString::Printf(TEXT("Unexpected host failure: %s: %s"), *Result.ErrorId, *Result.ErrorText.ToString())); }
+	});
+	ON_SCOPE_EXIT
+	{
+		Session->OnSessionConnectionFailureEvent.Remove(RecoveryHandle);
+		Session->OnCreateSessionCompleteEvent.Remove(HostHandle);
+	};
+
+	FOnlineSessionSettings OldSettings;
+	OldSettings.bShouldAdvertise = false;
+	if (!TestTrue(TEXT("Create the old backend session"), Backend->CreateSession(0, NAME_GameSession, OldSettings))) { return false; }
+	FNamedOnlineSession* OldSession = Backend->GetNamedSession(NAME_GameSession);
+	if (!TestNotNull(TEXT("Old backend session exists"), OldSession)) { return false; }
+	OldSession->SessionState = EOnlineSessionState::Destroying; // Fault: backend callback never arrives.
+	Session->CleanUpSessions();
+	const uint64 OldGeneration = Session->CleanupGeneration;
+	Session->CleanupDeadline = FPlatformTime::Seconds() - 1;
+	Session->TickOperation(0);
+	TestEqual(TEXT("Watchdog requests frontend recovery exactly once"), Recoveries, 1);
+	TestFalse(TEXT("Watchdog releases UI Busy"), Session->IsSessionBusy());
+	Session->HostSession(nullptr, Request.Get());
+	TestEqual(TEXT("Public host is explicitly rejected before backend recovery"), RejectedRetries, 1);
+
+	OldSession->SessionState = EOnlineSessionState::Pending; // Backend recovers and allows destruction.
+	Session->TickOperation(0);
+	Session->TickOperation(0);
+	if (!TestFalse(TEXT("Backend retirement releases quarantine"), Session->bCleanupQuarantined)) { return false; }
+	TestNull(TEXT("Old named session was actually removed"), Backend->GetNamedSession(NAME_GameSession));
+	const TWeakObjectPtr<UWorld> SourceWorld = Instance->GetWorld();
+	Session->HostSession(nullptr, Request.Get()); // Real validation, OSS create delegate, and ServerTravel.
+	if (!TestNotNull(TEXT("Retry created a new backend session"), Backend->GetNamedSession(NAME_GameSession))) { return false; }
+	TestEqual(TEXT("SDK creation alone does not report success"), HostSuccesses, 0);
+	TestTrue(TEXT("Retry waits for destination travel"), Session->bAwaitingTravel);
+	Session->OnEndSessionComplete(NAME_GameSession, true, OldGeneration);
+	Session->OnDestroySessionComplete(NAME_GameSession, true, OldGeneration);
+	TestNotNull(TEXT("Old callbacks preserve the new backend session"), Backend->GetNamedSession(NAME_GameSession));
+	for (int32 Attempt = 0; Attempt < 3 && HostSuccesses == 0; ++Attempt) { GEngine->TickWorldTravel(Context, 1.0f); }
+	TestEqual(TEXT("Retry reports host success once after real map travel"), HostSuccesses, 1);
+	UWorld* Destination = Instance->GetWorld();
+	if (!TestNotNull(TEXT("Destination world exists"), Destination)) { return false; }
+	TestTrue(TEXT("Travel replaced the source world"), Destination != SourceWorld.Get());
+	TestEqual(TEXT("Loaded the requested map"), UWorld::RemovePIEPrefix(Destination->GetOutermost()->GetName()), FString(TEXT("/Engine/Maps/Entry")));
+	TestTrue(TEXT("Destination has a live listen-server net driver"), Destination->GetNetDriver() && Destination->GetNetMode() == NM_ListenServer);
+	TestTrue(TEXT("New online session remains active after success"), Session->HasActiveSession());
+	TestFalse(TEXT("Successful retry releases Busy"), Session->IsSessionBusy());
+	Session->OnDestroySessionComplete(NAME_GameSession, true, OldGeneration);
+	Session->TickOperation(0);
+	TestEqual(TEXT("Late callbacks do not repeat success"), HostSuccesses, 1);
+	TestEqual(TEXT("Retry does not repeat old recovery"), Recoveries, 1);
+	TestNotNull(TEXT("Successful retry session survives old callbacks"), Backend->GetNamedSession(NAME_GameSession));
 	return true;
 }
 
