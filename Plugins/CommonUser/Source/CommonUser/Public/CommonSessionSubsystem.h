@@ -409,8 +409,8 @@ protected:
 	void OnStartSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnRegisterLocalPlayerComplete_CreateSession(const FUniqueNetId& PlayerId, EOnJoinSessionCompleteResult::Type Result);
 	void OnUpdateSessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnEndSessionComplete(FName SessionName, bool bWasSuccessful);
-	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnEndSessionComplete(FName SessionName, bool bWasSuccessful, uint64 CleanupId);
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful, uint64 CleanupId);
 	void OnDestroySessionRequested(int32 LocalUserNum, FName SessionName);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
@@ -444,10 +444,28 @@ protected:
 	enum class EOperation : uint8 { None, Hosting, Joining, QuickPlay };
 	friend class FCommonSessionRequestLifecycleTest;
 	friend class FCommonSessionSearchReentryTest;
+	friend class FCommonSessionRecoveryRegressionTest;
+	friend class FCommonSessionCleanupTimeoutTest;
+	friend class FCommonSessionCleanupWatchdogTest;
+	friend class FCommonSessionCleanupRecoveryHostTest;
 	EOperation ActiveOperation = EOperation::None;
 	bool bAwaitingTravel = false;
 	bool bOwnsPendingSession = false;
 	bool bOfflineTravel = false;
+	bool bLeftPreviousSession = false;
+	bool bRecoverAfterCleanup = false;
+	bool bCleanupQuarantined = false;
+	double CleanupDeadline = 0.0;
+	uint64 CleanupGeneration = 0;
+#if COMMONUSER_OSSV1
+	IOnlineSessionPtr CleanupSessionInterface;
+	IOnlineSessionPtr AbandonedSessionInterface;
+	FDelegateHandle CleanupEndHandle;
+	FDelegateHandle CleanupDestroyHandle;
+#endif
+	FOnlineResultInformation DeferredCleanupFailure;
+	UPROPERTY(Transient)
+	TObjectPtr<UCommonSession_SearchSessionRequest> QuickPlaySearchRequest;
 	double OperationDeadline = 0.0;
 	FTSTicker::FDelegateHandle OperationTicker;
 	TWeakObjectPtr<UWorld> TravelSourceWorld;
@@ -457,6 +475,12 @@ protected:
 	void BeginOperation(EOperation Operation);
 	void CompleteOperation(const FOnlineResultInformation& Result);
 	void FailOperation(const FString& ErrorId, const FText& ErrorText);
+	void CancelActiveSearch(const FText& ErrorText);
+	void BeginCleanup();
+	void ResetCleanupCallbacks();
+	void ExpireCleanup();
+	void TickAbandonedCleanup();
+	bool RejectQuarantinedOperation();
 	void FinishCleanup(bool bSucceeded);
 	void ContinueQueuedJoin();
 	bool TickOperation(float DeltaTime);
