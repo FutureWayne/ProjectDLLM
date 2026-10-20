@@ -1,16 +1,20 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
-
 #include "Actor/ArenaEffectActor.h"
+
 #include "AbilitySystemGlobals.h"
-#include "AbilitySystem/ArenaHealthSet.h"
-#include "GameFramework/PlayerState.h"
+#include "AbilitySystemComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameplayEffect.h"
 
 AArenaEffectActor::AArenaEffectActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 }
 
+void AArenaEffectActor::InitializeEffect_Implementation(const UArenaEffectActorDefinition* Definition)
+{
+}
 
 // Called when the game starts or when spawned
 void AArenaEffectActor::BeginPlay()
@@ -110,4 +114,3 @@ void AArenaEffectActor::OnEndOverlap(AActor* TargetActor)
 		}
 	}
 }
-

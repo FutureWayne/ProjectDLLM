@@ -9,9 +9,12 @@
 
 class UArenaGrenadeDefinitionData;
 class AArenaEffectActor;
+class UArenaEffectActorDefinition;
 class UNiagaraSystem;
 class AArenaGrenadeBase;
 class UGameplayEffect;
+class USoundBase;
+class UAnimMontage;
 
 ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnImpact);
 ARENA_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_DetonationPolicy_OnHitValidTarget);
@@ -39,11 +42,21 @@ struct FEffectActorSpawnData
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor")
 	TSubclassOf<AArenaEffectActor> EffectActorClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor")
+	TObjectPtr<UArenaEffectActorDefinition> EffectDefinition = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor", meta = (ClampMin = "0", ClampMax = "64"))
+	int32 SpawnCount = 1;
+
+	/** Horizontal distribution radius for multiple area patches, independent of each patch's size. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "EffectActor", meta = (ClampMin = "0"))
+	float SpawnRadius = 0.f;
 };
 
 USTRUCT(BlueprintType)
 struct FSecondaryGrenadeSpawnData
-{	
+{
 	GENERATED_BODY();
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SecondaryGrenade")
@@ -56,9 +69,6 @@ struct FSecondaryGrenadeSpawnData
 	int32 SpawnCount = 1;
 };
 
-/**
- * 
- */
 UCLASS()
 class ARENA_API UArenaGrenadeDefinitionData : public UDataAsset
 {
@@ -66,7 +76,7 @@ class ARENA_API UArenaGrenadeDefinitionData : public UDataAsset
 
 public:
 	UArenaGrenadeDefinitionData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
 	float ProjectileSpeed = 2500.0f;
 
@@ -84,16 +94,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Projectile")
 	float MinFrictionFraction = 0.8f;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TObjectPtr<UNiagaraSystem> TrailEffect = nullptr;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TObjectPtr<USoundBase> GrenadeImpactSound = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	FGameplayTag ExplosionCueTag = FGameplayTag::EmptyTag;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Cosmetic")
 	TObjectPtr<UAnimMontage> ThrowMontage = nullptr;
 
@@ -132,7 +142,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|Effect")
 	TArray<FSecondaryGrenadeSpawnData> SecondaryGrenadesToSpawn;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grenade|GrenadeClass", meta = (ToolTip = "Use B_GrenadeBase if no special function required"))
 	TSubclassOf<AArenaGrenadeBase> GrenadeClass = nullptr;
 
