@@ -7,9 +7,9 @@
 #include "GameplayEffectTypes.h"
 #include "ArenaEffectActor.generated.h"
 
-
 class UAbilitySystemComponent;
 class UGameplayEffect;
+class UArenaEffectActorDefinition;
 
 UENUM(BlueprintType)
 enum class EEffectApplicationPolicy : uint8
@@ -30,11 +30,15 @@ UCLASS()
 class ARENA_API AArenaEffectActor : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	AArenaEffectActor();
-	
+
+	/** Called before FinishSpawning; specialized effects interpret their own data. */
+	UFUNCTION(BlueprintNativeEvent, Category = "Effect")
+	void InitializeEffect(const UArenaEffectActorDefinition* Definition);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

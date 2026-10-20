@@ -1,9 +1,14 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.5",
+	"EngineAssociation": "{7C2C0C1D-41F2-635B-9451-038D01474798}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
+		{
+			"Name": "ArenaEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		},
 		{
 			"Name": "Arena",
 			"Type": "Runtime",

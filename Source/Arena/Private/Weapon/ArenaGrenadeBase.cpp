@@ -1,6 +1,5 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
-
 #include "Weapon/ArenaGrenadeBase.h"
 
 #include "AbilitySystemComponent.h"
@@ -9,6 +8,13 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GameplayCueFunctionLibrary.h"
+#include "GameplayCueManager.h"
+#include "GameplayCueSet.h"
+#include "GameplayEffect.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
+#include "Misc/App.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Actor/ArenaEffectActor.h"
@@ -25,6 +31,9 @@
 AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComponent"));
 	CollisionComponent->SetCollisionProfileName("BlockAllDynamic");
 	CollisionComponent->SetCollisionObjectType(ECC_GameTraceChannel1);
@@ -36,7 +45,7 @@ AArenaGrenadeBase::AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer
 	ProjectileMovementComponent->bAutoActivate = true;
 	ProjectileMovementComponent->bInterpMovement = true;
 	ProjectileMovementComponent->bInterpRotation = true;
-	
+
 	SetReplicates(true);
 	SetReplicatingMovement(true);
 	SetNetUpdateFrequency(100.0f);
@@ -69,11 +78,20 @@ void AArenaGrenadeBase::SetGrenadeParameter_Implementation(const UArenaGrenadeDe
 
 void AArenaGrenadeBase::SetGrenadeExplosionTimer_Implementation(float TimeBeforeExplosion)
 {
-	UKismetSystemLibrary::K2_ClearTimerHandle(this, ExplosionCountdownTimerHandle);
+	GetWorldTimerManager().ClearTimer(ExplosionCountdownTimerHandle);
+	if (bDetonationFired)
+	{
+		return;
+	}
 
 	if (TimeBeforeExplosion > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(ExplosionCountdownTimerHandle, this, &AArenaGrenadeBase::Detonate, TimeBeforeExplosion, false);
+	}
+	else
+	{
+		// The throwing ability subtracts cooking and montage time. An expired fuse must not disarm the grenade.
+		Detonate();
 	}
 }
 
@@ -88,7 +106,6 @@ void AArenaGrenadeBase::BeginPlay()
 	}
 }
 
-
 void AArenaGrenadeBase::Detonate_Implementation()
 {
 	if (bDetonationFired || GrenadeDefinitionData == nullptr)
@@ -97,18 +114,24 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	}
 
 	bDetonationFired = true;
-	
+	GetWorldTimerManager().ClearTimer(ExplosionCountdownTimerHandle);
+
 	// VFX
 	FGameplayCueParameters GameplayCueParameters;
 	GameplayCueParameters.Location = GetActorLocation();
-	UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GrenadeDefinitionData->ExplosionCueTag, GameplayCueParameters);
+	if (GrenadeDefinitionData->ExplosionCueTag.IsValid() && GetNetMode() != NM_DedicatedServer && FApp::CanEverRender())
+	{
+		// The grenade is destroyed below; its burst cannot wait for a missing cue class to load asynchronously.
+		PrepareExplosionCue();
+		UGameplayCueFunctionLibrary::ExecuteGameplayCueOnActor(this, GrenadeDefinitionData->ExplosionCueTag, GameplayCueParameters);
+	}
 
 	// Hide Mesh
 	if (SpawnedCosmeticActor.Get())
 	{
 		SpawnedCosmeticActor->SetActorHiddenInGame(true);
 	}
-	
+
 	// Deactivate Projectile Movement
 	ProjectileMovementComponent->Deactivate();
 
@@ -116,30 +139,30 @@ void AArenaGrenadeBase::Detonate_Implementation()
 	if (HasAuthority())
 	{
 		TArray<AActor*> OverlappingActors;
-		if (GetActorsWithinExplosionRadius(OverlappingActors))
+		if (GrenadeDefinitionData->ExplosionGameplayEffect && GetActorsWithinExplosionRadius(OverlappingActors))
 		{
-			for (auto OverlappingActor : OverlappingActors)
+			for (AActor* OverlappingActor : OverlappingActors)
 			{
 				TArray<AActor*> IgnoreActors = OverlappingActors;
-				
+
 				if (DirectHitTarget.IsValid())
 				{
 					IgnoreActors.Add(DirectHitTarget.Get());
 				}
-				
+
 				if (!IsValid(OverlappingActor))
 				{
 					continue;
 				}
-				
+
 				IgnoreActors.Remove(OverlappingActor);
-				
+
 				// Trace to check for valid line of sight while ignoring other pawns in radius, so they don't block the hit
 				FHitResult HitResult;
 				EDrawDebugTrace::Type DrawDebugType = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
-				bool hit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, DrawDebugType, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
+				bool bHit = UKismetSystemLibrary::LineTraceSingle(GetWorld(), GetActorLocation(), OverlappingActor->GetActorLocation(), UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel1), true, IgnoreActors, DrawDebugType, HitResult, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
 
-				if (hit && HitResult.GetActor() == OverlappingActor)
+				if (bHit && HitResult.GetActor() == OverlappingActor)
 				{
 					if (bDrawDebug)
 					{
@@ -155,12 +178,11 @@ void AArenaGrenadeBase::Detonate_Implementation()
 			SpawnedCosmeticActor->Destroy();
 		}
 
-		CheckSpawnConditionOnDetonation();
+		SpawnActorsOnDetonation();
 		PostDetonation();
 		Destroy();
 	}
 }
-
 
 void AArenaGrenadeBase::PostDetonation_Implementation()
 {
@@ -197,18 +219,40 @@ bool AArenaGrenadeBase::ShouldDetonateOnImpact_Implementation(FHitResult HitResu
 }
 
 void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnTransform,
-                                                        const TSubclassOf<AArenaEffectActor> EffectActorClass)
+	const TSubclassOf<AArenaEffectActor> EffectActorClass, const UArenaEffectActorDefinition* EffectDefinition,
+	int32 SpawnCount, float SpawnRadius)
 {
-	if (EffectActorClass == nullptr || !HasAuthority())
+	if (EffectActorClass == nullptr || SpawnCount <= 0 || !HasAuthority())
 	{
 		return;
 	}
 
-	AArenaEffectActor* SpawnedEffectActor = GetWorld()->SpawnActorDeferred<AArenaEffectActor>(EffectActorClass, SpawnTransform);
-	// Ignore collision between the spawned effect actor and the grenade
-	CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
-	SpawnedEffectActor->SetInstigator(GetInstigator());
-	SpawnedEffectActor->FinishSpawning(SpawnTransform, true);
+	// Golden angle in radians: PI * (3 - sqrt(5))
+	constexpr float GoldenAngleRad = 2.39996323f;
+	const int32 Count = FMath::Min(SpawnCount, 64);
+	const float MaxRadius = FMath::Max(0.f, SpawnRadius);
+
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		// Sunflower disk sampling is deterministic; the first patch remains at the spawn origin.
+		const float Radius = Count > 1 ? MaxRadius * FMath::Sqrt(static_cast<float>(Index) / (Count - 1)) : 0.f;
+		const float Angle = Index * GoldenAngleRad;
+		FTransform NewSpawnTransform = SpawnTransform;
+		NewSpawnTransform.AddToTranslation(FVector(FMath::Cos(Angle) * Radius, FMath::Sin(Angle) * Radius, 0.f));
+
+		AArenaEffectActor* SpawnedEffectActor = GetWorld()->SpawnActorDeferred<AArenaEffectActor>(
+			EffectActorClass, NewSpawnTransform, GetOwner(), GetInstigator(), ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		if (!SpawnedEffectActor)
+		{
+			continue;
+		}
+
+		// Ignore collision between the spawned effect actor and the grenade
+		CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
+		SpawnedEffectActor->SetInstigator(GetInstigator());
+		SpawnedEffectActor->InitializeEffect(EffectDefinition);
+		SpawnedEffectActor->FinishSpawning(NewSpawnTransform, true);
+	}
 }
 
 void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& SpawnTransform,
@@ -221,9 +265,9 @@ void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& S
 
 	// Evenly distribute the spawn count around the spawn transform
 	const float AngleIncrement = 360.0f / SpawnCount;
-	for (int32 i = 0; i < SpawnCount; i++)
+	for (int32 Index = 0; Index < SpawnCount; Index++)
 	{
-		const FRotator Rotation = FRotator(30.0f, i * AngleIncrement, 0.0f);
+		const FRotator Rotation = FRotator(30.0f, Index * AngleIncrement, 0.0f);
 		FVector ForwardVector = UKismetMathLibrary::GetForwardVector(Rotation);
 		FVector SpawnLocation = SpawnTransform.GetLocation() + (ForwardVector * 50.0f);
 		FTransform NewSpawnTransform = FTransform(Rotation, SpawnLocation);
@@ -233,6 +277,7 @@ void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& S
 
 void AArenaGrenadeBase::LaunchGrenade()
 {
+	PrepareExplosionCue();
 	SetupVFX();
 
 	if (GrenadeDefinitionData->TimeBeforeExplosion > 0.0f)
@@ -242,6 +287,35 @@ void AArenaGrenadeBase::LaunchGrenade()
 
 	FTimerHandle PostLaunchCleanupTimerHandle;
 	GetWorldTimerManager().SetTimer(PostLaunchCleanupTimerHandle, this, &AArenaGrenadeBase::PostLaunchCleanup, 0.15f, false);
+}
+
+void AArenaGrenadeBase::PrepareExplosionCue()
+{
+	if (!GrenadeDefinitionData || !GrenadeDefinitionData->ExplosionCueTag.IsValid() ||
+		GetNetMode() == NM_DedicatedServer || !FApp::CanEverRender())
+	{
+		return;
+	}
+
+	UGameplayCueManager* CueManager = UAbilitySystemGlobals::Get().GetGameplayCueManager();
+	UGameplayCueSet* CueSet = CueManager ? CueManager->GetRuntimeCueSet() : nullptr;
+	const int32* CueIndex = CueSet ? CueSet->GameplayCueDataMap.Find(GrenadeDefinitionData->ExplosionCueTag) : nullptr;
+	if (!CueIndex)
+	{
+		return;
+	}
+
+	int32 Index = *CueIndex;
+	while (CueSet->GameplayCueData.IsValidIndex(Index))
+	{
+		FGameplayCueNotifyData& CueData = CueSet->GameplayCueData[Index];
+		if (!CueData.LoadedGameplayCueClass)
+		{
+			CueData.LoadedGameplayCueClass = Cast<UClass>(CueData.GameplayCueNotifyObj.TryLoad());
+		}
+
+		Index = CueData.ParentDataIdx;
+	}
 }
 
 void AArenaGrenadeBase::SetupVFX()
@@ -279,7 +353,7 @@ bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverl
 	{
 		DrawDebugSphere(GetWorld(), GetActorLocation(), GrenadeDefinitionData->DetonationRadius, 12, FColor::Red, false, 5.0f);
 	}
-	
+
 	// Capture all pawns in detonation radius
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 	ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
@@ -287,13 +361,13 @@ bool AArenaGrenadeBase::GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverl
 	return UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), GrenadeDefinitionData->DetonationRadius, ObjectTypes, nullptr, TArray<AActor*>(), OutOverlappingActors);
 }
 
-void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const
+void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool bIsDirectHit) const
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
-	
+
 	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 
@@ -307,7 +381,7 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 
 	const float DistanceToCenter = HitResult.Distance;
 	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeDefinitionData->DetonationRadius, 0.1f, 1.0f);
-	if(const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = IsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect)
+	if (const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = bIsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect)
 	{
 		UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
 		InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
@@ -317,6 +391,11 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,
 	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (!GrenadeDefinitionData || bDetonationFired)
+	{
+		return;
+	}
+
 	if (ShouldDetonateOnImpact(Hit))
 	{
 		UKismetSystemLibrary::K2_ClearTimerHandle(this, ExplosionCountdownTimerHandle);
@@ -326,7 +405,7 @@ void AArenaGrenadeBase::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UP
 	}
 	else
 	{
-		CheckSpawnConditionOnHit(Hit);
+		SpawnActorsOnHit(Hit);
 		UGameplayStatics::SpawnSoundAtLocation(this, GrenadeDefinitionData->GrenadeImpactSound, Hit.Location);
 	}
 
@@ -339,105 +418,71 @@ void AArenaGrenadeBase::SpawnCosmeticActor()
 	{
 		return;
 	}
-	
-	SpawnedCosmeticActor = GetWorld()->SpawnActorDeferred<AActor>( GrenadeDefinitionData->CosmeticActorClass, GetActorTransform());
+
+	SpawnedCosmeticActor = GetWorld()->SpawnActorDeferred<AActor>(GrenadeDefinitionData->CosmeticActorClass, GetActorTransform());
 	SpawnedCosmeticActor->FinishSpawning(FTransform::Identity, true);
 	SpawnedCosmeticActor->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 	SpawnedCosmeticActor->SetActorEnableCollision(false);
-	
+
 	FVector NewRelativeLocation = SpawnedCosmeticActor->GetRootComponent()->GetRelativeLocation();
 	NewRelativeLocation.Z -= 10.0f;
 	SpawnedCosmeticActor->SetActorRelativeLocation(NewRelativeLocation);
 }
 
-void AArenaGrenadeBase::CheckSpawnConditionOnHit(const FHitResult& Hit)
+void AArenaGrenadeBase::SpawnActorsOnHit(const FHitResult& Hit)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
-	
-	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
-	{
-		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
-		{
-			continue;
-		}
 
-		if (EffectActorSpawnData.EffectActorClass == nullptr)
-		{
-			continue;
-		}
-
-		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnHit)
-		{
-			FTransform SpawnTransform = FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
-			SpawnEffectActor(SpawnTransform, EffectActorSpawnData.EffectActorClass);
-		}
-	}
-
-	for (const auto SecondaryGrenadeSpawnData : GrenadeDefinitionData->SecondaryGrenadesToSpawn)
-	{
-		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
-		{
-			continue;
-		}
-
-		if (SecondaryGrenadeSpawnData.GrenadeDefinitionData == nullptr)
-		{
-			continue;
-		}
-
-		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnHit)
-		{
-			FTransform SpawnTransform = FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint);
-			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData, SecondaryGrenadeSpawnData.SpawnCount);
-		}
-	}
+	ProcessEffectActorEntries(FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint), ESpawnPolicy::SpawnOnHit);
+	ProcessSecondaryGrenadeEntries(FTransform(Hit.ImpactNormal.Rotation(), Hit.ImpactPoint), ESpawnPolicy::SpawnOnHit);
 }
 
-void AArenaGrenadeBase::CheckSpawnConditionOnDetonation()
+void AArenaGrenadeBase::SpawnActorsOnDetonation()
 {
-	if (!HasAuthority() )
+	if (!HasAuthority())
 	{
 		return;
 	}
-	
-	for (const auto EffectActorSpawnData : GrenadeDefinitionData->EffectActorsToSpawn)
+
+	ProcessEffectActorEntries(GetActorTransform(), ESpawnPolicy::SpawnOnDetonation);
+	ProcessSecondaryGrenadeEntries(FTransform(GetActorRotation(), GetActorLocation()), ESpawnPolicy::SpawnOnDetonation);
+}
+
+void AArenaGrenadeBase::ProcessEffectActorEntries(const FTransform& SpawnTransform, ESpawnPolicy Policy)
+{
+	if (!HasAuthority())
 	{
-		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
-		{
-			continue;
-		}
-
-		if (EffectActorSpawnData.EffectActorClass == nullptr)
-		{
-			continue;
-		}
-
-		if (EffectActorSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnDetonation)
-		{
-			FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation());
-			SpawnEffectActor(SpawnTransform, EffectActorSpawnData.EffectActorClass);
-		}
+		return;
 	}
 
-	for (const auto SecondaryGrenadeSpawnData : GrenadeDefinitionData->SecondaryGrenadesToSpawn)
+	for (const FEffectActorSpawnData& Spawn : GrenadeDefinitionData->EffectActorsToSpawn)
 	{
-		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::DoNotSpawn)
+		if (Spawn.SpawnPolicy != Policy || !Spawn.EffectActorClass)
 		{
 			continue;
 		}
 
-		if (SecondaryGrenadeSpawnData.GrenadeDefinitionData == nullptr)
+		SpawnEffectActor(SpawnTransform, Spawn.EffectActorClass, Spawn.EffectDefinition, Spawn.SpawnCount, Spawn.SpawnRadius);
+	}
+}
+
+void AArenaGrenadeBase::ProcessSecondaryGrenadeEntries(const FTransform& SpawnTransform, ESpawnPolicy Policy)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	for (const FSecondaryGrenadeSpawnData& Spawn : GrenadeDefinitionData->SecondaryGrenadesToSpawn)
+	{
+		if (Spawn.SpawnPolicy != Policy || !Spawn.GrenadeDefinitionData)
 		{
 			continue;
 		}
 
-		if (SecondaryGrenadeSpawnData.SpawnPolicy == ESpawnPolicy::SpawnOnDetonation)
-		{
-			FTransform SpawnTransform = FTransform(GetActorRotation(), GetActorLocation());
-			SpawnSecondaryGrenade(SpawnTransform, SecondaryGrenadeSpawnData.GrenadeDefinitionData, SecondaryGrenadeSpawnData.SpawnCount);
-		}
+		SpawnSecondaryGrenade(SpawnTransform, Spawn.GrenadeDefinitionData, Spawn.SpawnCount);
 	}
 }

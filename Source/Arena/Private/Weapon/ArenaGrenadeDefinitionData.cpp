@@ -1,12 +1,13 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
-
 #include "Weapon/ArenaGrenadeDefinitionData.h"
 
 #include "Weapon/ArenaGrenadeBase.h"
+#include "Actor/ArenaEffectActor.h"
 
 #if WITH_EDITOR
 #include "Misc/DataValidation.h"
+#include "GameplayEffect.h"
 #endif
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_DetonationPolicy_OnImpact, "DetonationPolicy.OnImpact", "Detonate on impact.");
@@ -38,7 +39,17 @@ EDataValidationResult UArenaGrenadeDefinitionData::IsDataValid(FDataValidationCo
 		Context.AddError(NSLOCTEXT("Arena", "GrenadeSlotCooldownTagNotSet", "Grenade slot cooldown tag is not set."));
 		Result = EDataValidationResult::Invalid;
 	}
-	
+
+	for (const FEffectActorSpawnData& Spawn : EffectActorsToSpawn)
+	{
+		if (Spawn.SpawnPolicy != ESpawnPolicy::DoNotSpawn &&
+			(!Spawn.EffectActorClass || Spawn.SpawnCount < 0 || Spawn.SpawnCount > 64 || Spawn.SpawnRadius < 0.f))
+		{
+			Context.AddError(NSLOCTEXT("Arena", "EffectSpawnInvalid", "Effect spawn requires an actor class, a count between 0 and 64, and a non-negative spawn radius."));
+			Result = EDataValidationResult::Invalid;
+		}
+	}
+
 	return Result;
 }
 #endif

@@ -3,9 +3,11 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "Engine/TimerHandle.h"
 #include "ArenaGrenadeBase.generated.h"
 
 class AArenaEffectActor;
+class UArenaEffectActorDefinition;
 class UArenaGrenadeDefinitionData;
 class UBoxComponent;
 class USphereComponent;
@@ -15,18 +17,21 @@ class UNiagaraComponent;
 
 class UProjectileMovementComponent;
 
+enum class ESpawnPolicy : uint8;
+
 UCLASS()
 class ARENA_API AArenaGrenadeBase : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	AArenaGrenadeBase(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	void SetGrenadeParameter(const UArenaGrenadeDefinitionData* InGrenadeDefinitionData);
 
+	/** Replace the remaining fuse; zero or negative time means it has already expired. */
 	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	void SetGrenadeExplosionTimer(float TimeBeforeExplosion);
 
@@ -51,27 +56,37 @@ protected:
 	bool ShouldDetonateOnImpact(FHitResult HitResult) const;
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
-	void SpawnEffectActor(const FTransform& SpawnTransform, TSubclassOf<AArenaEffectActor> EffectActorClass);
+	void SpawnEffectActor(const FTransform& SpawnTransform,
+		TSubclassOf<AArenaEffectActor> EffectActorClass, const UArenaEffectActorDefinition* EffectDefinition = nullptr,
+		int32 SpawnCount = 1, float SpawnRadius = 0.f);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Grenade Override")
 	void SpawnSecondaryGrenade(const FTransform& SpawnTransform, const UArenaGrenadeDefinitionData* GrenadeDefinition, int32 SpawnCount);
 
 private:
+	/** Dispatch EffectActorsToSpawn entries matching Policy to SpawnEffectActor. */
+	void ProcessEffectActorEntries(const FTransform& SpawnTransform, ESpawnPolicy Policy);
+
+	/** Dispatch SecondaryGrenadesToSpawn entries matching Policy to SpawnSecondaryGrenade. */
+	void ProcessSecondaryGrenadeEntries(const FTransform& SpawnTransform, ESpawnPolicy Policy);
+
 	void LaunchGrenade();
-	
+
+	void PrepareExplosionCue();
+
 	void PostLaunchCleanup();
 
 	bool GetActorsWithinExplosionRadius(TArray<AActor*>& OutOverlappingActors) const;
 
-	void ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool IsDirectHit) const;
+	void ApplyDamageToTarget(const AActor* Target, const FHitResult& HitResult, bool bIsDirectHit) const;
 
 	virtual void NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit) override;
 
 	void SpawnCosmeticActor();
 
-	void CheckSpawnConditionOnHit(const FHitResult& Hit);
+	void SpawnActorsOnHit(const FHitResult& Hit);
 
-	void CheckSpawnConditionOnDetonation();
+	void SpawnActorsOnDetonation();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -79,13 +94,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraComponent> TrailComponent;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<AActor> SpawnedCosmeticActor;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	FLinearColor TeamColor;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBoxComponent> CollisionComponent;
 
@@ -95,10 +110,10 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinitionData;
-	
+
 	TWeakObjectPtr<AActor> DirectHitTarget;
-	
+
 	FTimerHandle ExplosionCountdownTimerHandle;
-	
+
 	bool bDetonationFired = false;
 };

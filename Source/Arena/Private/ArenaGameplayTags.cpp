@@ -1,13 +1,13 @@
 // Copyright Ludens Studio. All Rights Reserved.
 
-
 #include "ArenaGameplayTags.h"
 
+#include "GameplayTagsManager.h"
 
 namespace ArenaGameplayTags
 {
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_ActivateFail_ActivationGroup, "Ability.ActivateFail.ActivationGroup", "Ability failed to activate because of its activation group.");
-	
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Move, "InputTag.Move", "Move input.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_Jump, "InputTag.Jump", "Jump input.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(InputTag_LookMouse, "InputTag.LookMouse", "Look input.");
@@ -24,7 +24,7 @@ namespace ArenaGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_Death, "GameplayEvent.Death", "Event that fires on death. This event only fires on the server.")
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_Reset, "GameplayEvent.Reset", "Event that fires once a player reset is executed.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(GameplayEvent_RequestReset, "GameplayEvent.RequestReset", "Event to request a player's pawn to be instantly replaced with a new one at a valid spawn location.");
-	
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death, "Status.Death", "Target has the death status.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death_Dying, "Status.Death.Dying", "Target has begun the death process.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Death_Dead, "Status.Death.Dead", "Target has finished the death process.");
@@ -32,11 +32,12 @@ namespace ArenaGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_AOE, "DamageType.Grenade.AOE", "Damage Tag for Grenade AOE damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_DirectHit, "DamageType.Grenade.DirectHit", "Damage Tag for Grenade Direct Hit damage.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(DamageType_Grenade_Effect, "DamageType.Grenade.Effect", "Damage Tag for Grenade Effect damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(SetByCaller_IncendiaryDamage, "SetByCaller.Incendiary.Damage", "Per-period damage supplied to the Blueprint incendiary GE.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Grenade_Duration_Message, "Ability.Grenade.Duration.Message", "Tag for grenade ability duration message.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Mobility_Duration_Message, "Ability.Mobility.Duration.Message", "Tag for mobility ability duration message.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Ability_Deployment_Duration_Message, "Ability.Deployment.Duration.Message", "Tag for deployment ability duration message.");
-	
+
 	FGameplayTag FindTagByString(const FString& TagString, bool bMatchPartialString)
 	{
 		const UGameplayTagsManager& Manager = UGameplayTagsManager::Get();
