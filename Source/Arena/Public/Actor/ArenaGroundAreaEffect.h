@@ -5,6 +5,7 @@
 #include "Actor/ArenaTeamEffectActor.h"
 #include "Actor/ArenaGroundAreaDefinition.h"
 #include "ActiveGameplayEffectHandle.h"
+#include "GameplayEffect.h"
 #include "Engine/NetSerialization.h"
 #include "Engine/TimerHandle.h"
 #include "ArenaGroundAreaEffect.generated.h"
@@ -153,6 +154,8 @@ private:
 
 	void EffectTick();
 
+	void PrepareGameplayEffect();
+
 	bool CanAffectTarget(AActor* Target) const;
 
 	bool ContainsTarget(AActor* Target) const;
@@ -177,6 +180,10 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Placement)
 	FArenaGroundAreaPlacement Placement;
+
+	/** Capture the source while the thrower exists; application does not require its Pawn to survive. */
+	UPROPERTY(Transient)
+	FGameplayEffectSpec PreparedEffectSpec;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraComponent> FallingVisual = nullptr;
@@ -203,7 +210,6 @@ private:
 
 	TMap<FIntPoint, FArenaGroundCell> Cells;
 	TArray<FPendingCell> PendingCells;
-	TSet<FIntPoint> EnqueuedCells;
 	FTimerHandle EffectTimer;
 	int32 QueueHead = 0;
 	int32 MaxCellLen = 0;

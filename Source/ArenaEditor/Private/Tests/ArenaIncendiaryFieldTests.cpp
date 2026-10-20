@@ -20,6 +20,7 @@
 #include "Misc/AutomationTest.h"
 #include "Misc/ScopeExit.h"
 #include "NiagaraSystem.h"
+#include "Player/ArenaPlayerState.h"
 #include "System/ArenaSystemStatics.h"
 #include "Weapon/ArenaGrenadeBase.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
@@ -733,6 +734,117 @@ bool FFireAssetTest::RunTest(const FString&)
 		TestTrue(TEXT("Data asset Blueprint damage GE reaches spawned field"), It->GetSettings().GameplayEffect == AreaSettings(Definition).GameplayEffect);
 		TestEqual(TEXT("Data asset radius reaches spawned field"), It->GetSettings().Radius, AreaSettings(Definition).Radius);
 		TestTrue(TEXT("Production field completes diffusion"), It->IsDiffusionComplete());
+	}
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireDiagonalWallTest, "Arena.Incendiary.Surface.DiagonalWallAndRoundCapsule", Flags)
+bool FFireDiagonalWallTest::RunTest(const FString&)
+{
+	FFireWorld Scene;
+	Scene.Floor();
+	Scene.Box(FVector(7, 7, 150), FVector(1, 500, 150), FRotator(0, 45, 0));
+	FArenaGroundAreaSettings Settings;
+	Settings.Radius = 180.f;
+	AArenaGroundAreaEffect* Fire = Scene.Fire(Settings);
+	Scene.Diffuse(Fire);
+	TestTrue(TEXT("A production-sized capsule on the near side is hit"), Fire->IsInArea(FVector(-40, -40, 96), 42.f, 96.f));
+	TestFalse(TEXT("A 42cm capsule fully behind a diagonal wall is not hit"), Fire->IsInArea(FVector(40, 40, 96), 42.f, 96.f));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSourceDestroyedTest, "Arena.Incendiary.Damage.DestroyedInstigator", Flags)
+bool FFireSourceDestroyedTest::RunTest(const FString&)
+{
+	FFireWorld Scene;
+	Scene.Floor();
+	AArenaIncendiaryTestPawn* Source = Scene.Pawn(FVector(-90, 0, 60), 1);
+	AArenaIncendiaryTestPawn* Enemy = Scene.Pawn(FVector(90, 0, 60), 2);
+	AArenaIncendiaryTestPawn* Ally = Scene.Pawn(FVector(0, 90, 60), 1);
+	FArenaGroundAreaSettings Settings;
+	Settings.GameplayEffect = LoadClass<UGameplayEffect>(nullptr,
+		TEXT("/Game/Blueprints/AbilitySystem/GameplayEffects/GE_IncendiaryDamage.GE_IncendiaryDamage_C"));
+	if (!TestNotNull(TEXT("Production damage effect loads"), Settings.GameplayEffect.Get()))
+	{
+		return false;
+	}
+
+	AArenaGroundAreaEffect* Fire = Scene.Fire(Settings, FVector(0, 0, 2), Source);
+	Scene.Diffuse(Fire);
+	Scene.Tick(0.26f);
+	TestEqual(TEXT("Enemy is damaged before thrower disappears"), Enemy->Health->GetHealth(), 95.f);
+	Source->Destroy();
+	CollectGarbage(RF_NoFlags);
+	TestNull(TEXT("The destroyed thrower is actually collected"), Fire->GetInstigator());
+	Scene.Tick(0.26f);
+	TestTrue(TEXT("Fire survives the thrower"), IsValid(Fire));
+	TestEqual(TEXT("Damage continues without the thrower's Pawn or ASC"), Enemy->Health->GetHealth(), 90.f);
+	TestEqual(TEXT("The captured team still protects allies"), Ally->Health->GetHealth(), 100.f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFirePlayerStateContextTest, "Arena.Incendiary.Damage.PlayerStateAttribution", Flags)
+bool FFirePlayerStateContextTest::RunTest(const FString&)
+{
+	FFireWorld Scene;
+	Scene.Floor();
+	AArenaIncendiaryTestPawn* Source = Scene.Pawn(FVector(-90, 0, 60), 1);
+	AArenaIncendiaryTestPawn* Enemy = Scene.Pawn(FVector(90, 0, 60), 2);
+	AArenaPlayerState* State = Scene.World->SpawnActor<AArenaPlayerState>();
+	State->SetGenericTeamId(FGenericTeamId(1));
+	Source->AbilitySystem = State->GetAbilitySystemComponent();
+	Source->AbilitySystem->InitAbilityActorInfo(State, Source);
+	FGameplayEffectContextHandle ObservedContext;
+	const FDelegateHandle Observer = Enemy->Health->OnHealthChanged.AddLambda(
+		[&ObservedContext](AActor*, AActor*, const FGameplayEffectSpec* Spec, float, float, float)
+		{
+			ObservedContext = Spec->GetEffectContext();
+		});
+	ON_SCOPE_EXIT
+	{
+		Enemy->Health->OnHealthChanged.Remove(Observer);
+	};
+
+	FArenaGroundAreaSettings Settings;
+	Settings.GameplayEffect = LoadClass<UGameplayEffect>(nullptr,
+		TEXT("/Game/Blueprints/AbilitySystem/GameplayEffects/GE_IncendiaryDamage.GE_IncendiaryDamage_C"));
+	if (!TestNotNull(TEXT("Production damage effect loads"), Settings.GameplayEffect.Get()))
+	{
+		return false;
+	}
+
+	AArenaGroundAreaEffect* Fire = Scene.Fire(Settings, FVector(0, 0, 2), Source);
+	Scene.Diffuse(Fire);
+	Scene.Tick(0.26f);
+	TestEqual(TEXT("Damage preserves the ASC owner's PlayerState for elimination consumers"), ObservedContext.GetOriginalInstigator(), static_cast<AActor*>(State));
+	TestEqual(TEXT("The area remains the effect causer"), ObservedContext.GetEffectCauser(), static_cast<AActor*>(Fire));
+	Source->Destroy();
+	CollectGarbage(RF_NoFlags);
+	Scene.Tick(0.26f);
+	TestEqual(TEXT("PlayerState-owned source continues damage after Pawn collection"), Enemy->Health->GetHealth(), 90.f);
+	TestEqual(TEXT("Posthumous damage retains the original PlayerState"), ObservedContext.GetOriginalInstigator(), static_cast<AActor*>(State));
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireAlternateParentTest, "Arena.Incendiary.Surface.AlternateConnectedParent", Flags)
+bool FFireAlternateParentTest::RunTest(const FString&)
+{
+	for (const int32 Budget : {1, 128})
+	{
+		FFireWorld Scene;
+		Scene.Floor();
+		Scene.Box(FVector(15, 0, 150), FVector(1, 10, 150));
+		FArenaGroundAreaSettings Settings;
+		Settings.Radius = 180.f;
+		Settings.CellsPerFrame = Budget;
+		AArenaGroundAreaEffect* Fire = Scene.Fire(Settings);
+		Scene.Diffuse(Fire);
+		TestTrue(TEXT("Retrying connections finishes within the area lifetime"), Fire->IsDiffusionComplete());
+		const FArenaGroundCell* AroundWall = Fire->GetCells().Find(FIntPoint(1, 1));
+		TestTrue(TEXT("Fire reaches around the short wall"), AroundWall && AroundWall->IsActive());
+		const FArenaGroundCell* FarSide = Fire->GetCells().Find(FIntPoint(1, 0));
+		TestTrue(TEXT("Another connected parent activates the cell behind the short wall"), FarSide && FarSide->IsActive());
 	}
 
 	return true;
