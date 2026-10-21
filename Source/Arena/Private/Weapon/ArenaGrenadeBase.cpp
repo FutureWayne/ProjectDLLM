@@ -95,9 +95,31 @@ void AArenaGrenadeBase::SetGrenadeExplosionTimer_Implementation(float TimeBefore
 	}
 }
 
+void AArenaGrenadeBase::SetSourceAbilitySystem(UAbilitySystemComponent* InSourceAbilitySystem)
+{
+	if (InSourceAbilitySystem)
+	{
+		SourceAbilitySystem = InSourceAbilitySystem;
+	}
+}
+
+UAbilitySystemComponent* AArenaGrenadeBase::GetSourceAbilitySystem() const
+{
+	if (SourceAbilitySystem.IsValid())
+	{
+		return SourceAbilitySystem.Get();
+	}
+
+	// A submunition spawned from another grenade inherits the original thrower.
+	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
+}
+
 void AArenaGrenadeBase::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// The fuse can outlive the thrower, so capture the source while the Pawn is still alive.
+	SourceAbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 
 	if (ACharacter* Character = Cast<ACharacter>(GetInstigator()))
 	{
@@ -249,7 +271,8 @@ void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnT
 
 		// Ignore collision between the spawned effect actor and the grenade
 		CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
-		SpawnedEffectActor->SetInstigator(GetInstigator());
+		// Hand over the source that was captured at launch; the thrower's Pawn may already be gone.
+		SpawnedEffectActor->SetSource(GetInstigator(), GetSourceAbilitySystem());
 		SpawnedEffectActor->InitializeEffect(EffectDefinition);
 		SpawnedEffectActor->FinishSpawning(NewSpawnTransform, true);
 	}
@@ -271,7 +294,12 @@ void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& S
 		FVector ForwardVector = UKismetMathLibrary::GetForwardVector(Rotation);
 		FVector SpawnLocation = SpawnTransform.GetLocation() + (ForwardVector * 50.0f);
 		FTransform NewSpawnTransform = FTransform(Rotation, SpawnLocation);
-		UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(this, NewSpawnTransform, GrenadeDefinition, GetOwner(), GetInstigator());
+		if (AArenaGrenadeBase* Spawned = UArenaSystemStatics::SpawnGrenadeByGrenadeDefinition(
+			this, NewSpawnTransform, GrenadeDefinition, GetOwner(), GetInstigator()))
+		{
+			// Inherit the original thrower so a submunition chain keeps attribution after the Pawn dies.
+			Spawned->SetSourceAbilitySystem(GetSourceAbilitySystem());
+		}
 	}
 }
 
@@ -368,7 +396,8 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 		return;
 	}
 
-	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
+	// Use the source captured at launch: the thrower may already be dead by the time the fuse expires.
+	UAbilitySystemComponent* InstigatorASC = GetSourceAbilitySystem();
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 
 	if (!TargetASC || !InstigatorASC)

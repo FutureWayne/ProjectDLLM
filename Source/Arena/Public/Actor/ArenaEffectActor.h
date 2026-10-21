@@ -39,6 +39,18 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = "Effect")
 	void InitializeEffect(const UArenaEffectActorDefinition* Definition);
 
+	/**
+	 * Captures who produced this effect; call before FinishSpawning.
+	 * A thrower's Pawn can be destroyed and collected before a delayed effect spawns, so the source ability system
+	 * (PlayerState-owned for players) is retained independently of GetInstigator().
+	 */
+	void SetSource(APawn* InInstigator, UAbilitySystemComponent* InSourceAbilitySystem);
+
+	/** The ability system owner (PlayerState for players), falling back to the Instigator. */
+	AActor* GetSourceActor() const;
+
+	UAbilitySystemComponent* GetSourceAbilitySystem() const { return SourceAbilitySystem.Get(); }
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -75,6 +87,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Applied Effects")
 	EEffectRemovalPolicy InfiniteEffectRemovalPolicy = EEffectRemovalPolicy::RemoveOnEndOverlap;
+
+	/** The Actor that produced this effect; may outlive the source Pawn. */
+	TWeakObjectPtr<AActor> SourceActor;
+
+	/**
+	 * Retained so a posthumous (or post-detonation) effect can still build a spec.
+	 * For player characters this is the PlayerState-owned component, which outlives the Pawn.
+	 * Weak on purpose: the effect must not extend the thrower's lifetime.
+	 */
+	TWeakObjectPtr<UAbilitySystemComponent> SourceAbilitySystem;
 
 	TMap<FActiveGameplayEffectHandle, UAbilitySystemComponent*> ActiveEffectHandles;
 };

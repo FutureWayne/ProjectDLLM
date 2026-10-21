@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "ArenaLogChannels.h"
 #include "GameplayEffect.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SceneComponent.h"
@@ -97,7 +98,8 @@ void AArenaGroundAreaEffect::BeginPlay()
 	PrepareGameplayEffect();
 	if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
 	{
-		SetGenericTeamId(IntegerToGenericTeamId(Teams->FindTeamFromObject(GetInstigator())));
+		// Resolve from the captured source: the thrower's Pawn may already be gone by the time we begin play.
+		SetGenericTeamId(IntegerToGenericTeamId(Teams->FindTeamFromObject(GetSourceActor())));
 	}
 
 	FHitResult Ground;
@@ -509,7 +511,12 @@ bool AArenaGroundAreaEffect::CanAffectTarget(AActor* Target) const
 		return false;
 	}
 
-	if (Target == GetInstigator())
+	// Compare ability system owners as well as instigators: the thrower may have respawned into a new Pawn
+	// while the same PlayerState still owns both the fire and the target.
+	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
+	const UAbilitySystemComponent* SourceASC = GetSourceAbilitySystem();
+	const AActor* OwnerActor = SourceASC ? SourceASC->GetOwnerActor() : GetSourceActor();
+	if (Target == GetInstigator() || (SourceASC && TargetASC == SourceASC) || (OwnerActor && OwnerActor == Target))
 	{
 		return Settings.bAffectInstigator;
 	}
@@ -562,9 +569,24 @@ void AArenaGroundAreaEffect::RemoveDepartedEffects(bool bRemoveAll)
 
 void AArenaGroundAreaEffect::PrepareGameplayEffect()
 {
-	UAbilitySystemComponent* Source = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
-	if (!Source || !Settings.GameplayEffect)
+	if (!Settings.GameplayEffect)
 	{
+		return;
+	}
+
+	// Prefer the component captured at spawn: the thrower's Pawn may already have been collected,
+	// which would leave GetInstigator() null and silently disable all damage.
+	UAbilitySystemComponent* Source = GetSourceAbilitySystem();
+	if (!Source)
+	{
+		Source = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetSourceActor());
+	}
+
+	if (!Source)
+	{
+		UE_LOG(LogArena, Warning, TEXT("%s has %s configured but no source ability system (instigator %s); the area will deal no damage"),
+			*GetName(), *Settings.GameplayEffect->GetName(),
+			GetInstigator() ? *GetInstigator()->GetName() : TEXT("collected"));
 		return;
 	}
 

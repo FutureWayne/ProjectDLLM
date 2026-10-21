@@ -16,15 +16,47 @@ void AArenaEffectActor::InitializeEffect_Implementation(const UArenaEffectActorD
 {
 }
 
+void AArenaEffectActor::SetSource(APawn* InInstigator, UAbilitySystemComponent* InSourceAbilitySystem)
+{
+	SourceAbilitySystem = InSourceAbilitySystem
+		? InSourceAbilitySystem
+		: UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(InInstigator);
+
+	if (!SourceActor.IsValid() && SourceAbilitySystem.IsValid())
+	{
+		// For players this is the PlayerState, which outlives the Pawn and keeps team and attribution resolvable.
+		SourceActor = SourceAbilitySystem->GetOwnerActor();
+	}
+
+	// The instigator link survives death but is cleared once the Pawn is collected.
+	SetInstigator(InInstigator);
+}
+
+AActor* AArenaEffectActor::GetSourceActor() const
+{
+	return SourceActor.IsValid() ? SourceActor.Get() : GetInstigator();
+}
+
 // Called when the game starts or when spawned
 void AArenaEffectActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Spawners that predate SetSource still need a captured source before their instigator disappears.
+	if (!SourceAbilitySystem.IsValid() && !SourceActor.IsValid() && GetInstigator())
+	{
+		SetSource(GetInstigator(), nullptr);
+	}
 }
 
 void AArenaEffectActor::ApplyEffectToTarget(AActor* Target, TSubclassOf<UGameplayEffect> GameplayEffectClass)
 {
-	UAbilitySystemComponent* InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
+	UAbilitySystemComponent* InstigatorASC = GetSourceAbilitySystem();
+	if (!InstigatorASC)
+	{
+		InstigatorASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetSourceActor());
+	}
+
 	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 	if (TargetASC == nullptr)
 	{
