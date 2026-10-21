@@ -77,7 +77,15 @@ DerivedDataCache/*
 
 .idea/
 Content/Assets/
-Content/Characters/
+# Character source assets stay local except the production CyberNinja materials.
+/Content/Characters/*
+!/Content/Characters/CyberNinja/
+/Content/Characters/CyberNinja/*
+!/Content/Characters/CyberNinja/Materials/
+/Content/Characters/CyberNinja/Materials/*
+!/Content/Characters/CyberNinja/Materials/M_Body.uasset
+!/Content/Characters/CyberNinja/Materials/M_Head.uasset
+!/Content/Characters/CyberNinja/Materials/M_Legs.uasset
 Content/Audio/
 /Windows/
 *.zip
@@ -97,3 +105,11 @@ __pycache__/
 # Local asset setup and validation scripts; keep C++ test sources tracked.
 /Scripts/
 /Plugins/**/Tests/*.ps1
+
+# Local VFX and material authoring helpers; generated assets are versioned separately.
+/Source/ArenaEditor/**/*VfxEditorLibrary.h
+/Source/ArenaEditor/**/*VfxEditorLibrary.cpp
+/Source/ArenaEditor/**/*VFXEditorLibrary.h
+/Source/ArenaEditor/**/*VFXEditorLibrary.cpp
+/Source/ArenaEditor/**/*MaterialEditorLibrary.h
+/Source/ArenaEditor/**/*MaterialEditorLibrary.cpp
