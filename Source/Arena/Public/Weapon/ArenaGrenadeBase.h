@@ -9,6 +9,7 @@
 class AArenaEffectActor;
 class UArenaEffectActorDefinition;
 class UArenaGrenadeDefinitionData;
+class UAbilitySystemComponent;
 class UBoxComponent;
 class USphereComponent;
 class UGameplayEffect;
@@ -37,6 +38,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	const UArenaGrenadeDefinitionData* GetGrenadeDefinitionData() { return GrenadeDefinitionData; }
+
+	/**
+	 * Forwards the thrower's ability system to grenades that are spawned from this one.
+	 * A chain of submunitions must not lose attribution when the original Pawn is collected.
+	 */
+	void SetSourceAbilitySystem(UAbilitySystemComponent* InSourceAbilitySystem);
+
+	UAbilitySystemComponent* GetSourceAbilitySystem() const;
 
 protected:
 	//~Begin AActor interface
@@ -110,6 +119,12 @@ protected:
 private:
 	UPROPERTY(Replicated)
 	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinitionData;
+
+	/**
+	 * Captured at launch, before the thrower can die.
+	 * For players this is the PlayerState-owned component, so damage attribution survives the Pawn.
+	 */
+	TWeakObjectPtr<UAbilitySystemComponent> SourceAbilitySystem;
 
 	TWeakObjectPtr<AActor> DirectHitTarget;
 

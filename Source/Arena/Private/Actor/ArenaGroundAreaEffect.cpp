@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "ArenaLogChannels.h"
 #include "GameplayEffect.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SceneComponent.h"
@@ -94,9 +95,11 @@ void AArenaGroundAreaEffect::BeginPlay()
 
 	SetActorRotation(FRotator(0., GetActorRotation().Yaw, 0.));
 	SetActorScale3D(FVector::OneVector);
+	PrepareGameplayEffect();
 	if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
 	{
-		SetGenericTeamId(IntegerToGenericTeamId(Teams->FindTeamFromObject(GetInstigator())));
+		// Resolve from the captured source: the thrower's Pawn may already be gone by the time we begin play.
+		SetGenericTeamId(IntegerToGenericTeamId(Teams->FindTeamFromObject(GetSourceActor())));
 	}
 
 	FHitResult Ground;
@@ -143,7 +146,6 @@ void AArenaGroundAreaEffect::Land(const FHitResult& Ground)
 	ForceNetUpdate();
 	MaxCellLen = FMath::Clamp(FMath::FloorToInt(Settings.Radius / Settings.CellSize), 1, 20);
 	PendingCells.Add({FIntPoint::ZeroValue, FIntPoint::ZeroValue, false});
-	EnqueuedCells.Add(FIntPoint::ZeroValue);
 	ExpireTime = GetWorld()->GetTimeSeconds() + Settings.Lifetime;
 }
 
@@ -302,9 +304,16 @@ void AArenaGroundAreaEffect::TickDiffusion()
 {
 	static const FIntPoint Directions[] = {FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1)};
 	int32 Checked = 0;
-	while (QueueHead < PendingCells.Num() && Checked++ < Settings.CellsPerFrame)
+	while (QueueHead < PendingCells.Num() && Checked < Settings.CellsPerFrame)
 	{
 		const FPendingCell Pending = PendingCells[QueueHead++];
+		const FArenaGroundCell* Existing = Cells.Find(Pending.Coordinate);
+		if (Existing && Existing->IsActive())
+		{
+			continue;
+		}
+
+		++Checked;
 		FArenaGroundCell Cell;
 		Cell.Coordinate = Pending.Coordinate;
 		const bool bSuccess = CheckCell(Pending, Cell);
@@ -323,13 +332,18 @@ void AArenaGroundAreaEffect::TickDiffusion()
 		{
 			const FIntPoint Next = Pending.Coordinate + Direction;
 			if (FMath::Abs(Next.X) > MaxCellLen || FMath::Abs(Next.Y) > MaxCellLen ||
-				FMath::Square(Next.X * Settings.CellSize) + FMath::Square(Next.Y * Settings.CellSize) >= FMath::Square(Settings.Radius) ||
-				EnqueuedCells.Contains(Next))
+				FMath::Square(Next.X * Settings.CellSize) + FMath::Square(Next.Y * Settings.CellSize) >= FMath::Square(Settings.Radius))
 			{
 				continue;
 			}
 
-			EnqueuedCells.Add(Next);
+			const FArenaGroundCell* Neighbor = Cells.Find(Next);
+			if (Neighbor && Neighbor->IsActive())
+			{
+				continue;
+			}
+
+			// Each active parent expands once. Failed connections can retry from another parent.
 			PendingCells.Add({Next, Pending.Coordinate, true});
 		}
 	}
@@ -441,7 +455,6 @@ void AArenaGroundAreaEffect::FinishDiffusion()
 {
 	bDiffusionComplete = true;
 	PendingCells.Empty();
-	EnqueuedCells.Empty();
 	SyncActiveCells();
 	if (ActiveCells.IsEmpty())
 	{
@@ -459,9 +472,6 @@ bool AArenaGroundAreaEffect::IsInArea(const FVector& CapsuleCenter, float Radius
 		return false;
 	}
 
-	double NearestDistance = TNumericLimits<double>::Max();
-	FVector Nearest = FVector::ZeroVector;
-	bool bHasNearest = false;
 	const FQuat InverseYaw = GetActorQuat().Inverse();
 	for (const TPair<FIntPoint, FArenaGroundCell>& Pair : Cells)
 	{
@@ -474,29 +484,24 @@ bool AArenaGroundAreaEffect::IsInArea(const FVector& CapsuleCenter, float Radius
 		const FVector Delta = CapsuleCenter - Cell.Location;
 		const FVector LocalDelta = InverseYaw.RotateVector(Delta);
 		const double Dxy = FMath::Max(FMath::Abs(LocalDelta.X), FMath::Abs(LocalDelta.Y));
-		if (Dxy > Radius + Settings.CellSize * 0.5f || Delta.Z < -HalfHeight * 0.5f ||
+		const double OutsideX = FMath::Max(0., FMath::Abs(LocalDelta.X) - Settings.CellSize * 0.5f);
+		const double OutsideY = FMath::Max(0., FMath::Abs(LocalDelta.Y) - Settings.CellSize * 0.5f);
+		if (FMath::Square(OutsideX) + FMath::Square(OutsideY) > FMath::Square(Radius) || Delta.Z < -HalfHeight * 0.5f ||
 			Delta.Z > HalfHeight + Cell.EffectHeight - 5.f - Dxy)
 		{
 			continue;
 		}
 
-		if (Dxy < Radius)
+		// A square cell can extend past a thin wall, even when it overlaps the capsule.
+		const FVector CellCenter = Cell.Location + FVector::UpVector * Cell.EffectHeight * 0.5f;
+		FHitResult Hit;
+		if (!ArenaGroundArea::Trace(GetWorld(), CapsuleCenter, CellCenter, this, Hit))
 		{
 			return true;
 		}
-
-		const FVector CellCenter = Cell.Location + FVector::UpVector * Cell.EffectHeight * 0.5f;
-		const double Distance = FVector::DistSquared(CapsuleCenter, CellCenter);
-		if (Distance < NearestDistance)
-		{
-			NearestDistance = Distance;
-			Nearest = CellCenter;
-			bHasNearest = true;
-		}
 	}
 
-	FHitResult Hit;
-	return bHasNearest && !ArenaGroundArea::Trace(GetWorld(), CapsuleCenter, Nearest, this, Hit);
+	return false;
 }
 
 bool AArenaGroundAreaEffect::CanAffectTarget(AActor* Target) const
@@ -506,7 +511,12 @@ bool AArenaGroundAreaEffect::CanAffectTarget(AActor* Target) const
 		return false;
 	}
 
-	if (Target == GetInstigator())
+	// Compare ability system owners as well as instigators: the thrower may have respawned into a new Pawn
+	// while the same PlayerState still owns both the fire and the target.
+	UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
+	const UAbilitySystemComponent* SourceASC = GetSourceAbilitySystem();
+	const AActor* OwnerActor = SourceASC ? SourceASC->GetOwnerActor() : GetSourceActor();
+	if (Target == GetInstigator() || (SourceASC && TargetASC == SourceASC) || (OwnerActor && OwnerActor == Target))
 	{
 		return Settings.bAffectInstigator;
 	}
@@ -557,6 +567,51 @@ void AArenaGroundAreaEffect::RemoveDepartedEffects(bool bRemoveAll)
 	}
 }
 
+void AArenaGroundAreaEffect::PrepareGameplayEffect()
+{
+	if (!Settings.GameplayEffect)
+	{
+		return;
+	}
+
+	// Prefer the component captured at spawn: the thrower's Pawn may already have been collected,
+	// which would leave GetInstigator() null and silently disable all damage.
+	UAbilitySystemComponent* Source = GetSourceAbilitySystem();
+	if (!Source)
+	{
+		Source = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetSourceActor());
+	}
+
+	if (!Source)
+	{
+		UE_LOG(LogArena, Warning, TEXT("%s has %s configured but no source ability system (instigator %s); the area will deal no damage"),
+			*GetName(), *Settings.GameplayEffect->GetName(),
+			GetInstigator() ? *GetInstigator()->GetName() : TEXT("collected"));
+		return;
+	}
+
+	FGameplayEffectContextHandle Context = Source->MakeEffectContext();
+	Context.Get()->SetEffectCauser(this);
+	Context.AddSourceObject(this);
+	const FGameplayEffectSpecHandle Spec = Source->MakeOutgoingSpec(Settings.GameplayEffect, Settings.EffectLevel, Context);
+	if (!Spec.IsValid())
+	{
+		return;
+	}
+
+	for (const TPair<FGameplayTag, float>& Magnitude : Settings.SetByCallerMagnitudes)
+	{
+		Spec.Data->SetSetByCallerMagnitude(Magnitude.Key, Magnitude.Value);
+	}
+
+	for (const FGameplayTag& Tag : Settings.EffectAssetTags)
+	{
+		Spec.Data->AddDynamicAssetTag(Tag);
+	}
+
+	PreparedEffectSpec = *Spec.Data;
+}
+
 void AArenaGroundAreaEffect::EffectTick()
 {
 	if (!HasAuthority() || bStopped || GetWorld()->GetTimeSeconds() >= ExpireTime)
@@ -564,9 +619,8 @@ void AArenaGroundAreaEffect::EffectTick()
 		return;
 	}
 
-	UAbilitySystemComponent* Source = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 	RemoveDepartedEffects();
-	if (!Source || !Settings.GameplayEffect)
+	if (!PreparedEffectSpec.Def)
 	{
 		return;
 	}
@@ -606,27 +660,10 @@ void AArenaGroundAreaEffect::EffectTick()
 			continue;
 		}
 
-		FGameplayEffectContextHandle Context = Source->MakeEffectContext();
-		Context.AddInstigator(GetInstigator(), this);
-		Context.AddSourceObject(this);
-		FGameplayEffectSpecHandle Spec = Source->MakeOutgoingSpec(Settings.GameplayEffect, Settings.EffectLevel, Context);
-		if (Spec.IsValid())
+		const FActiveGameplayEffectHandle Handle = Destination->ApplyGameplayEffectSpecToSelf(PreparedEffectSpec);
+		if (Handle.IsValid())
 		{
-			for (const TPair<FGameplayTag, float>& Magnitude : Settings.SetByCallerMagnitudes)
-			{
-				Spec.Data->SetSetByCallerMagnitude(Magnitude.Key, Magnitude.Value);
-			}
-
-			for (const FGameplayTag& Tag : Settings.EffectAssetTags)
-			{
-				Spec.Data->AddDynamicAssetTag(Tag);
-			}
-
-			const FActiveGameplayEffectHandle Handle = Source->ApplyGameplayEffectSpecToTarget(*Spec.Data, Destination);
-			if (Handle.IsValid())
-			{
-				AppliedEffects.Add(Target, {Destination, Handle});
-			}
+			AppliedEffects.Add(Target, {Destination, Handle});
 		}
 	}
 }

@@ -106,6 +106,9 @@ Initialize Particle 的 `Material Random` 使用 0–1 随机输入，控制各�
 Instant GE 按间隔重复施加。持续型 GE 在目标进入时施加，存续期间不会每轮叠加；
 GE 自身先到期且目标仍在区域内时，下一轮可重新施加。持续型 GE 自带 Period 时，其周期由 GE 管理。
 区域检测的离开响应延时最多为 `ApplicationInterval`；到期和销毁会立即清理所管理的持续 GE。
+区域在生成时准备 GE Spec，保留 ASC Owner（玩家为 PlayerState）的伤害归属，并将区域设为 EffectCauser。
+后续每轮由目标 ASC 应用该 Spec，目标属性仍在应用时捕获；投掷者 Pawn 或其 ASC 销毁后，区域仍可持续生效。
+来源标签与快照属性以区域生成时为准，非快照属性遵循 GAS 的捕获规则。
 关闭 `RemoveEffectOnExit` 后，持续效果按 GE 自身时长保留；Infinite 会一直保留。
 
 多片区域是独立来源，同一目标每片区域每轮最多施加一次，不同区域之间的叠加遵循 GE 的 Stacking 配置。
