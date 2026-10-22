@@ -13,6 +13,7 @@ public class ArenaEditor : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"Arena",
+			"UMG",
 			"UnrealEd",
 			"GameplayAbilities",
 			"GameplayTags",
