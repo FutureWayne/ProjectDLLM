@@ -326,6 +326,76 @@ bool FFireDamageTest::RunTest(const FString&)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireExplosionDamageTest, "Arena.Incendiary.Damage.ProductionExplosionDamage", Flags)
+bool FFireExplosionDamageTest::RunTest(const FString&)
+{
+	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
+		TEXT("/Game/Blueprints/Weapon/Data/GrenadeData/SecondaryGrenade/DA_IncendiaryGrenadeDef.DA_IncendiaryGrenadeDef"));
+	if (!TestNotNull(TEXT("Production grenade definition loads"), Definition))
+	{
+		return false;
+	}
+
+	TestNotNull(TEXT("Production explosion keeps its damage GE"), Definition->ExplosionGameplayEffect.Get());
+	TestNotNull(TEXT("Production direct hit keeps its damage GE"), Definition->DirectHitGameplayEffect.Get());
+	if (!TestTrue(TEXT("Production blast has a positive radius"), Definition->DetonationRadius > 0.f))
+	{
+		return false;
+	}
+
+	FFireWorld Scene;
+	Scene.Floor();
+	const float Radius = Definition->DetonationRadius;
+	const FVector Origin(0, 0, 1000);
+	AArenaIncendiaryTestPawn* Source = Scene.Pawn(Origin + FVector(0, -2.f * Radius, 0), 1);
+	AArenaIncendiaryTestPawn* Enemy = Scene.Pawn(Origin + FVector(0.3f * Radius, 0, 0), 2);
+	AArenaIncendiaryTestPawn* Blocked = Scene.Pawn(Origin + FVector(-0.4f * Radius, 0, 0), 2);
+	AArenaIncendiaryTestPawn* Immune = Scene.Pawn(Origin + FVector(0, 0.4f * Radius, 0), 2);
+	AArenaIncendiaryTestPawn* Outside = Scene.Pawn(Origin + FVector(2.f * Radius, 0, 0), 2);
+	AArenaIncendiaryTestPawn* GroundTarget = Scene.Pawn(FVector(0, 0, 60), 2);
+	Immune->AbilitySystem->AddLooseGameplayTag(TAG_Gameplay_DamageImmunity);
+	for (AArenaIncendiaryTestPawn* Target : {Enemy, Blocked, Immune, Outside, GroundTarget})
+	{
+		Target->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+	}
+
+	Scene.Box(Origin + FVector(-0.2f * Radius, 0, 0), FVector(2.f, 0.25f * Radius, 0.25f * Radius));
+	FActorSpawnParameters Spawn;
+	Spawn.Instigator = Source;
+	Spawn.Owner = Source;
+	Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AArenaGrenadeBase* Grenade = Scene.World->SpawnActor<AArenaGrenadeBase>(Definition->GrenadeClass, Origin, FRotator::ZeroRotator, Spawn);
+	if (!TestNotNull(TEXT("Production Blueprint grenade spawns for blast test"), Grenade))
+	{
+		return false;
+	}
+
+	Grenade->SetGrenadeParameter(Definition);
+	Grenade->FindComponentByClass<UProjectileMovementComponent>()->StopMovementImmediately();
+	// No world tick: any damage here must come from detonation, before the fire can fall or pulse.
+	Grenade->SetGrenadeExplosionTimer(0.f);
+	TestFalse(TEXT("Expired fuse detonates immediately"), IsValid(Grenade));
+	TestTrue(TEXT("Airburst immediately damages an exposed enemy"), Enemy->Health->GetHealth() < 100.f);
+	TestEqual(TEXT("A wall blocks blast damage"), Blocked->Health->GetHealth(), 100.f);
+	TestEqual(TEXT("Blast respects damage immunity"), Immune->Health->GetHealth(), 100.f);
+	TestEqual(TEXT("Outside blast radius is safe"), Outside->Health->GetHealth(), 100.f);
+	TestEqual(TEXT("Ground target is safe before fire lands"), GroundTarget->Health->GetHealth(), 100.f);
+
+	TActorIterator<AArenaGroundAreaEffect> It(Scene.World);
+	if (!TestTrue(TEXT("Damaging blast still creates ground fire"), static_cast<bool>(It)))
+	{
+		return false;
+	}
+
+	AArenaGroundAreaEffect* Fire = *It;
+	TestTrue(TEXT("Fire starts falling from the blast point"), Fire->IsFalling());
+	Scene.Diffuse(Fire);
+	Scene.Tick(0.26f);
+	TestTrue(TEXT("Fire lands and completes diffusion after the blast"), Fire->IsDiffusionComplete());
+	TestEqual(TEXT("Ground fire retains its independent five-point pulse"), GroundTarget->Health->GetHealth(), 95.f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSelfDamageTest, "Arena.Incendiary.Damage.ProductionSelfDamage", Flags)
 bool FFireSelfDamageTest::RunTest(const FString&)
 {
@@ -346,7 +416,8 @@ bool FFireSelfDamageTest::RunTest(const FString&)
 	Spawn.Instigator = Source;
 	Spawn.Owner = Source;
 	Spawn.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	AArenaGrenadeBase* Grenade = Scene.World->SpawnActor<AArenaGrenadeBase>(Definition->GrenadeClass, FVector(0, 0, 100), FRotator::ZeroRotator, Spawn);
+	// Keep the thrower outside the blast so this test measures only ground-fire self damage.
+	AArenaGrenadeBase* Grenade = Scene.World->SpawnActor<AArenaGrenadeBase>(Definition->GrenadeClass, FVector(0, 0, 1000), FRotator::ZeroRotator, Spawn);
 	if (!TestNotNull(TEXT("Production Blueprint grenade spawns with thrower"), Grenade))
 	{
 		return false;

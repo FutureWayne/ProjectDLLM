@@ -247,3 +247,11 @@ public:
 | 设置文本本地化 | `Source/Arena/Private/Settings/ArenaGameSettingRegistry_Gameplay.cpp` |
 | 构建与目标配置 | `Source/Arena/Arena.Build.cs`、`Source/Arena.Target.cs`、`Source/ArenaEditor.Target.cs` |
 | 插件补丁与回归验证边界 | `Plugins/OnlineSubsystemSteam/README.md`、`Plugins/SteamSockets/README.md`、`Plugins/CommonUser/Tests/README.md` |
+
+## 15. 文档与生成辅助文件的版本管理
+
+- 仅在涉及重要代码功能改动或重构时，同步维护并提交相关文档；文档应说明功能行为、接口约定、架构变化或维护所需的信息。
+- 纯特效、材质、视觉表现调整及其制作过程、参数调优、效果展示和验证记录，不单独编写或提交更新说明文档；此类说明不纳入 `Docs` 等版本管理目录。
+- 用于辅助生成、修改或审计特效和材质的本地工具文件，均不纳入版本管理，包括 `*VfxEditorLibrary*`、`*VFXEditorLibrary*`、`*MaterialEditorLibrary*` 的头文件和实现，以及同用途的生成脚本、临时工具与中间产物。按用途判断，不以文件名作为唯一依据。
+- 新增此类辅助文件时，同步更新 `.gitignore`；已被跟踪的文件应停止跟踪并加入忽略规则，保留本地文件，不使用强制添加绕过忽略规则。
+- 正式使用的特效、材质资源仍按项目需要纳入版本管理；需要提交但被目录规则误忽略的资源，应添加精确的忽略例外，不为此解除整个资源目录的忽略。
