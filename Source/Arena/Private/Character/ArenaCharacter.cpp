@@ -8,6 +8,7 @@
 #include "AbilitySystem/ArenaCombatSet.h"
 #include "Camera/ArenaCameraComponent.h"
 #include "Character/ArenaHealthComponent.h"
+#include "Character/ArenaMeshAssemblyComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Equipment/ArenaEquipmentManagerComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -78,6 +79,13 @@ void AArenaCharacter::BeginPlay()
 	if (CameraComponent)
 	{
 		CameraComponent->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+	}
+
+	// Super routes Blueprint BeginPlay, which installs the visible retargeted mesh and team materials.
+	// Apply the scan before this spawn can render an unassembled frame.
+	if (UArenaMeshAssemblyComponent* Assembly = FindComponentByClass<UArenaMeshAssemblyComponent>())
+	{
+		Assembly->AutoPlayAssembly();
 	}
 }
 

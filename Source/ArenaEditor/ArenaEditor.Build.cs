@@ -24,7 +24,8 @@ public class ArenaEditor : ModuleRules
 			"Niagara",
 			"NiagaraEditor",
 			"AssetRegistry",
-			"RenderCore"
+			"RenderCore",
+            "SlateCore"
 		});
 	}
 }
