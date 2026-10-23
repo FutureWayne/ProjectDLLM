@@ -3,6 +3,8 @@
 
 #include "Character/ArenaAICharacter.h"
 
+#include "Character/ArenaMeshAssemblyComponent.h"
+
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
 #include "Components/CapsuleComponent.h"
@@ -59,4 +61,9 @@ void AArenaAICharacter::BeginPlay()
 	
 	ArenaHealthSet->SetMaxHealth(50.0f);
 	ArenaHealthSet->SetHealth(50.0f);
+
+	if (UArenaMeshAssemblyComponent* Assembly = FindComponentByClass<UArenaMeshAssemblyComponent>())
+	{
+		Assembly->AutoPlayAssembly();
+	}
 }
