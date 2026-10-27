@@ -5,6 +5,8 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
+#include "Player/ArenaPlayerController.h"
+#include "Teams/ArenaTeamSubsystem.h"
 #include "ArenaGameplayTags.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "Messages/ArenaVerbMessage.h"
@@ -121,6 +123,29 @@ void UArenaHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		// Convert into -Health and then clamp
 		SetHealth(FMath::Clamp(GetHealth() - GetDamage(), 0, GetMaxHealth()));
 		SetDamage(0.0f);
+
+		// Confirm actual health loss before sending feedback to the attacker.
+		if (GetOwningActor()->HasAuthority() && GetHealth() < HealthBeforeAttributeChange)
+		{
+			UAbilitySystemComponent* SourceASC = EffectContext.GetOriginalInstigatorAbilitySystemComponent();
+			const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>();
+			if (SourceASC && SourceASC->AbilityActorInfo.IsValid() && Teams &&
+				Teams->CompareTeams(SourceASC->GetAvatarActor(), Data.Target.GetAvatarActor()) == EArenaTeamComparison::DifferentTeams)
+			{
+				if (AArenaPlayerController* Attacker = Cast<AArenaPlayerController>(SourceASC->AbilityActorInfo->PlayerController.Get()))
+				{
+					FGameplayTagContainer AssetTags;
+					Data.EffectSpec.GetAllAssetTags(AssetTags);
+					const bool bDirectHit = AssetTags.HasTagExact(ArenaGameplayTags::DamageType_Grenade_DirectHit) ||
+						Data.EffectSpec.CapturedTargetTags.GetAggregatedTags()->HasTagExact(ArenaGameplayTags::DamageType_Grenade_DirectHit);
+					const bool bKilled = GetHealth() <= 0.0f;
+					const EArenaHitFeedbackType FeedbackType = bKilled
+						? (bDirectHit ? EArenaHitFeedbackType::InstantKill : EArenaHitFeedbackType::Kill)
+						: EArenaHitFeedbackType::Hit;
+					Attacker->ClientNotifyEnemyHit(FeedbackType);
+				}
+			}
+		}
 	}
 
 	else if (Data.EvaluatedData.Attribute == GetHealingAttribute())

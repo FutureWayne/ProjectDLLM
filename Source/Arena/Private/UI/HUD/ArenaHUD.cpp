@@ -3,10 +3,26 @@
 
 #include "UI/HUD/ArenaHUD.h"
 #include "ArenaGameplayTags.h"
+#include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "UI/ArenaReticleWidget.h"
 
 #include "CommonUIExtensions.h"
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_LAYER_GAME, "UI.Layer.Game");
+
+void AArenaHUD::ShowEnemyHit(EArenaHitFeedbackType FeedbackType)
+{
+	TArray<UUserWidget*> Widgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(this, Widgets, UArenaReticleWidget::StaticClass(), false);
+	for (UUserWidget* Widget : Widgets)
+	{
+		if (Widget->GetOwningPlayer() == GetOwningPlayerController() && Widget->IsVisible())
+		{
+			CastChecked<UArenaReticleWidget>(Widget)->ShowEnemyHit(FeedbackType);
+		}
+	}
+}
 
 void AArenaHUD::AddOverlayWidget()
 {
