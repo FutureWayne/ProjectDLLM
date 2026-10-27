@@ -32,6 +32,7 @@ styles and fill directions (both teams fill from their outside edge), and animat
 
 The retired TeamWidget is collapsed and its tick disabled to preserve existing
 Blueprint references. The separate legacy countdown is collapsed.
+`Scripts/topbar_install.py` installs the WBP at top center (1040x73, y=18).
 
 Validation: `Arena.UI.TopBar.Snapshot` creates `WBP_ArenaTopBar` and exercises the
 actual TDM Blueprint fields, a target of 75, bound text values, score changes, progress
