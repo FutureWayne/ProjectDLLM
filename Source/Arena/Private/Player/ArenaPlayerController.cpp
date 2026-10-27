@@ -3,6 +3,7 @@
 
 #include "Player/ArenaPlayerController.h"
 
+#include "UI/HUD/ArenaHUD.h"
 #include "ArenaGameplayTags.h"
 #include "ArenaLogChannels.h"
 #include "EnhancedInputSubsystems.h"
@@ -21,6 +22,14 @@ AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectI
 	QuickBarComponent = CreateDefaultSubobject<UArenaQuickBarComponent>(TEXT("QuickBarComponent"));
 
 	PlayerCameraManagerClass = AArenaPlayerCameraManager::StaticClass();
+}
+
+void AArenaPlayerController::ClientNotifyEnemyHit_Implementation(EArenaHitFeedbackType FeedbackType)
+{
+	if (AArenaHUD* ArenaHUD = Cast<AArenaHUD>(GetHUD()))
+	{
+		ArenaHUD->ShowEnemyHit(FeedbackType);
+	}
 }
 
 void AArenaPlayerController::Input_AbilityInputTagPressed(FGameplayTag InputTag)

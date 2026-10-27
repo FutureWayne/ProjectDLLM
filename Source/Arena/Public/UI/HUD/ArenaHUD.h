@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
+#include "UI/ArenaHitFeedbackType.h"
 #include "ArenaHUD.generated.h"
 
 class UCommonActivatableWidget;
@@ -25,6 +26,8 @@ class ARENA_API AArenaHUD : public AHUD
 	GENERATED_BODY()
 
 public:
+	void ShowEnemyHit(EArenaHitFeedbackType FeedbackType);
+
 	UPROPERTY(EditDefaultsOnly, Category = "Widgets")
 	TSubclassOf<UCommonActivatableWidget> OverlayWidgetClass;
 
@@ -40,4 +43,5 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	TObjectPtr<UCommonActivatableWidget> OverlayWidget;
+
 };

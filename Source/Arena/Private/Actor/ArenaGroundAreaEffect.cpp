@@ -45,7 +45,6 @@ namespace
 		UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(Template, Visual);
 		Material->SetVectorParameterValue(TEXT("GroundAreaCenter"), FLinearColor(Center.X, Center.Y, Center.Z));
 		Material->SetScalarParameterValue(TEXT("GroundAreaRadius"), Radius);
-		Material->SetScalarParameterValue(TEXT("GroundAreaMaskEnabled"), 1.f);
 		Visual->SetVariableMaterial(Parameter.GetName(), Material);
 		return Material;
 	}
@@ -217,7 +216,6 @@ void AArenaGroundAreaEffect::UpdateFallingVisual()
 			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false, false);
 		if (FallingVisual)
 		{
-			FallingVisual->SetRelativeScale3D(FVector(Settings.FallingEffectScale));
 			FallingMaterial = BindAreaMaterial(FallingVisual, Settings.FallingEffect, GetActorLocation(), Settings.Radius);
 			if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
 			{
@@ -831,7 +829,7 @@ FTransform AArenaGroundAreaEffect::GroundFit(const FArenaGroundVisualCell& Cell)
 	}
 
 	return FTransform(FRotationMatrix::MakeFromZX(Normal, GetActorForwardVector()).ToQuat(),
-		Location + Normal * 2.f, FVector(Settings.EffectScale));
+		Location);
 }
 
 void AArenaGroundAreaEffect::UpdateVisuals()

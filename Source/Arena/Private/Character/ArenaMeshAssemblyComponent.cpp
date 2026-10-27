@@ -10,6 +10,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Teams/ArenaTeamSubsystem.h"
 #include "TimerManager.h"
 
@@ -49,8 +50,13 @@ void UArenaMeshAssemblyComponent::PlayAssembly(USkeletalMeshComponent* TargetMes
 {
 	StopAssembly();
 	AActor* Owner = GetOwner();
-	if (!IsValid(Owner) || Owner->IsHidden() || GetNetMode() == NM_DedicatedServer || !AssemblySystem ||
-		!FMath::IsFinite(Duration) || Duration < 0.1f)
+	if (!IsValid(Owner) || Owner->IsHidden() || GetNetMode() == NM_DedicatedServer || !AssemblySystem)
+	{
+		return;
+	}
+	const FNiagaraVariable DurationParameter(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.AssemblyDuration"));
+	const float AssetDuration = AssemblySystem->GetExposedParameters().GetParameterValueOrDefault(DurationParameter, 0.0f);
+	if (!FMath::IsFinite(AssetDuration) || AssetDuration <= 0.0f)
 	{
 		return;
 	}
@@ -113,7 +119,16 @@ void UArenaMeshAssemblyComponent::PlayAssembly(USkeletalMeshComponent* TargetMes
 			continue;
 		}
 		Effects.Add(Effect);
+		Effect->OnSystemFinished.AddDynamic(this, &ThisClass::HandleSystemFinished);
 		Effect->AddTickPrerequisiteComponent(Mesh);
+		if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
+		{
+			if (Teams->FindTeamFromObject(Owner) != INDEX_NONE)
+			{
+				const FLinearColor Color = Teams->FindTeamColorFromActor(Owner);
+				Effect->SetVariableVec3(TEXT("User.BodyColor"), FVector(Color.R, Color.G, Color.B));
+			}
+		}
 		for (int32 Index = 0; Index < Variants.Num(); ++Index)
 		{
 			FArenaAssemblyMaterialSlot& Slot = MaterialSlots.AddDefaulted_GetRef();
@@ -122,12 +137,13 @@ void UArenaMeshAssemblyComponent::PlayAssembly(USkeletalMeshComponent* TargetMes
 			Slot.Original = Mesh->GetMaterial(Index);
 			Slot.Assembly = UMaterialInstanceDynamic::Create(Variants[Index], this);
 			Slot.Assembly->CopyMaterialUniformParameters(Slot.Original ? Slot.Original.Get() : UMaterial::GetDefaultMaterial(MD_Surface));
+			Slot.Assembly->SetScalarParameterValue(TEXT("AssemblyStartTime"), GetWorld()->GetTimeSeconds());
+			Slot.Assembly->SetScalarParameterValue(TEXT("AssemblyDuration"), AssetDuration);
 			Mesh->SetMaterial(Index, Slot.Assembly);
 		}
 	}
 
-	Elapsed = 0.0f;
-	UpdatePresentation(0.0f);
+	UpdateGeometryInputs();
 	for (UNiagaraComponent* Effect : Effects)
 	{
 		Effect->Activate(true);
@@ -135,26 +151,15 @@ void UArenaMeshAssemblyComponent::PlayAssembly(USkeletalMeshComponent* TargetMes
 	SetComponentTickEnabled(IsAssembling());
 }
 
-void UArenaMeshAssemblyComponent::UpdatePresentation(float Progress)
+void UArenaMeshAssemblyComponent::UpdateGeometryInputs()
 {
-	FLinearColor Color(0.025f, 0.65f, 1.0f);
-	if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
-	{
-		if (Teams->FindTeamFromObject(GetOwner()) != INDEX_NONE)
-		{
-			Color = Teams->FindTeamColorFromActor(GetOwner());
-		}
-	}
-
 	for (const FArenaAssemblyMaterialSlot& Slot : MaterialSlots)
 	{
 		if (USkeletalMeshComponent* Mesh = Slot.Mesh.Get(); Mesh && Mesh->GetMaterial(Slot.Index) == Slot.Assembly)
 		{
 			const FBoxSphereBounds Bounds = Mesh->Bounds;
-			Slot.Assembly->SetScalarParameterValue(TEXT("AssemblyProgress"), Progress);
 			Slot.Assembly->SetScalarParameterValue(TEXT("AssemblyMinZ"), Bounds.Origin.Z - Bounds.BoxExtent.Z);
 			Slot.Assembly->SetScalarParameterValue(TEXT("AssemblyHeight"), FMath::Max(2.0 * Bounds.BoxExtent.Z, 1.0));
-			Slot.Assembly->SetVectorParameterValue(TEXT("AssemblyColor"), PrintingColor);
 		}
 	}
 	for (UNiagaraComponent* Effect : Effects)
@@ -163,11 +168,8 @@ void UArenaMeshAssemblyComponent::UpdatePresentation(float Progress)
 		{
 			const USkeletalMeshComponent* Mesh = CastChecked<USkeletalMeshComponent>(Effect->GetAttachParent());
 			const FBoxSphereBounds Bounds = Mesh->Bounds;
-			Effect->SetVariableFloat(TEXT("User.AssemblyProgress"), Progress);
 			Effect->SetVariableFloat(TEXT("User.AssemblyMinZ"), Bounds.Origin.Z - Bounds.BoxExtent.Z - Mesh->GetComponentLocation().Z);
 			Effect->SetVariableFloat(TEXT("User.AssemblyHeight"), FMath::Max(2.0 * Bounds.BoxExtent.Z, 1.0));
-			Effect->SetVariableVec3(TEXT("User.BodyColor"), FVector(Color.R, Color.G, Color.B));
-			Effect->SetVariableVec3(TEXT("User.PrintColor"), FVector(PrintingColor.R, PrintingColor.G, PrintingColor.B));
 			Effect->SetVariableFloat(TEXT("User.AssemblyRadius"), FMath::Max(Bounds.BoxExtent.X, Bounds.BoxExtent.Y));
 			Effect->SetVariableVec3(TEXT("User.AssemblyCenter"), Bounds.Origin - Mesh->GetComponentLocation());
 		}
@@ -179,15 +181,23 @@ void UArenaMeshAssemblyComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	const UArenaHealthComponent* Health = GetOwner()->FindComponentByClass<UArenaHealthComponent>();
-	if (GetOwner()->IsHidden() || (Health && Health->IsDeadOrDying()) || !FMath::IsFinite(Duration) || Duration < 0.1f)
+	if (GetOwner()->IsHidden() || (Health && Health->IsDeadOrDying()))
 	{
 		StopAssembly();
 		return;
 	}
-	Elapsed += FMath::Max(DeltaTime, 0.0f);
-	const float Progress = FMath::Clamp(Elapsed / Duration, 0.0f, 1.0f);
-	UpdatePresentation(Progress);
-	if (Progress >= 1.0f)
+	UpdateGeometryInputs();
+}
+
+void UArenaMeshAssemblyComponent::HandleSystemFinished(UNiagaraComponent* FinishedSystem)
+{
+	if (!FinishedSystem || Effects.Remove(FinishedSystem) == 0)
+	{
+		return;
+	}
+	FinishedSystem->OnSystemFinished.RemoveDynamic(this, &ThisClass::HandleSystemFinished);
+	FinishedSystem->DestroyComponent();
+	if (Effects.IsEmpty())
 	{
 		StopAssembly();
 	}
@@ -212,6 +222,7 @@ void UArenaMeshAssemblyComponent::StopAssembly()
 	{
 		if (IsValid(Effect))
 		{
+			Effect->OnSystemFinished.RemoveDynamic(this, &ThisClass::HandleSystemFinished);
 			Effect->DestroyComponent();
 		}
 	}

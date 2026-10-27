@@ -3,6 +3,7 @@
 #include "Weapon/ArenaGrenadeBase.h"
 
 #include "AbilitySystemComponent.h"
+#include "ArenaGameplayTags.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
@@ -412,8 +413,15 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeDefinitionData->DetonationRadius, 0.1f, 1.0f);
 	if (const TSubclassOf<UGameplayEffect> ExplosionGameplayEffect = bIsDirectHit ? GrenadeDefinitionData->DirectHitGameplayEffect : GrenadeDefinitionData->ExplosionGameplayEffect)
 	{
-		UGameplayEffect* ExplosionGameplayEffectCDO = ExplosionGameplayEffect->GetDefaultObject<UGameplayEffect>();
-		InstigatorASC->ApplyGameplayEffectToTarget(ExplosionGameplayEffectCDO, TargetASC, EffectLevel, GameplayEffectContextHandle);
+		FGameplayEffectSpecHandle DamageSpec = InstigatorASC->MakeOutgoingSpec(ExplosionGameplayEffect, EffectLevel, GameplayEffectContextHandle);
+		if (DamageSpec.IsValid())
+		{
+			if (bIsDirectHit)
+			{
+				DamageSpec.Data->AddDynamicAssetTag(ArenaGameplayTags::DamageType_Grenade_DirectHit);
+			}
+			InstigatorASC->ApplyGameplayEffectSpecToTarget(*DamageSpec.Data.Get(), TargetASC);
+		}
 	}
 }
 

@@ -407,11 +407,14 @@ bool FFireSelfDamageTest::RunTest(const FString&)
 	}
 
 	TestTrue(TEXT("Production grenade explicitly enables self damage"), AreaSettings(Definition).bAffectInstigator);
+	TestTrue(TEXT("Production grenade explicitly enables friendly fire"), AreaSettings(Definition).bAffectAllies);
 	FFireWorld Scene;
 	Scene.Floor();
 	AArenaIncendiaryTestPawn* Source = Scene.Pawn(FVector(0, 0, 96), 1);
 	Source->GetCapsuleComponent()->SetCapsuleSize(42.f, 96.f);
 	AArenaIncendiaryTestPawn* Ally = Scene.Pawn(FVector(100, 0, 96), 1);
+	AArenaIncendiaryTestPawn* ImmuneAlly = Scene.Pawn(FVector(-100, 0, 96), 1);
+	ImmuneAlly->AbilitySystem->AddLooseGameplayTag(TAG_Gameplay_DamageImmunity);
 	FActorSpawnParameters Spawn;
 	Spawn.Instigator = Source;
 	Spawn.Owner = Source;
@@ -444,10 +447,19 @@ bool FFireSelfDamageTest::RunTest(const FString&)
 
 	Scene.Tick(0.26f);
 	TestEqual(TEXT("Thrower standing in fire takes one period through the Blueprint GE"), Source->Health->GetHealth(), 95.f);
-	TestEqual(TEXT("Enabling self damage does not enable friendly fire"), Ally->Health->GetHealth(), 100.f);
+	TestEqual(TEXT("Ally standing in production fire takes the same five-point period"), Ally->Health->GetHealth(), 95.f);
+	TestEqual(TEXT("Friendly fire respects damage immunity"), ImmuneAlly->Health->GetHealth(), 100.f);
+	Ally->SetActorLocation(FVector(2000, 0, 96));
+	Scene.Tick(0.26f);
+	TestEqual(TEXT("Leaving the fire stops friendly damage"), Ally->Health->GetHealth(), 95.f);
+	Ally->SetActorLocation(FVector(100, 0, 96));
+	Scene.Tick(0.26f);
+	TestEqual(TEXT("Reentering the fire resumes friendly damage"), Ally->Health->GetHealth(), 90.f);
+	const float SelfHealthBeforeDestroy = Source->Health->GetHealth();
 	Fire->Destroy();
 	Scene.Tick(0.26f);
-	TestEqual(TEXT("Destroying area stops self damage immediately"), Source->Health->GetHealth(), 95.f);
+	TestEqual(TEXT("Destroying area stops self damage immediately"), Source->Health->GetHealth(), SelfHealthBeforeDestroy);
+	TestEqual(TEXT("Destroying area stops friendly damage immediately"), Ally->Health->GetHealth(), 90.f);
 	return true;
 }
 
@@ -762,6 +774,16 @@ bool FFireAssetTest::RunTest(const FString&)
 	TestTrue(TEXT("Production self damage remains enabled"), AreaSettings(Definition).bAffectInstigator);
 	TestNotNull(TEXT("A real flame Niagara system is configured"), AreaSettings(Definition).CellEffect.Get());
 	TestTrue(TEXT("Production fire uses airborne descent"), AreaSettings(Definition).bFallToGround);
+	for (UNiagaraSystem* System : {AreaSettings(Definition).CellEffect.Get(), AreaSettings(Definition).FallingEffect.Get()})
+	{
+		if (!TestNotNull(TEXT("Each production phase has a Niagara asset"), System))
+		{
+			return false;
+		}
+		const FNiagaraVariable ScaleParameter(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.PresentationScale"));
+		TestTrue(TEXT("Visual scale is authored in the Niagara asset"),
+			System->GetExposedParameters().GetParameterValueOrDefault(ScaleParameter, 0.0f) > 0.0f);
+	}
 	TestTrue(TEXT("Production grenade keeps its own explosion cue"), Definition->ExplosionCueTag.IsValid());
 	UClass* DamageClass = AreaSettings(Definition).GameplayEffect.Get();
 	if (TestNotNull(TEXT("Damage GE is configured on production asset"), DamageClass))

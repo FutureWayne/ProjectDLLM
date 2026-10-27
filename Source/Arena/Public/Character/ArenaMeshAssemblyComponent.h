@@ -44,13 +44,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Assembly")
 	TObjectPtr<UNiagaraSystem> AssemblySystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Assembly", meta = (ClampMin = "0.1", Units = "s"))
-	float Duration = 0.55f;
-
-	/** Laser and hot print-edge color, independent of the model's team-colored voxels. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Assembly")
-	FLinearColor PrintingColor = FLinearColor(1.0f, 0.035f, 0.006f);
-
 	/** Original material (or a dynamic instance's parent) -> scan variant preserving its surface. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|Assembly")
 	TMap<TObjectPtr<UMaterialInterface>, TObjectPtr<UMaterialInterface>> ScanMaterials;
@@ -75,7 +68,10 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	void UpdatePresentation(float Progress);
+	void UpdateGeometryInputs();
+
+	UFUNCTION()
+	void HandleSystemFinished(UNiagaraComponent* FinishedSystem);
 
 	UPROPERTY(Transient)
 	TArray<FArenaAssemblyMaterialSlot> MaterialSlots;
@@ -84,5 +80,4 @@ private:
 	TArray<TObjectPtr<UNiagaraComponent>> Effects;
 
 	FTimerHandle AutoPlayTimer;
-	float Elapsed = 0.0f;
 };

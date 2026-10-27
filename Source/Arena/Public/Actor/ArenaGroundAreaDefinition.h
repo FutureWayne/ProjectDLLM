@@ -103,12 +103,6 @@ struct ARENA_API FArenaGroundAreaSettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Falling")
 	TObjectPtr<UNiagaraSystem> FallingEffect = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual|Falling", meta = (ClampMin = "0.01"))
-	float FallingEffectScale = 1.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (ClampMin = "0.01"))
-	float EffectScale = 1.f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual", meta = (ClampMin = "1", ClampMax = "10"))
 	int32 ClientCellMerge = 6;
 
