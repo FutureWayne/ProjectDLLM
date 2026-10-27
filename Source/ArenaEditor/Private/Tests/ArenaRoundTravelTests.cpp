@@ -15,12 +15,17 @@ AArenaRoundTravelTestGameMode::AArenaRoundTravelTestGameMode()
 #include "Engine/GameInstance.h"
 #include "Engine/NetConnection.h"
 #include "Engine/NetDriver.h"
+#include "Engine/PackageMapClient.h"
 #include "Engine/World.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/PlayerController.h"
 #include "GameMapsSettings.h"
 #include "HAL/IConsoleManager.h"
 #include "Misc/AutomationTest.h"
+#include "Misc/ScopeExit.h"
+#include "IpConnection.h"
+#include "IpNetDriver.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Player/ArenaPlayerState.h"
 #include "PlayInEditorDataTypes.h"
 #include "Settings/LevelEditorPlaySettings.h"
@@ -294,6 +299,81 @@ bool FArenaRoundTravelTest::RunTest(const FString&)
 	ADD_LATENT_AUTOMATION_COMMAND(FArenaCheckRoundTravel(this, Fixture));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
 	ADD_LATENT_AUTOMATION_COMMAND(FArenaRestoreRoundTravel(Fixture));
+	return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaReloadedClassNetGUIDTest, "Arena.Network.RoundRestart.ReloadedClassNetGUID",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaReloadedClassNetGUIDTest::RunTest(const FString&)
+{
+	IConsoleVariable* Remap = IConsoleManager::Get().FindConsoleVariable(TEXT("net.AllowClientRemapCacheObject"));
+	if (!TestNotNull(TEXT("Engine supports client cache remapping"), Remap))
+	{
+		return false;
+	}
+	const int32 ConfiguredRemap = Remap->GetInt();
+	TestEqual(TEXT("Project enables client cache remapping"), ConfiguredRemap, 1);
+	ON_SCOPE_EXIT
+	{
+		Remap->SetWithCurrentPriority(ConfiguredRemap);
+	};
+
+	UClass* DashClass = LoadObject<UClass>(nullptr,
+		TEXT("/Game/Blueprints/AbilitySystem/Abilities/Action/GA_Hero_Dash.GA_Hero_Dash_C"));
+	if (!TestNotNull(TEXT("Load the ability class named in the disconnect log"), DashClass))
+	{
+		return false;
+	}
+	TStrongObjectPtr<UIpNetDriver> Driver(NewObject<UIpNetDriver>());
+	Driver->ServerConnection = NewObject<UIpConnection>(Driver.Get());
+	ON_SCOPE_EXIT
+	{
+		Driver->ServerConnection = nullptr;
+	};
+
+	for (const bool bResolveReloadedPath : {true, false})
+	{
+		for (const bool bEnableRemap : {false, true})
+		{
+			// Exercise the failure control first, then the configured production behavior.
+			Remap->SetWithCurrentPriority(bEnableRemap ? ConfiguredRemap : 0);
+			FNetGUIDCache Cache(Driver.Get());
+			Cache.SetAsyncLoadMode(FNetGUIDCache::EAsyncLoadMode::ForceDisable);
+			const FNetworkGUID PackageGUID = FNetworkGUID::CreateFromIndex(1, true);
+			const FNetworkGUID ClassGUID = FNetworkGUID::CreateFromIndex(2, true);
+			Cache.RegisterNetGUIDFromPath_Client(PackageGUID, DashClass->GetOutermost()->GetName(),
+				FNetworkGUID(), 0, false, false);
+			Cache.RegisterNetGUIDFromPath_Client(ClassGUID, DashClass->GetName(), PackageGUID, 0, false, false);
+			TestTrue(TEXT("Real client cache resolves the ability class before travel"),
+				Cache.GetObjectFromNetGUID(ClassGUID, false) == DashClass);
+
+			// Inject only the unload/age boundary; resolution and expiry use real engine code.
+			// The log shows a read-only class remapped after one travel, then missing next round.
+			const double ExpiredTimestamp = FPlatformTime::Seconds() - 91.0;
+			Cache.ObjectLookup.FindChecked(ClassGUID).ReadOnlyTimestamp = ExpiredTimestamp;
+			if (bResolveReloadedPath)
+			{
+				Cache.ObjectLookup.FindChecked(PackageGUID).ReadOnlyTimestamp = ExpiredTimestamp;
+				Cache.ObjectLookup.FindChecked(PackageGUID).Object.Reset();
+				Cache.ObjectLookup.FindChecked(ClassGUID).Object.Reset();
+				Cache.NetGUIDLookup.Empty();
+				TestTrue(TEXT("Reloaded class resolves through the original exported path"),
+					Cache.GetObjectFromNetGUID(ClassGUID, false) == DashClass);
+			}
+			else
+			{
+				const FNetworkGUID ReusedGUID = Cache.GetOrAssignNetGUID(DashClass);
+				TestEqual(TEXT("Existing class retains its GUID only when remapping is enabled"),
+					ReusedGUID == ClassGUID, bEnableRemap);
+			}
+
+			Cache.CleanReferences();
+			TestEqual(TEXT("Reused ability class survives expired-cache cleanup only with remapping"),
+				Cache.IsGUIDRegistered(ClassGUID), bEnableRemap);
+			TestEqual(TEXT("Subobject class is resolvable after cleanup only with remapping"),
+				Cache.GetObjectFromNetGUID(ClassGUID, false) == DashClass, bEnableRemap);
+		}
+	}
 	return true;
 }
 #endif
