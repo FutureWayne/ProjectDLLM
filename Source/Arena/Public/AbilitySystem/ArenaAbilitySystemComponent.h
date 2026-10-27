@@ -26,6 +26,7 @@ public:
 	//~End of UActorComponent interface
 
 	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
+	virtual void DestroyActiveState() override;
 
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
@@ -42,6 +43,8 @@ public:
 	void CancelActivationGroupAbilities(EArenaAbilityActivationGroup Group, UArenaGameplayAbility* IgnoreArenaAbility, bool bReplicateCancelAbility);
 
 protected:
+	virtual void OnUnregister() override;
+
 	void TryActivateAbilitiesOnSpawn();
 	
 	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability) override;
@@ -63,4 +66,7 @@ protected:
 	
 	// Number of abilities running in each activation group.
 	int32 ActivationGroupCounts[static_cast<uint8>(EArenaAbilityActivationGroup::MAX)];
+
+private:
+	bool bPreserveActiveStateOnUnregister = false;
 };

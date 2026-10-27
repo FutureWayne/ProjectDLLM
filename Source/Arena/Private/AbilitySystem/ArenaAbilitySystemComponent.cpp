@@ -5,6 +5,9 @@
 
 #include "AbilitySystem/ArenaGameplayAbility.h"
 #include "AbilitySystem/ArenaGlobalAbilitySystem.h"
+#include "Engine/World.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaAbilitySystemComponent)
 
@@ -27,6 +30,27 @@ void UArenaAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayRea
 	}
 	
 	Super::EndPlay(EndPlayReason);
+}
+
+void UArenaAbilitySystemComponent::OnUnregister()
+{
+	const AActor* Owner = GetOwner();
+	const UWorld* World = GetWorld();
+	const bool bIsPlayer = Owner && (Owner->IsA<APlayerState>() || Owner->IsA<APlayerController>());
+	// Actor::Rename temporarily unregisters retained players while moving them between worlds.
+	// Destroying their ability subobjects here can invalidate client RPCs already in flight (UE-193041).
+	const bool bIsTravelReregister = bIsPlayer && HasBegunPlay() && Owner->HasActorBegunPlay() &&
+		!Owner->IsActorBeingDestroyed() && World && World->IsInSeamlessTravel();
+	TGuardValue<bool> PreserveState(bPreserveActiveStateOnUnregister, bIsTravelReregister);
+	Super::OnUnregister();
+}
+
+void UArenaAbilitySystemComponent::DestroyActiveState()
+{
+	if (!bPreserveActiveStateOnUnregister)
+	{
+		Super::DestroyActiveState();
+	}
 }
 
 void UArenaAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
