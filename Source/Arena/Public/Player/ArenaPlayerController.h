@@ -6,6 +6,7 @@
 #include "CommonPlayerController.h"
 #include "Camera/ArenaCameraAssistInterface.h"
 #include "Teams/ArenaTeamAgentInterface.h"
+#include "UI/ArenaHitFeedbackType.h"
 #include "ArenaPlayerController.generated.h"
 
 struct FInputActionValue;
@@ -27,6 +28,9 @@ class ARENA_API AArenaPlayerController : public ACommonPlayerController, public 
 
 public:
 	AArenaPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	UFUNCTION(Client, Unreliable)
+	void ClientNotifyEnemyHit(EArenaHitFeedbackType FeedbackType);
 
 	/*
 	 * Ability Input

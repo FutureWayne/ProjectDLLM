@@ -2,6 +2,7 @@
 
 #include "UI/Widget/ArenaHealthBarWidget.h"
 
+#include "Blueprint/UserWidget.h"
 #include "Character/ArenaHealthComponent.h"
 #include "GameFramework/PlayerController.h"
 
