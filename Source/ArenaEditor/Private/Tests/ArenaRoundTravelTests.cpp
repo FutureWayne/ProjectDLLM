@@ -7,6 +7,11 @@ AArenaRoundTravelTestGameMode::AArenaRoundTravelTestGameMode()
 	bStartPlayersAsSpectators = true;
 }
 
+void AArenaRoundTravelTestGameMode::RestartPlayer(AController* NewPlayer)
+{
+	// Match start can request a pawn even for waiting players. This fixture tests travel and UI only.
+}
+
 #if WITH_DEV_AUTOMATION_TESTS
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaGameplayAbility.h"
@@ -31,9 +36,149 @@ AArenaRoundTravelTestGameMode::AArenaRoundTravelTestGameMode()
 #include "Settings/LevelEditorPlaySettings.h"
 #include "System/ArenaSystemStatics.h"
 #include "Tests/AutomationEditorCommon.h"
+#include "Blueprint/WidgetTree.h"
+#include "GameFramework/AsyncAction_ListenForGameplayMessage.h"
+#include "HAL/PlatformMemory.h"
+#include "UI/Widget/ArenaScoreboardStatWidget.h"
+#include "UObject/StructOnScope.h"
+#include "UObject/UObjectIterator.h"
+#include "UObject/UnrealType.h"
 
 namespace
 {
+	class FArenaClientGuidCache : public FNetGUIDCache
+	{
+	public:
+		explicit FArenaClientGuidCache(UNetDriver* Driver)
+			: FNetGUIDCache(Driver)
+		{
+		}
+
+		virtual bool IsNetGUIDAuthority() const override
+		{
+			return false;
+		}
+	};
+
+	int32 CountScoreMessageActions()
+	{
+		int32 Count = 0;
+		for (TObjectIterator<UAsyncAction_ListenForGameplayMessage> It; It; ++It)
+		{
+			if (IsValid(*It) && !It->HasAnyFlags(RF_ClassDefaultObject))
+			{
+				++Count;
+			}
+		}
+		return Count;
+	}
+
+	bool CheckScoreboardLifecycle(FAutomationTestBase* Test, UWorld* World, int32 Round)
+	{
+		CollectGarbage(RF_NoFlags);
+		const int32 InitialActions = CountScoreMessageActions();
+		APlayerController* Controller = World->GetFirstPlayerController();
+		AArenaPlayerState* PlayerState = Controller->GetPlayerState<AArenaPlayerState>();
+		UClass* RowClass = LoadClass<UUserWidget>(nullptr,
+			TEXT("/Game/UI/Scoreboard/W_SB_PlayerRow_TDM.W_SB_PlayerRow_TDM_C"));
+		if (!Test->TestNotNull(TEXT("Load the real TDM scoreboard row"), RowClass) || !PlayerState)
+		{
+			return false;
+		}
+		TWeakObjectPtr<UUserWidget> ReleasedRow;
+		{
+			TStrongObjectPtr<UUserWidget> Row(CreateWidget<UUserWidget>(Controller, RowClass));
+			if (!Test->TestNotNull(TEXT("Create production scoreboard row"), Row.Get()))
+			{
+				return false;
+			}
+			ReleasedRow = Row.Get();
+			UFunction* SetPlayer = Row->FindFunction(TEXT("SetPlayerState"));
+			if (!Test->TestNotNull(TEXT("Use real scoreboard player assignment"), SetPlayer))
+			{
+				return false;
+			}
+			FStructOnScope Params(SetPlayer);
+			for (TFieldIterator<FObjectPropertyBase> It(SetPlayer); It; ++It)
+			{
+				if (It->HasAnyPropertyFlags(CPF_Parm) && !It->HasAnyPropertyFlags(CPF_ReturnParm))
+				{
+					It->SetObjectPropertyValue_InContainer(Params.GetStructMemory(), PlayerState);
+				}
+			}
+			Row->ProcessEvent(SetPlayer, Params.GetStructMemory());
+			Test->TestEqual(TEXT("Assigning data before display creates no listener"), CountScoreMessageActions(), InitialActions);
+			TSharedPtr<SWidget> Slate = Row->TakeWidget();
+			TArray<UArenaScoreboardStatWidget*> Stats;
+			Row->WidgetTree->ForEachWidget([&Stats](UWidget* Widget)
+			{
+				if (UArenaScoreboardStatWidget* Stat = Cast<UArenaScoreboardStatWidget>(Widget))
+				{
+					Stats.Add(Stat);
+				}
+			});
+			if (!Test->TestTrue(TEXT("Real row contains migrated stat widgets"), Stats.Num() > 0))
+			{
+				return false;
+			}
+			const FObjectPropertyBase* ListenerProperty = FindFProperty<FObjectPropertyBase>(
+				UArenaScoreboardStatWidget::StaticClass(), TEXT("ScoreListener"));
+			TArray<TWeakObjectPtr<UObject>> OriginalListeners;
+			for (UArenaScoreboardStatWidget* Stat : Stats)
+			{
+				UAsyncAction_ListenForGameplayMessage* Listener = Cast<UAsyncAction_ListenForGameplayMessage>(
+					ListenerProperty->GetObjectPropertyValue_InContainer(Stat));
+				Test->TestNotNull(TEXT("Displayed stat owns one listener"), Listener);
+				Test->TestTrue(TEXT("Displayed listener is registered and bound to its stat"),
+					Listener && Listener->IsActive() && Listener->OnMessageReceived.Contains(Stat, TEXT("HandleScoreMessage")));
+				OriginalListeners.Add(Listener);
+			}
+			const int32 ActionsAfterAssignment = CountScoreMessageActions();
+			for (int32 Refresh = 0; Refresh < 500; ++Refresh)
+			{
+				Row->ProcessEvent(SetPlayer, Params.GetStructMemory());
+			}
+			Test->TestEqual(TEXT("500 production refreshes create no extra async actions"),
+				CountScoreMessageActions(), ActionsAfterAssignment);
+			for (int32 Index = 0; Index < Stats.Num(); ++Index)
+			{
+				Test->TestTrue(TEXT("Repeated assignment reuses exactly the same listener"),
+					ListenerProperty->GetObjectPropertyValue_InContainer(Stats[Index]) == OriginalListeners[Index].Get());
+			}
+
+			Slate.Reset();
+			Row->ReleaseSlateResources(true);
+			for (UArenaScoreboardStatWidget* Stat : Stats)
+			{
+				Test->TestNull(TEXT("Closing row immediately releases its listeners"),
+					ListenerProperty->GetObjectPropertyValue_InContainer(Stat));
+			}
+			for (const TWeakObjectPtr<UObject>& Original : OriginalListeners)
+			{
+				if (UAsyncAction_ListenForGameplayMessage* Listener = Cast<UAsyncAction_ListenForGameplayMessage>(Original.Get()))
+				{
+					Test->TestFalse(TEXT("Closed listener unregisters from the game instance"), Listener->IsActive());
+					Test->TestFalse(TEXT("Closed listener releases widget delegates"), Listener->OnMessageReceived.IsBound());
+				}
+			}
+			// Pooling can reconstruct the same widgets without calling SetPlayerState again.
+			Slate = Row->TakeWidget();
+			for (UArenaScoreboardStatWidget* Stat : Stats)
+			{
+				Test->TestNotNull(TEXT("Reopening pooled row restores one listener"),
+					ListenerProperty->GetObjectPropertyValue_InContainer(Stat));
+			}
+			Slate.Reset();
+			Row->ReleaseSlateResources(true);
+		}
+		CollectGarbage(RF_NoFlags);
+		Test->TestFalse(TEXT("Discarded scoreboard row is collectible"), ReleasedRow.IsValid());
+		Test->TestEqual(TEXT("Listener objects return to baseline after collection"), CountScoreMessageActions(), InitialActions);
+		Test->AddInfo(FString::Printf(TEXT("Scoreboard round %d: 500 refreshes, async actions %d -> %d, process memory %.1f MiB"),
+			Round, InitialActions, CountScoreMessageActions(), FPlatformMemory::GetStats().UsedPhysical / (1024.0 * 1024.0)));
+		return true;
+	}
+
 	struct FArenaRoundTravelFixture
 	{
 		TArray<FNetDriverDefinition> SavedDrivers = GEngine->NetDriverDefinitions;
@@ -45,6 +190,9 @@ namespace
 		TArray<TWeakObjectPtr<UNetConnection>> Connections;
 		TArray<TWeakObjectPtr<UNetDriver>> Drivers;
 		TWeakObjectPtr<UWorld> PreviousServer;
+		TArray<TStrongObjectPtr<UArenaScoreboardStatWidget>> OpenStats;
+		TArray<TSharedPtr<SWidget>> OpenStatSlate;
+		TArray<TWeakObjectPtr<UAsyncAction_ListenForGameplayMessage>> OpenListeners;
 		bool bResumeHost = false;
 		double ResumeAt = 0.0;
 
@@ -55,6 +203,39 @@ namespace
 			SeamlessPIE->SetWithCurrentPriority(SavedSeamlessPIE);
 		}
 	};
+
+	void OpenStatAcrossTravel(FAutomationTestBase* Test, UWorld* World, FArenaRoundTravelFixture& Fixture)
+	{
+		UClass* StatClass = LoadClass<UArenaScoreboardStatWidget>(nullptr,
+			TEXT("/Game/UI/Scoreboard/PlayerRow/W_SB_PlayerStat.W_SB_PlayerStat_C"));
+		UArenaScoreboardStatWidget* Stat = CreateWidget<UArenaScoreboardStatWidget>(World->GetFirstPlayerController(), StatClass);
+		if (!Test->TestNotNull(TEXT("Create a production stat held across map cleanup"), Stat))
+		{
+			return;
+		}
+		Fixture.OpenStats.Emplace(Stat);
+		Fixture.OpenStatSlate.Add(Stat->TakeWidget());
+		Stat->EnsureScoreListener();
+		const FObjectPropertyBase* Property = FindFProperty<FObjectPropertyBase>(
+			UArenaScoreboardStatWidget::StaticClass(), TEXT("ScoreListener"));
+		UAsyncAction_ListenForGameplayMessage* Listener = Cast<UAsyncAction_ListenForGameplayMessage>(
+			Property->GetObjectPropertyValue_InContainer(Stat));
+		Test->TestTrue(TEXT("Held stat is actively subscribed before travel"), Listener && Listener->IsActive());
+		Fixture.OpenListeners.Add(Listener);
+	}
+
+	void CheckTravelStatCleanup(FAutomationTestBase* Test, FArenaRoundTravelFixture& Fixture)
+	{
+		// Keep both the UObject and its Slate alive until after this assertion: cleanup must come from travel.
+		for (const TWeakObjectPtr<UAsyncAction_ListenForGameplayMessage>& Listener : Fixture.OpenListeners)
+		{
+			Test->TestTrue(TEXT("World cleanup cancels listeners even when widgets remain retained"),
+				!Listener.IsValid() || !Listener->IsActive());
+		}
+		Fixture.OpenStatSlate.Reset();
+		Fixture.OpenStats.Reset();
+		Fixture.OpenListeners.Reset();
+	}
 
 	void CheckPlayerAbilityLifecycle(FAutomationTestBase* Test, UWorld* World)
 	{
@@ -99,15 +280,16 @@ namespace
 	class FArenaCheckRoundTravel : public IAutomationLatentCommand
 	{
 	public:
-		FArenaCheckRoundTravel(FAutomationTestBase* InTest, TSharedRef<FArenaRoundTravelFixture> InFixture)
+		FArenaCheckRoundTravel(FAutomationTestBase* InTest, TSharedRef<FArenaRoundTravelFixture> InFixture, bool bInScoreboardSoak = false)
 			: Test(InTest)
 			, Fixture(InFixture)
+			, bScoreboardSoak(bInScoreboardSoak)
 		{
 		}
 
 		virtual bool Update() override
 		{
-			if (GetCurrentRunTime() > 90.0)
+			if (GetCurrentRunTime() > (bScoreboardSoak ? 300.0 : 90.0))
 			{
 				Test->AddError(FString::Printf(TEXT("Round travel timed out after %d restarts"), CompletedRestarts));
 				return true;
@@ -136,6 +318,20 @@ namespace
 				Server->SetSeamlessTravelMidpointPause(false);
 				Fixture->bResumeHost = false;
 			}
+			if (Server && bScoreboardSoak && !Server->IsInSeamlessTravel())
+			{
+				for (FConstPlayerControllerIterator It = Server->GetPlayerControllerIterator(); It; ++It)
+				{
+					if (AArenaPlayerState* State = It->Get()->GetPlayerState<AArenaPlayerState>())
+					{
+						if (State->GetGenericTeamId().GetId() != 1)
+						{
+							State->SetGenericTeamId(FGenericTeamId(1));
+							State->ForceNetUpdate();
+						}
+					}
+				}
+			}
 			if (!Server || Clients.Num() != 2 || !Server->HasBegunPlay() || Server->IsInSeamlessTravel())
 			{
 				return false;
@@ -144,9 +340,18 @@ namespace
 			{
 				if (!Client->HasBegunPlay() || Client->IsInSeamlessTravel() ||
 					!Client->GetFirstPlayerController() || !Client->GetNetDriver()->ServerConnection ||
+					(bScoreboardSoak && !Client->GetFirstPlayerController()->PlayerState) ||
 					Client->GetNetDriver()->ServerConnection->GetConnectionState() != USOCK_Open)
 				{
 					return false;
+				}
+				if (bScoreboardSoak)
+				{
+					const AArenaPlayerState* State = Client->GetFirstPlayerController()->GetPlayerState<AArenaPlayerState>();
+					if (!State || State->GetGenericTeamId().GetId() != 1)
+					{
+						return false;
+					}
 				}
 			}
 			UNetDriver* Driver = Server->GetNetDriver();
@@ -191,6 +396,10 @@ namespace
 				{
 					return false;
 				}
+				if (bScoreboardSoak)
+				{
+					CheckTravelStatCleanup(Test, Fixture.Get());
+				}
 				for (const TWeakObjectPtr<UNetConnection>& Connection : Fixture->Connections)
 				{
 					if (!Test->TestTrue(TEXT("Original connection survives same-map restart"),
@@ -207,12 +416,33 @@ namespace
 				}
 				++CompletedRestarts;
 				Test->AddInfo(FString::Printf(TEXT("Completed restart %d with both remote players connected"), CompletedRestarts));
-				if (CompletedRestarts == 3)
+				if (CompletedRestarts == (bScoreboardSoak ? 12 : 3))
 				{
+					if (bScoreboardSoak)
+					{
+						for (UWorld* Client : Clients)
+						{
+							CheckScoreboardLifecycle(Test, Client, CompletedRestarts);
+						}
+					}
 					return true;
 				}
 			}
 
+			if (bScoreboardSoak)
+			{
+				for (UWorld* Client : Clients)
+				{
+					if (!CheckScoreboardLifecycle(Test, Client, CompletedRestarts))
+					{
+						return true;
+					}
+				}
+				for (UWorld* Client : Clients)
+				{
+					OpenStatAcrossTravel(Test, Client, Fixture.Get());
+				}
+			}
 			Fixture->PreviousServer = Server;
 			if (CompletedRestarts == 0)
 			{
@@ -238,6 +468,7 @@ namespace
 		TSharedRef<FArenaRoundTravelFixture> Fixture;
 		bool bStarted = false;
 		int32 CompletedRestarts = 0;
+		bool bScoreboardSoak = false;
 	};
 
 	class FArenaRestoreRoundTravel : public IAutomationLatentCommand
@@ -267,11 +498,11 @@ namespace
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaRoundTravelTest, "Arena.Network.RoundRestart.PreservesConnections",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
-bool FArenaRoundTravelTest::RunTest(const FString&)
+static bool ScheduleRoundTravel(FAutomationTestBase* Test, bool bScoreboardSoak)
 {
 	if (GEditor->PlayWorld)
 	{
-		AddError(TEXT("Run in an isolated editor without PIE."));
+		Test->AddError(TEXT("Run in an isolated editor without PIE."));
 		return false;
 	}
 	TSharedRef<FArenaRoundTravelFixture> Fixture = MakeShared<FArenaRoundTravelFixture>();
@@ -296,10 +527,23 @@ bool FArenaRoundTravelTest::RunTest(const FString&)
 	Params.GameModeOverride = AArenaRoundTravelTestGameMode::StaticClass();
 	Params.bAllowOnlineSubsystem = false;
 	ADD_LATENT_AUTOMATION_COMMAND(FStartPIEForAutomationCommand(Params));
-	ADD_LATENT_AUTOMATION_COMMAND(FArenaCheckRoundTravel(this, Fixture));
+	ADD_LATENT_AUTOMATION_COMMAND(FArenaCheckRoundTravel(Test, Fixture, bScoreboardSoak));
 	ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
 	ADD_LATENT_AUTOMATION_COMMAND(FArenaRestoreRoundTravel(Fixture));
 	return true;
+}
+
+bool FArenaRoundTravelTest::RunTest(const FString&)
+{
+	return ScheduleRoundTravel(this, false);
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaScoreboardRoundSoakTest, "Arena.UI.Scoreboard.TwelveRoundSoak",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaScoreboardRoundSoakTest::RunTest(const FString&)
+{
+	return ScheduleRoundTravel(this, true);
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaReloadedClassNetGUIDTest, "Arena.Network.RoundRestart.ReloadedClassNetGUID",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -325,11 +569,6 @@ bool FArenaReloadedClassNetGUIDTest::RunTest(const FString&)
 		return false;
 	}
 	TStrongObjectPtr<UIpNetDriver> Driver(NewObject<UIpNetDriver>());
-	Driver->ServerConnection = NewObject<UIpConnection>(Driver.Get());
-	ON_SCOPE_EXIT
-	{
-		Driver->ServerConnection = nullptr;
-	};
 
 	for (const bool bResolveReloadedPath : {true, false})
 	{
@@ -337,7 +576,7 @@ bool FArenaReloadedClassNetGUIDTest::RunTest(const FString&)
 		{
 			// Exercise the failure control first, then the configured production behavior.
 			Remap->SetWithCurrentPriority(bEnableRemap ? ConfiguredRemap : 0);
-			FNetGUIDCache Cache(Driver.Get());
+			FArenaClientGuidCache Cache(Driver.Get());
 			Cache.SetAsyncLoadMode(FNetGUIDCache::EAsyncLoadMode::ForceDisable);
 			const FNetworkGUID PackageGUID = FNetworkGUID::CreateFromIndex(1, true);
 			const FNetworkGUID ClassGUID = FNetworkGUID::CreateFromIndex(2, true);

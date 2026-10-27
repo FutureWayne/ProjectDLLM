@@ -13,4 +13,5 @@ class AArenaRoundTravelTestGameMode : public AArenaGameMode
 
 public:
 	AArenaRoundTravelTestGameMode();
+	virtual void RestartPlayer(AController* NewPlayer) override;
 };
