@@ -14,6 +14,8 @@ public class ArenaEditor : ModuleRules
 			"Engine",
 			"Arena",
 			"UMG",
+			"UMGEditor",
+			"MovieScene",
 			"UnrealEd",
 			"BlueprintGraph",
 			"KismetCompiler",
