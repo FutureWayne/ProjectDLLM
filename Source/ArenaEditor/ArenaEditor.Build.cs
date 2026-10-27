@@ -15,6 +15,8 @@ public class ArenaEditor : ModuleRules
 			"Arena",
 			"UMG",
 			"UnrealEd",
+			"BlueprintGraph",
+			"KismetCompiler",
 			"GameplayAbilities",
 			"GameplayTags",
 			"AIModule",
