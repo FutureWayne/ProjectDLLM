@@ -19,7 +19,6 @@ void FArenaGroundAreaSettings::Sanitize()
 	GroundTraceDepth = FMath::Max(1.f, GroundTraceDepth);
 	FallAcceleration = FMath::Max(1.f, FallAcceleration);
 	TerminalFallSpeed = FMath::Max(1.f, TerminalFallSpeed);
-	FallingEffectScale = FMath::Max(0.01f, FallingEffectScale);
 	MaxRise = FMath::Max(0.f, MaxRise);
 	MaxDrop = FMath::Max(0.f, MaxDrop);
 	StepHeight = FMath::Max(6.f, StepHeight);
@@ -30,7 +29,6 @@ void FArenaGroundAreaSettings::Sanitize()
 	ClientCellMerge = FMath::Clamp(ClientCellMerge, 1, 10);
 	MaxVisualCount = FMath::Clamp(MaxVisualCount, 1, 512);
 	VisualsPerFrame = FMath::Clamp(VisualsPerFrame, 1, 32);
-	EffectScale = FMath::Max(0.01f, EffectScale);
 }
 
 #if WITH_EDITOR
@@ -46,7 +44,7 @@ EDataValidationResult UArenaGroundAreaDefinition::IsDataValid(FDataValidationCon
 	if (Settings.Radius < Settings.CellSize || Settings.CellSize < 10.f || Settings.CellSize > 600.f ||
 		Settings.Radius > 20.f * Settings.CellSize || Settings.Lifetime <= 0.f || Settings.ApplicationInterval < 0.05f ||
 		Settings.GroundTraceDepth <= 0.f || Settings.MaxVisualCount < 1 || Settings.MaxVisualCount > 512 ||
-		(Settings.bFallToGround && (Settings.FallAcceleration <= 0.f || Settings.TerminalFallSpeed <= 0.f || Settings.FallingEffectScale <= 0.f)))
+		(Settings.bFallToGround && (Settings.FallAcceleration <= 0.f || Settings.TerminalFallSpeed <= 0.f)))
 	{
 		Context.AddError(NSLOCTEXT("Arena", "AreaLimitsInvalid", "Ground area coverage, lifetime, interval, projection depth or visual count is outside supported limits."));
 		Result = EDataValidationResult::Invalid;

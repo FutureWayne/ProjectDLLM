@@ -134,10 +134,8 @@ void UArenaHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 			{
 				if (AArenaPlayerController* Attacker = Cast<AArenaPlayerController>(SourceASC->AbilityActorInfo->PlayerController.Get()))
 				{
-					FGameplayTagContainer AssetTags;
-					Data.EffectSpec.GetAllAssetTags(AssetTags);
-					const bool bDirectHit = AssetTags.HasTagExact(ArenaGameplayTags::DamageType_Grenade_DirectHit) ||
-						Data.EffectSpec.CapturedTargetTags.GetAggregatedTags()->HasTagExact(ArenaGameplayTags::DamageType_Grenade_DirectHit);
+					// Only the current damage application can identify a direct impact.
+					const bool bDirectHit = Data.EffectSpec.GetDynamicAssetTags().HasTagExact(ArenaGameplayTags::DamageType_Grenade_DirectHit);
 					const bool bKilled = GetHealth() <= 0.0f;
 					const EArenaHitFeedbackType FeedbackType = bKilled
 						? (bDirectHit ? EArenaHitFeedbackType::InstantKill : EArenaHitFeedbackType::Kill)

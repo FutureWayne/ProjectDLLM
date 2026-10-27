@@ -18,13 +18,19 @@ C++ pushes values into `BindWidget` members and raises presentation events:
 | Member / event | Purpose |
 | --- | --- |
 | `BlueKillsText`, `RedKillsText`, `BlueGoalText`, `RedGoalText`, `ClockText` | Text values |
-| `BlueScoreBar`, `RedScoreBar` | Interpolated kill ratio (`ProgressInterpSpeed`) |
+| `OnScoreRatiosChanged(BlueRatio, RedRatio, bInitialize)` | Current clamped kill ratios; initialization, missing data and score resets snap to the supplied values |
 | `OnTeamScored(TeamIndex, NewKills)` | Kill count increased (never for the initial snapshot) |
 | `OnClockStateChanged(State)` | `Syncing / Normal / Warning / Critical / Expired`, thresholds `WarningSeconds` / `CriticalSeconds` |
 
 `WBP_ArenaTopBar` owns all presentation: Orbitron fonts, sizes and outlines, team
 colors, glass track, glow rails, ticks, brackets, mirrored score frames, progress bar
-styles and fill directions (both teams fill from their outside edge), and animations:
+styles and fill directions (both teams fill from their outside edge).
+
+The WBP stores the target ratios and interpolates `BlueScoreBar` / `RedScoreBar` in
+its Tick graph using its own `ProgressInterpSpeed`. C++ exposes `GetTeamScoreRatio`
+and sends ratio changes, without maintaining animated progress or setting bar fills.
+
+The WBP also owns these animations:
 
 - `BlueScorePulse` / `RedScorePulse`: number flash + bounce and an expanding rail pulse.
 - `ClockWarningBeat`: looping red clock with pulsing chevrons; the event graph plays it
@@ -35,7 +41,8 @@ Blueprint references. The separate legacy countdown is collapsed.
 `Scripts/topbar_install.py` installs the WBP at top center (1040x73, y=18).
 
 Validation: `Arena.UI.TopBar.Snapshot` creates `WBP_ArenaTopBar` and exercises the
-actual TDM Blueprint fields, a target of 75, bound text values, score changes, progress
-interpolation/clamping, all clock states, negative time, missing source and teardown.
+actual TDM Blueprint fields, a target of 75, bound text values, score changes, immediate
+business ratios, WBP progress interpolation/clamping, all clock states, negative time,
+missing source and teardown.
 With rendering enabled it exports previews to Saved/topbar-normal.png and
 Saved/topbar-warning.png.

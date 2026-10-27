@@ -3,7 +3,6 @@
 #include "UI/Widget/ArenaTopBarWidget.h"
 
 #include "Components/ActorComponent.h"
-#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
@@ -47,7 +46,7 @@ void UArenaTopBarWidget::NativeConstruct()
 
 	SampleClock = 0.0f;
 	ApplySnapshotText();
-	ApplyProgress();
+	OnScoreRatiosChanged(GetTeamScoreRatio(0), GetTeamScoreRatio(1), true);
 	OnClockStateChanged(ClockState);
 }
 
@@ -62,6 +61,7 @@ void UArenaTopBarWidget::NativeDestruct()
 void UArenaTopBarWidget::RefreshSnapshot()
 {
 	const bool bHadData = bHasData;
+	const bool bHadInitializedSnapshot = bInitialized;
 	const int32 OldTargetKills = TargetKills;
 	const int32 OldSeconds = Seconds;
 	const int32 OldKills[2] = {Kills[0], Kills[1]};
@@ -111,11 +111,6 @@ void UArenaTopBarWidget::RefreshSnapshot()
 			for (int32 TeamIndex = 0; TeamIndex < 2; ++TeamIndex)
 			{
 				Kills[TeamIndex] = NewKills[TeamIndex];
-				if (!bWasInitialized)
-				{
-					// Initial snapshots never animate historical kills.
-					Progress[TeamIndex] = FMath::Clamp(float(Kills[TeamIndex]) / TargetKills, 0.f, 1.f);
-				}
 			}
 			bInitialized = true;
 
@@ -135,6 +130,13 @@ void UArenaTopBarWidget::RefreshSnapshot()
 	if (bHadData != bHasData || OldTargetKills != TargetKills || OldSeconds != Seconds || OldKills[0] != Kills[0] || OldKills[1] != Kills[1])
 	{
 		ApplySnapshotText();
+	}
+
+	if (bHadData != bHasData || OldTargetKills != TargetKills || OldKills[0] != Kills[0] || OldKills[1] != Kills[1])
+	{
+		const bool bInitialize = !bHadInitializedSnapshot || !bHasData || OldTargetKills != TargetKills ||
+			Kills[0] < OldKills[0] || Kills[1] < OldKills[1];
+		OnScoreRatiosChanged(GetTeamScoreRatio(0), GetTeamScoreRatio(1), bInitialize);
 	}
 
 	EArenaTopBarClockState NewState = EArenaTopBarClockState::Syncing;
@@ -176,16 +178,14 @@ void UArenaTopBarWidget::ApplySnapshotText()
 	}
 }
 
-void UArenaTopBarWidget::ApplyProgress()
+float UArenaTopBarWidget::GetTeamScoreRatio(int32 TeamIndex) const
 {
-	if (BlueScoreBar)
+	if (!bHasData || TargetKills <= 0 || TeamIndex < 0 || TeamIndex >= 2)
 	{
-		BlueScoreBar->SetPercent(Progress[0]);
+		return 0.0f;
 	}
-	if (RedScoreBar)
-	{
-		RedScoreBar->SetPercent(Progress[1]);
-	}
+
+	return FMath::Clamp(float(Kills[TeamIndex]) / TargetKills, 0.0f, 1.0f);
 }
 
 void UArenaTopBarWidget::SetClockState(EArenaTopBarClockState NewState)
@@ -201,25 +201,10 @@ void UArenaTopBarWidget::NativeTick(const FGeometry& Geometry, float DeltaTime)
 {
 	Super::NativeTick(Geometry, DeltaTime);
 
-	bool bProgressChanged = false;
 	SampleClock -= DeltaTime;
 	if (SampleClock <= 0)
 	{
 		RefreshSnapshot();
 		SampleClock = SnapshotInterval;
-		bProgressChanged = true;
-	}
-
-	for (int32 TeamIndex = 0; TeamIndex < 2; ++TeamIndex)
-	{
-		const float Target = TargetKills > 0 ? FMath::Clamp(float(Kills[TeamIndex]) / TargetKills, 0.f, 1.f) : 0.f;
-		const float NewProgress = FMath::FInterpTo(Progress[TeamIndex], Target, DeltaTime, ProgressInterpSpeed);
-		bProgressChanged |= !FMath::IsNearlyEqual(NewProgress, Progress[TeamIndex]);
-		Progress[TeamIndex] = NewProgress;
-	}
-
-	if (bProgressChanged)
-	{
-		ApplyProgress();
 	}
 }

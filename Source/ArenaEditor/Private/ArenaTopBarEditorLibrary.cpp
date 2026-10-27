@@ -13,7 +13,23 @@ void UArenaTopBarEditorLibrary::DisableDesignerVariable(UWidget* Widget)
 void UArenaTopBarEditorLibrary::SetDesignerVariable(UWidget* Widget, bool bIsVariable)
 {
 #if WITH_EDITORONLY_DATA
- if (Widget) { Widget->Modify(); Widget->bIsVariable = bIsVariable; }
+	if (Widget)
+	{
+		Widget->Modify();
+		Widget->bIsVariable = bIsVariable;
+		if (bIsVariable)
+		{
+			if (UWidgetBlueprint* Blueprint = Widget->GetTypedOuter<UWidgetBlueprint>())
+			{
+				Blueprint->Modify();
+				if (!Blueprint->WidgetVariableNameToGuidMap.Contains(Widget->GetFName()))
+				{
+					Blueprint->WidgetVariableNameToGuidMap.Add(Widget->GetFName(), FGuid::NewGuid());
+				}
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
+		}
+	}
 #endif
 }
 

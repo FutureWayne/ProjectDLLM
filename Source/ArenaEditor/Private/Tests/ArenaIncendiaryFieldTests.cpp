@@ -774,6 +774,16 @@ bool FFireAssetTest::RunTest(const FString&)
 	TestTrue(TEXT("Production self damage remains enabled"), AreaSettings(Definition).bAffectInstigator);
 	TestNotNull(TEXT("A real flame Niagara system is configured"), AreaSettings(Definition).CellEffect.Get());
 	TestTrue(TEXT("Production fire uses airborne descent"), AreaSettings(Definition).bFallToGround);
+	for (UNiagaraSystem* System : {AreaSettings(Definition).CellEffect.Get(), AreaSettings(Definition).FallingEffect.Get()})
+	{
+		if (!TestNotNull(TEXT("Each production phase has a Niagara asset"), System))
+		{
+			return false;
+		}
+		const FNiagaraVariable ScaleParameter(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.PresentationScale"));
+		TestTrue(TEXT("Visual scale is authored in the Niagara asset"),
+			System->GetExposedParameters().GetParameterValueOrDefault(ScaleParameter, 0.0f) > 0.0f);
+	}
 	TestTrue(TEXT("Production grenade keeps its own explosion cue"), Definition->ExplosionCueTag.IsValid());
 	UClass* DamageClass = AreaSettings(Definition).GameplayEffect.Get();
 	if (TestNotNull(TEXT("Damage GE is configured on production asset"), DamageClass))

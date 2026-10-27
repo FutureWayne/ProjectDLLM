@@ -37,12 +37,12 @@
 | `EffectAssetTags` | 追加到 GE Spec 的标签 |
 | `RemoveEffectOnExit` | 离开、区域到期或销毁时移除该区域施加的持续效果 |
 | `AffectInstigator`、`AffectEnemies`、`AffectAllies` | 投掷者、敌方、友方的作用规则 |
-| `CellEffect`、`FullAreaEffect`、`EffectScale` | 分格 Niagara、可选整片 Niagara、粒子缩放 |
+| `CellEffect`、`FullAreaEffect` | 分格 Niagara、可选整片 Niagara；美术缩放由 Niagara 资产维护 |
 | `MaxVisualCount` | 每片区域 Niagara 实例上限，不改变逻辑范围或 GE 强度 |
 | `ClientCellMerge`、`VisualsPerFrame` | 表现合并密度、每帧创建预算 |
 | `GroundTraceDepth` | 向下投影或下落的最大距离，默认 3000cm |
 | `FallToGround`、`FallAcceleration`、`TerminalFallSpeed` | 开启垂直下落、下落加速度、最大下落速度 |
-| `FallingEffect`、`FallingEffectScale` | 下落阶段的 Niagara 和缩放，落地后停止发射，已有粒子自然消散，同时开始贴地火焰 |
+| `FallingEffect` | 下落阶段的 Niagara，落地后停止发射，已有粒子自然消散，同时开始贴地火焰 |
 | `CellSize`、`CellsPerFrame` | 逻辑精度、每帧扩散检查预算 |
 | `MaxRise`、`MaxDrop`、`StepHeight`、`EffectHeight` | 地形范围、台阶连通与有效高度 |
 | `SurfaceMaxAngle`、`MinClearance` | 地面坡度上限、最低净空 |
@@ -60,7 +60,7 @@
 每颗火滴独立运动、消散，形成有空隙和拖尾的燃烧碎片雨。落地后停止空中发射并开始连续铺火，
 已有空中粒子脱离区域组件，继续运动至寿命结束，再自动清理，避免接触地面时突然消失。
 空中特效的 `Fire_Licks` 使用圆柱半径 450、高度 800、非均匀缩放 `(1, 1, 1)`，
-组件缩放 0.6；粒子大小 60–120、寿命 1.1–1.8 秒、发射密度 `User.FlamesEnableWisps=10`。
+Niagara 渲染缩放 0.6；粒子大小 60–120、寿命 1.1–1.8 秒、发射密度 `User.FlamesEnableWisps=10`。
 `AddVelocity001` 的 `UniformRangedVector` 随机输入控制各粒子的速度差异，范围为
 `(-60, -60, -320)` 至 `(60, 60, -80)` cm/s。
 `FallingFireTurbulence` 在速度求解前施加 Curl Noise，当前 `Noise Strength=90`、`Noise Frequency=12`，
@@ -86,16 +86,19 @@ Initialize Particle 的 `Material Random` 使用 0–1 随机输入，控制各�
 地面火焰使用独立 Niagara，以 `Fire_Licks` 在整块显示区域随机播撒小火舌。
 实际分布为圆柱平面，半径输入为 `ShapeLocation.Cylinder Radius` 链接的 `Multiply_Float002.A`，
 当前 135；球形半径不参与该分布。粒子大小在 45–90 之间随机变化，寿命为 0.6–1.2 秒，
-`User.FlamesEnableWisps=26` 控制发射密度，再统一应用组件缩放 0.6。
+`User.FlamesEnableWisps=26` 控制发射密度，再统一应用 Niagara 渲染缩放 0.6。
 相邻播撒范围互相覆盖，关闭每格固定的中心火焰和朝向一致的底层贴片，形成连续、自然变化的火面。
 当前使用 `MI_IncendiaryFlameLicks`，位于 `/Game/Effects/Materials/Incendiary`；
 原有立面、贴地材质保留供美术选择，原始爆炸特效与材质保持不变。
 `M_IncendiaryOrganicFlame` 在整片火区上叠加不规则边界和稀疏外缘，材质中的
 `GroundEdgeFeather` 控制边缘渐隐宽度，`GroundEdgeRoughness` 控制凹凸程度。
 区域通过 Niagara 的可选 `User.GroundAreaMaterial` 材质绑定，传入整片区域的
-`GroundAreaCenter`、`GroundAreaRadius` 并开启 `GroundAreaMaskEnabled`；各显示格共用同一坐标基准，
+`GroundAreaCenter`、`GroundAreaRadius`；`GroundAreaMaskEnabled` 由绑定的材质实例维护，各显示格共用同一坐标基准，
 边界随落点和区域半径变化。未绑定该参数的其他区域特效继续使用原材质。
 日常美术调整直接编辑这些 Niagara/材质资产，无需修改 C++ 或重复运行生成脚本。
+C++ 仅提供真实表面位置、朝向、区域范围和阶段生命周期；不覆盖组件美术缩放或添加视觉离地偏移。
+Niagara 的 `User.PresentationScale` 和 `User.SurfaceOffset` 定义渲染尺度及表面偏移，
+世界空间粒子记录各自的生成原点，落地后保留独立运动，避免残焰随区域移动。
 自身伤害由 `Settings.AffectInstigator` 控制，与 `AffectAllies` 分开。
 
 新增冰冻区：

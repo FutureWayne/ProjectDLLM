@@ -41,8 +41,15 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|TopBar|Presentation")
 	void OnClockStateChanged(EArenaTopBarClockState NewState);
 
+	/** Supplies authoritative ratios; the WBP owns interpolation and animation state. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|TopBar|Presentation")
+	void OnScoreRatiosChanged(float BlueRatio, float RedRatio, bool bInitialize);
+
 	UFUNCTION(BlueprintPure, Category = "Arena|TopBar")
 	EArenaTopBarClockState GetClockState() const { return ClockState; }
+
+	UFUNCTION(BlueprintPure, Category = "Arena|TopBar")
+	float GetTeamScoreRatio(int32 TeamIndex) const;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> BlueKillsText;
@@ -59,10 +66,10 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> ClockText;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UProgressBar> BlueScoreBar;
 
-	UPROPERTY(meta = (BindWidget))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UProgressBar> RedScoreBar;
 
 	/** Remaining seconds at or below which the clock enters the warning state. */
@@ -73,23 +80,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Arena|TopBar", meta = (ClampMin = 0))
 	int32 CriticalSeconds = 10;
 
-	/** Interpolation speed of the score bars towards the current kill ratio. */
-	UPROPERTY(EditDefaultsOnly, Category = "Arena|TopBar", meta = (ClampMin = 0))
-	float ProgressInterpSpeed = 7.0f;
-
 private:
 	friend class FArenaTopBarSnapshotTest;
 
 	void RefreshSnapshot();
 	void ApplySnapshotText();
-	void ApplyProgress();
 	void SetClockState(EArenaTopBarClockState NewState);
 
 	TWeakObjectPtr<UObject> ScoringSource;
 	int32 Kills[2] = {0, 0};
 	int32 TargetKills = 0;
 	int32 Seconds = 0;
-	float Progress[2] = {0.0f, 0.0f};
 	float SampleClock = 0.0f;
 	EArenaTopBarClockState ClockState = EArenaTopBarClockState::Syncing;
 	bool bInitialized = false;

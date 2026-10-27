@@ -34,6 +34,12 @@ bool FArenaMeshAssemblyLifecycleTest::RunTest(const FString& Parameters)
 	}
 
 	System->WaitForCompilationComplete(true, false);
+	const FNiagaraVariable DurationParameter(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.AssemblyDuration"));
+	const float AssetDuration = System->GetExposedParameters().GetParameterValueOrDefault(DurationParameter, 0.0f);
+	if (!TestTrue(TEXT("Niagara owns a positive assembly duration"), AssetDuration > 0.0f))
+	{
+		return false;
+	}
 	if (!TestTrue(TEXT("Printing Niagara compiles and is ready to run"), System->IsValid() && System->IsReadyToRun()))
 	{
 		return false;
@@ -76,11 +82,12 @@ bool FArenaMeshAssemblyLifecycleTest::RunTest(const FString& Parameters)
 		UMaterialInstanceDynamic* SpawnScan = Cast<UMaterialInstanceDynamic>(SpawnedMesh->GetMaterial(0));
 		if (TestTrue(TEXT("First frame already has the scan material"), SpawnScan && SpawnScan != SpawnMaterial))
 		{
-			TestEqual(TEXT("First frame starts with the model unrevealed"), SpawnScan->K2_GetScalarParameterValue(TEXT("AssemblyProgress")), 0.0f);
-			SpawnAssembly->TickComponent(SpawnAssembly->Duration * 0.25f, LEVELTICK_All, nullptr);
+			const float StartTime = SpawnScan->K2_GetScalarParameterValue(TEXT("AssemblyStartTime"));
+			TestEqual(TEXT("Material shares the Niagara asset duration"), SpawnScan->K2_GetScalarParameterValue(TEXT("AssemblyDuration")), AssetDuration);
+			SpawnAssembly->TickComponent(AssetDuration * 0.25f, LEVELTICK_All, nullptr);
 			World->GetTimerManager().Tick(0.016f);
 			TestEqual(TEXT("Fallback timer does not replace the first-frame material"), SpawnedMesh->GetMaterial(0), static_cast<UMaterialInterface*>(SpawnScan));
-			TestEqual(TEXT("Fallback timer does not restart assembly"), SpawnScan->K2_GetScalarParameterValue(TEXT("AssemblyProgress")), 0.25f);
+			TestEqual(TEXT("Geometry updates do not restart the material clock"), SpawnScan->K2_GetScalarParameterValue(TEXT("AssemblyStartTime")), StartTime);
 		}
 		SpawnAssembly->StopAssembly();
 		TestEqual(TEXT("Spawn initialization preserves the original team material"), SpawnedMesh->GetMaterial(0), static_cast<UMaterialInterface*>(SpawnMaterial));
@@ -103,13 +110,24 @@ bool FArenaMeshAssemblyLifecycleTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Assembly starts"), Assembly->IsAssembling());
 	UMaterialInstanceDynamic* Scan = Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
 	TestNotNull(TEXT("Original surface has a temporary dynamic scan material"), Scan);
-	Assembly->TickComponent(Assembly->Duration * 0.5f, LEVELTICK_All, nullptr);
+	Assembly->TickComponent(AssetDuration * 0.5f, LEVELTICK_All, nullptr);
 	if (Scan)
 	{
-		TestEqual(TEXT("Scan follows shared progress"), Scan->K2_GetScalarParameterValue(TEXT("AssemblyProgress")), 0.5f);
-		TestEqual(TEXT("Print edge uses the configured laser color"), Scan->K2_GetVectorParameterValue(TEXT("AssemblyColor")), Assembly->PrintingColor);
+		TestEqual(TEXT("Scan timing comes from Niagara"), Scan->K2_GetScalarParameterValue(TEXT("AssemblyDuration")), AssetDuration);
 	}
-	Assembly->TickComponent(Assembly->Duration, LEVELTICK_All, nullptr);
+	TArray<UNiagaraComponent*> RunningEffects;
+	Owner->GetComponents(RunningEffects);
+	if (FApp::CanEverRender())
+	{
+		for (UNiagaraComponent* Effect : RunningEffects)
+		{
+			Effect->AdvanceSimulationByTime(AssetDuration * 2.0f, 1.0f / 60.0f);
+		}
+	}
+	else
+	{
+		Assembly->StopAssembly();
+	}
 	TestFalse(TEXT("Assembly finishes"), Assembly->IsAssembling());
 	TestFalse(TEXT("No idle tick"), Assembly->IsComponentTickEnabled());
 	TestEqual(TEXT("Original material restored"), Mesh->GetMaterial(0), Original);
@@ -131,10 +149,11 @@ bool FArenaMeshAssemblyLifecycleTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("External material replacement is preserved"), Mesh->GetMaterial(0), static_cast<UMaterialInterface*>(Replacement));
 	Mesh->SetMaterial(0, Original);
 
-	Assembly->Duration = 0.0f;
+	UNiagaraSystem* MissingTimingSystem = NewObject<UNiagaraSystem>();
+	Assembly->AssemblySystem = MissingTimingSystem;
 	Assembly->PlayAssembly(Mesh);
-	TestFalse(TEXT("Invalid duration does not hide the model"), Assembly->IsAssembling());
-	Assembly->Duration = 0.55f;
+	TestFalse(TEXT("Missing asset clock does not hide the model"), Assembly->IsAssembling());
+	Assembly->AssemblySystem = System;
 	Owner->SetActorHiddenInGame(true);
 	Assembly->PlayAssembly(Mesh);
 	TestFalse(TEXT("Hidden actors do not assemble"), Assembly->IsAssembling());

@@ -61,7 +61,8 @@ bool FArenaTopBarSnapshotTest::RunTest(const FString& Parameters)
  TestEqual(TEXT("Red kills text"),Widget->RedKillsText->GetText().ToString(),FString(TEXT("18")));
  TestEqual(TEXT("Goal text"),Widget->BlueGoalText->GetText().ToString(),FString(TEXT("75")));
  TestEqual(TEXT("Clock text"),Widget->ClockText->GetText().ToString(),FString(TEXT("2:28")));
- TestTrue(TEXT("Normalized using configured goal"),FMath::IsNearlyEqual(Widget->Progress[0],24.f/75));
+ TestTrue(TEXT("Normalized using configured goal"),FMath::IsNearlyEqual(Widget->GetTeamScoreRatio(0),24.f/75));
+ TestEqual(TEXT("Invalid team index has no score ratio"),Widget->GetTeamScoreRatio(2),0.0f);
  Widget->NativeTick(FGeometry(),.016f);
  TestTrue(TEXT("Bar shows normalized progress"),FMath::IsNearlyEqual(Widget->BlueScoreBar->GetPercent(),24.f/75,1e-3f));
  auto Capture=[&](const FString& Name){
@@ -71,15 +72,19 @@ bool FArenaTopBarSnapshotTest::RunTest(const FString& Parameters)
  };
  Capture(TEXT("normal"));
  Teams->AddTeamTagStack(2,ScoreTag,1); Widget->RefreshSnapshot();TestEqual(TEXT("Blue increment text"),Widget->BlueKillsText->GetText().ToString(),FString(TEXT("25")));
- Widget->NativeTick(FGeometry(),.05f);TestTrue(TEXT("Progress chases new score"),Widget->Progress[0]>24.f/75 && Widget->Progress[0]<25.f/75);
+ TestTrue(TEXT("Business ratio changes immediately"),FMath::IsNearlyEqual(Widget->GetTeamScoreRatio(0),25.f/75));
+ Widget->NativeTick(FGeometry(),.05f);TestTrue(TEXT("WBP interpolates the displayed bar"),Widget->BlueScoreBar->GetPercent()>24.f/75 && Widget->BlueScoreBar->GetPercent()<25.f/75);
  Set(TEXT("CountdownTime"),25);Widget->RefreshSnapshot();TestTrue(TEXT("Warning clock state"),Widget->ClockState==EArenaTopBarClockState::Warning);
  Set(TEXT("CountdownTime"),9);Widget->NativeTick(FGeometry(),.06f);TestTrue(TEXT("Critical clock state"),Widget->ClockState==EArenaTopBarClockState::Critical);Capture(TEXT("warning"));
  Teams->AddTeamTagStack(2,ScoreTag,75);Widget->RefreshSnapshot();for(int I=0;I<90;++I)Widget->NativeTick(FGeometry(),.016f);
- TestTrue(TEXT("Overtime score fill clamped"),Widget->Progress[0]<=1.f);
+ TestEqual(TEXT("Overtime business ratio clamped"),Widget->GetTeamScoreRatio(0),1.0f);
+ TestTrue(TEXT("WBP overtime fill clamped"),Widget->BlueScoreBar->GetPercent()<=1.f);
  Teams->AddTeamTagStack(1,ScoreTag,1);Widget->RefreshSnapshot();TestEqual(TEXT("Red independent increment"),Widget->Kills[1],19);
  Teams->RemoveTeamTagStack(2,ScoreTag,100);Widget->RefreshSnapshot();TestEqual(TEXT("Round reset clears blue score"),Widget->Kills[0],0);
  Set(TEXT("CountdownTime"),-4);Widget->RefreshSnapshot();TestEqual(TEXT("Time never negative"),Widget->Seconds,0);TestTrue(TEXT("Expired clock state"),Widget->ClockState==EArenaTopBarClockState::Expired);
  State->RemoveOwnedComponent(Source);Widget->ScoringSource.Reset();Widget->RefreshSnapshot();TestFalse(TEXT("Missing source invalidates snapshot"),Widget->bHasData);
+ TestEqual(TEXT("Missing source clears the business ratio"),Widget->GetTeamScoreRatio(0),0.0f);
+ TestEqual(TEXT("Missing source resets WBP fill"),Widget->BlueScoreBar->GetPercent(),0.0f);
  Widget->NativeDestruct(); Instance->Shutdown(); World->DestroyWorld(false); return true;
 }
 #endif
