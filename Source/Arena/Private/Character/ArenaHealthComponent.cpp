@@ -6,16 +6,38 @@
 #include "ArenaGameplayTags.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/ArenaHealthSet.h"
+#include "Actor/ArenaEffectActor.h"
 #include "Messages/ArenaVerbMessage.h"
 #include "Messages/ArenaVerbMessageHelpers.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
+#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaHealthComponent)
 
 UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Arena_Elimination_Message, "Arena.Elimination.Message");
+
+namespace ArenaHealthComponent
+{
+	/** Grenades put their thrown definition in the context; effect actors they spawn carry it themselves. */
+	const UArenaGrenadeDefinitionData* FindSourceGrenadeDefinition(const FGameplayEffectSpec& DamageEffectSpec)
+	{
+		const UObject* SourceObject = DamageEffectSpec.GetEffectContext().GetSourceObject();
+		if (const UArenaGrenadeDefinitionData* GrenadeDefinition = Cast<UArenaGrenadeDefinitionData>(SourceObject))
+		{
+			return GrenadeDefinition;
+		}
+
+		if (const AArenaEffectActor* EffectActor = Cast<AArenaEffectActor>(SourceObject))
+		{
+			return EffectActor->GetSourceGrenadeDefinition();
+		}
+
+		return nullptr;
+	}
+}
 
 
 // Sets default values for this component's properties
@@ -123,6 +145,7 @@ void UArenaHealthComponent::BroadcastEliminationMessage(AActor* DamageInstigator
 	Message.InstigatorTags = *DamageEffectSpecPtr->CapturedSourceTags.GetAggregatedTags();
 	Message.Target = UArenaVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
 	Message.TargetTags = *DamageEffectSpecPtr->CapturedTargetTags.GetAggregatedTags();
+	Message.ContextObject = ArenaHealthComponent::FindSourceGrenadeDefinition(DamageEffectSpec);
 	//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
 	
 	if (DamageInstigator == Message.Target)

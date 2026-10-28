@@ -47,6 +47,15 @@ public:
 
 	UAbilitySystemComponent* GetSourceAbilitySystem() const;
 
+	/**
+	 * Server-side attribution: the grenade the player threw. Submunitions inherit it so eliminations credit
+	 * the thrown grenade rather than an internal submunition definition.
+	 */
+	void SetSourceGrenadeDefinition(const UArenaGrenadeDefinitionData* InSourceGrenadeDefinition);
+
+	/** The inherited thrown grenade, falling back to this grenade's own definition. */
+	const UArenaGrenadeDefinitionData* GetSourceGrenadeDefinition() const;
+
 protected:
 	//~Begin AActor interface
 	virtual void BeginPlay() override;
@@ -125,6 +134,9 @@ private:
 	 * For players this is the PlayerState-owned component, so damage attribution survives the Pawn.
 	 */
 	TWeakObjectPtr<UAbilitySystemComponent> SourceAbilitySystem;
+
+	UPROPERTY(Transient)
+	TObjectPtr<const UArenaGrenadeDefinitionData> SourceGrenadeDefinition;
 
 	TWeakObjectPtr<AActor> DirectHitTarget;
 

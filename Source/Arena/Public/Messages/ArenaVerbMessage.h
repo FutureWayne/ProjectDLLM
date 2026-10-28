@@ -31,6 +31,13 @@ struct FArenaVerbMessage
 	UPROPERTY(BlueprintReadWrite, Category=Gameplay)
 	FGameplayTagContainer ContextTags;
 
+	/**
+	 * Optional asset describing how the verb happened, e.g. the grenade definition credited for an elimination.
+	 * Replicated messages must use a net-addressable (asset) object; spawned actors may already be gone on clients.
+	 */
+	UPROPERTY(BlueprintReadWrite, Category=Gameplay)
+	TObjectPtr<const UObject> ContextObject = nullptr;
+
 	UPROPERTY(BlueprintReadWrite, Category=Gameplay)
 	double Magnitude = 1.0;
 

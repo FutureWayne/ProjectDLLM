@@ -30,6 +30,7 @@ public class ArenaEditor : ModuleRules
 			"NiagaraEditor",
 			"AssetRegistry",
 			"RenderCore",
+			"Slate",
             "SlateCore"
 		});
 	}
