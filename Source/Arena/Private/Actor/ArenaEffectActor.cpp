@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
+#include "Weapon/ArenaGrenadeDefinitionData.h"
 
 AArenaEffectActor::AArenaEffectActor()
 {
@@ -35,6 +36,11 @@ void AArenaEffectActor::SetSource(APawn* InInstigator, UAbilitySystemComponent* 
 AActor* AArenaEffectActor::GetSourceActor() const
 {
 	return SourceActor.IsValid() ? SourceActor.Get() : GetInstigator();
+}
+
+void AArenaEffectActor::SetSourceGrenadeDefinition(const UArenaGrenadeDefinitionData* InSourceGrenadeDefinition)
+{
+	SourceGrenadeDefinition = InSourceGrenadeDefinition;
 }
 
 // Called when the game starts or when spawned

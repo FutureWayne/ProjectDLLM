@@ -10,6 +10,7 @@
 class UAbilitySystemComponent;
 class UGameplayEffect;
 class UArenaEffectActorDefinition;
+class UArenaGrenadeDefinitionData;
 
 UENUM(BlueprintType)
 enum class EEffectApplicationPolicy : uint8
@@ -50,6 +51,11 @@ public:
 	AActor* GetSourceActor() const;
 
 	UAbilitySystemComponent* GetSourceAbilitySystem() const { return SourceAbilitySystem.Get(); }
+
+	/** Server-side attribution: the grenade the player threw to produce this effect, if any. Call before FinishSpawning. */
+	void SetSourceGrenadeDefinition(const UArenaGrenadeDefinitionData* InSourceGrenadeDefinition);
+
+	const UArenaGrenadeDefinitionData* GetSourceGrenadeDefinition() const { return SourceGrenadeDefinition; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -97,6 +103,9 @@ protected:
 	 * Weak on purpose: the effect must not extend the thrower's lifetime.
 	 */
 	TWeakObjectPtr<UAbilitySystemComponent> SourceAbilitySystem;
+
+	UPROPERTY(Transient)
+	TObjectPtr<const UArenaGrenadeDefinitionData> SourceGrenadeDefinition;
 
 	TMap<FActiveGameplayEffectHandle, UAbilitySystemComponent*> ActiveEffectHandles;
 };

@@ -115,6 +115,19 @@ UAbilitySystemComponent* AArenaGrenadeBase::GetSourceAbilitySystem() const
 	return UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetInstigator());
 }
 
+void AArenaGrenadeBase::SetSourceGrenadeDefinition(const UArenaGrenadeDefinitionData* InSourceGrenadeDefinition)
+{
+	if (InSourceGrenadeDefinition)
+	{
+		SourceGrenadeDefinition = InSourceGrenadeDefinition;
+	}
+}
+
+const UArenaGrenadeDefinitionData* AArenaGrenadeBase::GetSourceGrenadeDefinition() const
+{
+	return SourceGrenadeDefinition ? SourceGrenadeDefinition.Get() : GrenadeDefinitionData.Get();
+}
+
 void AArenaGrenadeBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -274,6 +287,7 @@ void AArenaGrenadeBase::SpawnEffectActor_Implementation(const FTransform& SpawnT
 		CollisionComponent->IgnoreActorWhenMoving(SpawnedEffectActor, true);
 		// Hand over the source that was captured at launch; the thrower's Pawn may already be gone.
 		SpawnedEffectActor->SetSource(GetInstigator(), GetSourceAbilitySystem());
+		SpawnedEffectActor->SetSourceGrenadeDefinition(GetSourceGrenadeDefinition());
 		SpawnedEffectActor->InitializeEffect(EffectDefinition);
 		SpawnedEffectActor->FinishSpawning(NewSpawnTransform, true);
 	}
@@ -300,6 +314,7 @@ void AArenaGrenadeBase::SpawnSecondaryGrenade_Implementation(const FTransform& S
 		{
 			// Inherit the original thrower so a submunition chain keeps attribution after the Pawn dies.
 			Spawned->SetSourceAbilitySystem(GetSourceAbilitySystem());
+			Spawned->SetSourceGrenadeDefinition(GetSourceGrenadeDefinition());
 		}
 	}
 }
@@ -408,6 +423,8 @@ void AArenaGrenadeBase::ApplyDamageToTarget(const AActor* Target, const FHitResu
 
 	FGameplayEffectContextHandle GameplayEffectContextHandle = InstigatorASC->MakeEffectContext();
 	GameplayEffectContextHandle.AddHitResult(HitResult, true);
+	// The definition asset outlives this Actor, so eliminations can still credit the grenade after it is destroyed.
+	GameplayEffectContextHandle.AddSourceObject(GetSourceGrenadeDefinition());
 
 	const float DistanceToCenter = HitResult.Distance;
 	const float EffectLevel = FMath::Clamp(DistanceToCenter / GrenadeDefinitionData->DetonationRadius, 0.1f, 1.0f);
