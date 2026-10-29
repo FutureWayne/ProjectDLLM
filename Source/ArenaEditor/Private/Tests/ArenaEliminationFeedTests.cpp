@@ -15,10 +15,11 @@ void UArenaEliminationFeedTestWidget::ConstructForTest()
 	NativeConstruct();
 }
 
-void UArenaEliminationFeedTestWidget::ConfigureForTest(float Lifetime, int32 Limit)
+void UArenaEliminationFeedTestWidget::ConfigureForTest(float Lifetime, int32 Limit, bool bOnlyOwningPlayer)
 {
 	EntryLifetime = Lifetime;
 	MaxEntries = Limit;
+	bOnlyOwningPlayerEliminations = bOnlyOwningPlayer;
 }
 
 AArenaEliminationFeedTestGameMode::AArenaEliminationFeedTestGameMode()
