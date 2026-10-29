@@ -53,6 +53,15 @@ void UArenaEliminationFeedWidget::HandleEliminationMessage(FGameplayTag Channel,
 	}
 
 	APlayerState* Attacker = UArenaVerbMessageHelpers::GetPlayerStateFromObject(Message.Instigator);
+	if (bOnlyOwningPlayerEliminations)
+	{
+		const APlayerState* LocalPlayerState = GetOwningPlayerState();
+		if (!IsValid(LocalPlayerState) || !IsValid(Attacker) || Attacker != LocalPlayerState)
+		{
+			return;
+		}
+	}
+
 	UArenaEliminationFeedItem* Item = NewObject<UArenaEliminationFeedItem>(this);
 	Item->AttackerName = IsValid(Attacker) ? FText::FromString(Attacker->GetPlayerName()) : LOCTEXT("Environment", "Environment");
 	Item->VictimName = FText::FromString(Victim->GetPlayerName());

@@ -15,7 +15,7 @@ class UArenaEliminationFeedTestWidget : public UArenaEliminationFeedWidget
 public:
 	void ConstructForTest();
 	void DestructForTest() { NativeDestruct(); }
-	void ConfigureForTest(float Lifetime, int32 Limit);
+	void ConfigureForTest(float Lifetime, int32 Limit, bool bOnlyOwningPlayer = false);
 	UListView* GetListForTest() const { return ToastListWidget; }
 };
 

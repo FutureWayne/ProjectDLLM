@@ -34,6 +34,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed", meta = (ClampMin = "1"))
 	int32 MaxEntries = 8;
 
+	/** Restricts personal confirmations to eliminations attributed to this widget's local player. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed")
+	bool bOnlyOwningPlayerEliminations = false;
+
 private:
 	void HandleEliminationMessage(FGameplayTag Channel, const FArenaVerbMessage& Message);
 	void ExpireEntries();
