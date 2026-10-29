@@ -16,7 +16,9 @@
 #include "GameFramework/WorldSettings.h"
 #include "GameMapsSettings.h"
 #include "GameState/ArenaGameState.h"
+#include "Messages/ArenaAccoladeRelay.h"
 #include "Messages/ArenaEliminationFeedRelay.h"
+#include "Messages/ArenaNotificationMessage.h"
 #include "Messages/ArenaVerbMessage.h"
 #include "Misc/AutomationTest.h"
 #include "PlayInEditorDataTypes.h"
@@ -31,12 +33,23 @@ namespace ArenaEliminationFeedNetworkTests
 {
 	const TCHAR* GrenadePath = TEXT("/Game/Blueprints/Weapon/Data/GrenadeData/SecondaryGrenade/DA_NormalGrenadeDef.DA_NormalGrenadeDef");
 
+	/** Accolade notification observed on one PIE world, recorded without holding world objects. */
+	struct FReceivedAccolade
+	{
+		FGameplayTag TargetChannel;
+		FGameplayTag PayloadTag;
+		FString PlayerName;
+	};
+
 	struct FFixture
 	{
 		TArray<FNetDriverDefinition> SavedDrivers = GEngine->NetDriverDefinitions;
 		FSoftClassPath SavedGameInstance = GetDefault<UGameMapsSettings>()->GameInstanceClass;
 		TArray<TStrongObjectPtr<UArenaEliminationFeedWidget>> Feeds;
 		TStrongObjectPtr<UArenaEliminationFeedRelay> Relay;
+		TArray<TStrongObjectPtr<UArenaAccoladeRelay>> AccoladeRelays;
+		TArray<FGameplayMessageListenerHandle> NotificationHandles;
+		TArray<TArray<FReceivedAccolade>> ReceivedAccolades;
 		TStrongObjectPtr<UArenaGrenadeDefinitionData> Grenade;
 
 		~FFixture()
@@ -121,6 +134,38 @@ namespace ArenaEliminationFeedNetworkTests
 				UActorComponent* Streak = NewObject<UActorComponent>(GameState, StreakClass);
 				GameState->AddInstanceComponent(Streak);
 				Streak->RegisterComponent();
+
+				// The production relay lives on the GameState class, so every machine owns one; runtime instances do not replicate.
+				UClass* AccoladeRelayClass = LoadClass<UArenaAccoladeRelay>(nullptr, TEXT("/Game/Blueprints/Accolades/B_AccoladeRelay.B_AccoladeRelay_C"));
+				if (!Test->TestNotNull(TEXT("Load production accolade relay derived from UArenaAccoladeRelay"), AccoladeRelayClass))
+				{
+					return true;
+				}
+				Fixture->ReceivedAccolades.SetNum(Worlds.Num());
+				const TWeakPtr<FFixture> WeakFixture = Fixture;
+				for (int32 WorldIndex = 0; WorldIndex < Worlds.Num(); ++WorldIndex)
+				{
+					AArenaGameState* WorldGameState = Worlds[WorldIndex]->GetGameState<AArenaGameState>();
+					UArenaAccoladeRelay* AccoladeRelay = NewObject<UArenaAccoladeRelay>(WorldGameState, AccoladeRelayClass);
+					WorldGameState->AddInstanceComponent(AccoladeRelay);
+					AccoladeRelay->RegisterComponent();
+					AccoladeRelay->StartListening();
+					Fixture->AccoladeRelays.Emplace(AccoladeRelay);
+
+					Fixture->NotificationHandles.Add(UGameplayMessageSubsystem::Get(Worlds[WorldIndex]).RegisterListener<FArenaNotificationMessage>(
+						TAG_Arena_AddNotification_Message,
+						[WeakFixture, WorldIndex](FGameplayTag Channel, const FArenaNotificationMessage& Notification)
+						{
+							if (const TSharedPtr<FFixture> PinnedFixture = WeakFixture.Pin())
+							{
+								FReceivedAccolade& Received = PinnedFixture->ReceivedAccolades[WorldIndex].AddDefaulted_GetRef();
+								Received.TargetChannel = Notification.TargetChannel;
+								Received.PayloadTag = Notification.PayloadTag;
+								Received.PlayerName = Notification.TargetPlayer ? Notification.TargetPlayer->GetPlayerName() : FString();
+							}
+						}));
+				}
+
 				CastChecked<AArenaPlayerState>(GameState->PlayerArray[0])->SetGenericTeamId(FGenericTeamId(1));
 				CastChecked<AArenaPlayerState>(GameState->PlayerArray[1])->SetGenericTeamId(FGenericTeamId(2));
 				Stage = 1;
@@ -185,6 +230,24 @@ namespace ArenaEliminationFeedNetworkTests
 					Test->TestTrue(TEXT("WBP displays triple-streak count"), StreakText && StreakText->GetText().ToString() == TEXT("3"));
 					Test->TestTrue(TEXT("WBP enables streak badge"), StreakRow->GetWidgetFromName(TEXT("StreakBadge"))->GetVisibility() == ESlateVisibility::HitTestInvisible);
 				}
+
+				// Accolades share the reliable GameState channel and precede the feed entry of the same elimination.
+				const FGameplayTag AccoladeChannel = FGameplayTag::RequestGameplayTag(TEXT("Arena.Accolade"));
+				const FGameplayTag DoubleTag = FGameplayTag::RequestGameplayTag(TEXT("Arena.Accolade.EliminationStreak.2"));
+				const FGameplayTag TripleTag = FGameplayTag::RequestGameplayTag(TEXT("Arena.Accolade.EliminationStreak.3"));
+				const FString KillerName = GameState->PlayerArray[0]->GetPlayerName();
+				for (const TArray<FReceivedAccolade>& Received : Fixture->ReceivedAccolades)
+				{
+					if (!Test->TestEqual(TEXT("Killer, victim and bystander each receive every accolade exactly once"), Received.Num(), 2))
+					{
+						continue;
+					}
+					Test->TestTrue(TEXT("Accolade notifications target the accolade channel"),
+						Received[0].TargetChannel == AccoladeChannel && Received[1].TargetChannel == AccoladeChannel);
+					Test->TestTrue(TEXT("Accolades arrive in streak order"), Received[0].PayloadTag == DoubleTag && Received[1].PayloadTag == TripleTag);
+					Test->TestTrue(TEXT("Accolade names the killer on every machine"),
+						Received[0].PlayerName == KillerName && Received[1].PlayerName == KillerName);
+				}
 				Stage = 3;
 				return false;
 			}
@@ -244,6 +307,12 @@ namespace ArenaEliminationFeedNetworkTests
 			}
 			Fixture->Feeds.Reset();
 			Fixture->Relay.Reset();
+			for (FGameplayMessageListenerHandle& Handle : Fixture->NotificationHandles)
+			{
+				Handle.Unregister();
+			}
+			Fixture->NotificationHandles.Reset();
+			Fixture->AccoladeRelays.Reset();
 			return true;
 		}
 

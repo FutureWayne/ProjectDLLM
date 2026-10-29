@@ -2,6 +2,22 @@
 
 回合结束的 `Phase_PostGame` 调用 `UArenaSystemStatics::PlayNextGame`，使用同图无缝切换重开。
 
+## 局末阶段与时间恢复
+
+`Phase_PostGame` 的 Authority 激活路径先给所有玩家施加局末伤害免疫，再保存原始全局时间倍率，
+设置 `bFinaleTimeApplied` 并应用 `FinaleTimeDilation`。等待时间由 `FinaleDurationSeconds` 乘以当前倍率后交给游戏时间的 `Delay`，
+使局末阶段按配置的实际秒数结束；等待期间其他系统不应再次修改全局时间倍率，否则实际等待时间会变化。
+
+正常结束时先调用 `RestoreFinaleTime`，再调用 `PlayNextGame`。能力被取消或结束时也调用同一恢复函数；
+`bFinaleTimeApplied` 保证只恢复一次，并恢复到保存的倍率，不假定原倍率为 1。修改这条链路时必须保留取消和提前结束的恢复路径，
+避免慢动作残留到后续玩法或下一局。
+
+客户端 `W_MatchDecided_Message` 收到 GameplayCue 参数后启动结果界面：保存 HUD 的 `bShowHUD` 和同一世界内其他控件的原始可见性，
+在结果界面存续期间折叠这些控件，并持续捕获新出现的控件。该处理按世界收集控件，不按 OwningPlayer 区分，分屏场景需另行验证。
+`SlowMotionLeadinSeconds` 使用 `GetRealTimeSeconds` 确定揭示时刻，避免慢动作倍率改变客户端等待时长；
+随后播放 WBP 自身的结果动画及本地玩家对应的胜负音效。控件销毁时停止等待并恢复捕获的可见性与原来的 `bShowHUD`。
+胜负样式、材质和动画继续由 WBP 与材质资源维护；这条表现链路不改变 `PlayNextGame` 的无缝切换实现。
+
 ## 实际掉线日志
 
 2026-10-26 的打包版客户端日志记录了以下过程（北京时间）：
