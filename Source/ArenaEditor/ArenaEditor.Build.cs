@@ -12,6 +12,8 @@ public class ArenaEditor : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"EnhancedInput",
+			"InputCore",
 			"Arena",
 			"CommonGame",
 			"UMG",

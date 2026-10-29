@@ -31,6 +31,9 @@ public:
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 
+	/** Whether an ability for this input is active and its input is still held locally. */
+	bool IsAbilityInputActive(const FGameplayTag& InputTag) const;
+
 	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
 	void ClearAbilityInput();
 

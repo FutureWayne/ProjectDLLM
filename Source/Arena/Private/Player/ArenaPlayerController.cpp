@@ -6,15 +6,21 @@
 #include "UI/HUD/ArenaHUD.h"
 #include "ArenaGameplayTags.h"
 #include "ArenaLogChannels.h"
+#include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/ArenaPlayerCameraManager.h"
 #include "Equipment/ArenaQuickBarComponent.h"
 #include "Input/ArenaInputComponent.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "NativeGameplayTags.h"
 #include "Player/ArenaPlayerState.h"
+#include "Player/ArenaLocalPlayer.h"
+#include "Settings/ArenaSettingsShared.h"
 #include "System/ArenaSystemStatics.h"
 #include "UserSettings/EnhancedInputUserSettings.h"
+
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Input_GrenadeSpecial, "InputTag.Grenade.Special");
 
 AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectInitializer)
 {
@@ -81,7 +87,22 @@ void AArenaPlayerController::Input_LookMouse(const FInputActionValue& InputActio
 		return;
 	}
 	
-	const FVector2D Value = InputActionValue.Get<FVector2D>();
+	FVector2D Value = InputActionValue.Get<FVector2D>();
+	if (const UArenaLocalPlayer* LocalPlayer = Cast<UArenaLocalPlayer>(GetLocalPlayer()))
+	{
+		// Read the current player settings so changes and reverted edits apply immediately.
+		const UArenaSettingsShared* Settings = LocalPlayer->GetSharedSettings();
+		Value.X *= Settings->GetMouseSensitivityX() * (Settings->GetInvertHorizontalAxis() ? -1.0 : 1.0);
+		Value.Y *= Settings->GetMouseSensitivityY() * (Settings->GetInvertVerticalAxis() ? -1.0 : 1.0);
+
+		if (const UArenaAbilitySystemComponent* ArenaASC = GetArenaAbilitySystemComponent())
+		{
+			if (ArenaASC->GetAvatarActor() == ControlledPawn && ArenaASC->IsAbilityInputActive(TAG_Input_GrenadeSpecial))
+			{
+				Value *= Settings->GetTargetingMultiplier();
+			}
+		}
+	}
 
 	if (Value.X != 0.0f)
 	{

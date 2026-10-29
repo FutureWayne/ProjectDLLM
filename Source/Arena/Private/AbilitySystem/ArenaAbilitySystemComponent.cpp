@@ -136,6 +136,20 @@ void UArenaAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& I
 	}
 }
 
+bool UArenaAbilitySystemComponent::IsAbilityInputActive(const FGameplayTag& InputTag) const
+{
+	for (const FGameplayAbilitySpecHandle& SpecHandle : InputHeldSpecHandles)
+	{
+		const FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(SpecHandle);
+		if (Spec && Spec->IsActive() && Spec->GetDynamicSpecSourceTags().HasTagExact(InputTag))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
 	if (HasMatchingGameplayTag(TAG_Gameplay_AbilityInputBlocked))

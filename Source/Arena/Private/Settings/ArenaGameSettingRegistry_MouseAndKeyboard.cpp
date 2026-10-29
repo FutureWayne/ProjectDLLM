@@ -84,7 +84,7 @@ UGameSettingCollection* UArenaGameSettingRegistry::InitializeMouseAndKeyboardSet
 			UGameSettingValueScalarDynamic* Setting = NewObject<UGameSettingValueScalarDynamic>();
 			Setting->SetDevName(TEXT("MouseTargetingMultiplier"));
 			Setting->SetDisplayName(LOCTEXT("MouseTargetingMultiplier_Name", "Targeting Sensitivity"));
-			Setting->SetDescriptionRichText(LOCTEXT("MouseTargetingMultiplier_Description", "Sets the modifier for reducing mouse sensitivity when targeting. 100% will have no slow down when targeting. Lower settings will have more slow down when targeting."));
+			Setting->SetDescriptionRichText(LOCTEXT("MouseTargetingMultiplier_Description", "Multiplies mouse sensitivity while holding an active Secondary Grenade. 1.00 keeps normal sensitivity; lower values slow down aiming. Releasing the input or ending the ability restores normal sensitivity."));
 
 			Setting->SetDynamicGetter(GET_SHARED_SETTINGS_FUNCTION_PATH(GetTargetingMultiplier));
 			Setting->SetDynamicSetter(GET_SHARED_SETTINGS_FUNCTION_PATH(SetTargetingMultiplier));
