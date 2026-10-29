@@ -1,8 +1,9 @@
-# 击杀通知链路：信息流与中间连杀播报
+# 击杀通知链路：信息流、个人击杀确认与中间连杀播报
 
-本文说明一次击杀从服务端判定、经网络分发，到客户端显示右侧击杀信息流（Elimination Feed）
-和屏幕中间连杀播报（Accolade）的完整链路。信息流的条目表现、手雷归因与自动化测试细节见
-`Docs/EliminationFeed.md`；准星上的命中/击杀反馈是独立链路，见 `Docs/HitFeedback.md`。
+本文说明一次击杀从服务端判定、经网络分发，到客户端显示右侧击杀信息流（Elimination Feed）、
+屏幕中下方个人击杀确认（Elimination Confirmation）和屏幕中间连杀播报（Accolade）的完整链路。
+信息流的条目表现、手雷归因与自动化测试细节见 `Docs/EliminationFeed.md`；
+准星上的命中/击杀反馈是独立链路，见 `Docs/HitFeedback.md`。
 
 ## 1. 总览
 
@@ -16,6 +17,7 @@ sequenceDiagram
     participant GS as AArenaGameState
     participant PS as AArenaPlayerState (Killer)
     participant Feed as W_EliminationFeed (Client)
+    participant Confirm as W_EliminationConfirmation (Client)
     participant Host as W_AccoladeHostWidget (Client)
 
     HS->>HC: OnOutOfHealth(Instigator, Causer, Spec)
@@ -27,19 +29,20 @@ sequenceDiagram
     SP->>FR: Arena.Elimination.Feed (Magnitude = count)
     FR->>GS: MulticastReliableMessageToClients
     GS->>Feed: Arena.Elimination.Feed (rebroadcast on every client)
+    GS->>Confirm: Arena.Elimination.Feed (same message, local killer only)
 ```
 
-两条链路共用同一个服务端起点和同一份连杀计数，之后分开：
+三种显示共用同一个服务端起点和同一份连杀计数，之后分开：
 
-| | 击杀信息流 | 中间连杀播报 |
-| --- | --- | --- |
-| 接收者 | 所有客户端 | 仅击杀者本人的客户端 |
-| 网络通道 | `AArenaGameState::MulticastReliableMessageToClients`（NetMulticast，Reliable） | `AArenaPlayerState::ClientBroadcastMessage`（Client，Unreliable） |
-| 客户端消息 | `Arena.Elimination.Feed`（`FArenaVerbMessage`） | `Arena.Accolade.*` → `Arena.AddNotification.Message`（`FArenaNotificationMessage`） |
-| 显示控件 | `W_EliminationFeed`（`UArenaEliminationFeedWidget`） | `W_AccoladeHostWidget`（`UArenaAccoladeHostWidget`） |
-| 触发条件 | 每次有效玩家死亡 | 计数命中处理器配置的档位 |
+| | 击杀信息流 | 个人击杀确认 | 中间连杀播报 |
+| --- | --- | --- | --- |
+| 接收者 | 所有客户端 | 所有客户端收到，仅击杀者本人的控件显示 | 仅击杀者本人的客户端 |
+| 网络通道 | `AArenaGameState::MulticastReliableMessageToClients`（NetMulticast，Reliable） | 与信息流相同，不新增 RPC | `AArenaPlayerState::ClientBroadcastMessage`（Client，Unreliable） |
+| 客户端消息 | `Arena.Elimination.Feed`（`FArenaVerbMessage`） | `Arena.Elimination.Feed` | `Arena.Accolade.*` → `Arena.AddNotification.Message`（`FArenaNotificationMessage`） |
+| 显示控件 | `W_EliminationFeed`（`UArenaEliminationFeedWidget`） | `W_EliminationConfirmation`（`UArenaEliminationFeedWidget`） | `W_AccoladeHostWidget`（`UArenaAccoladeHostWidget`） |
+| 触发条件 | 每次有效玩家死亡 | 本地玩家造成的每次击杀（敌人、队友、自己） | 计数命中处理器配置的档位 |
 
-两个 RPC 挂在不同 Actor 上、可靠性不同，客户端上播报与信息流的到达先后不作保证。
+两个 RPC 挂在不同 Actor 上、可靠性不同，客户端上播报与信息流（及个人击杀确认）的到达先后不作保证。
 
 ## 2. 服务端：击杀判定与原始消息
 
@@ -175,7 +178,7 @@ GameState 是全局单例，处理器只在服务端维护一份数据，不按�
 
 ## 5. 客户端显示
 
-两个控件都放在 `WBP_CharacterOverlay` 中。专用服务器不创建 HUD。
+三个控件都放在 `WBP_CharacterOverlay` 中。专用服务器不创建 HUD。
 
 ### 5.1 击杀信息流
 
@@ -193,7 +196,64 @@ GameState 是全局单例，处理器只在服务端维护一份数据，不按�
 
 快照在接收时生成，之后改名、重生、离线都不影响已显示的条目。详细的表现约定见 `Docs/EliminationFeed.md`。
 
-### 5.2 中间连杀播报
+### 5.2 个人击杀确认
+
+参考使命召唤 / 战地的击杀提示：本地玩家每造成一次击杀（敌人、队友或自己），
+在准星下方显示一条低调的单行提示：击杀类型、被击杀者姓名，连杀时附带计数。
+本地玩家被其他玩家（敌人或队友）击杀时，同一控件显示 `ELIMINATED BY | 击杀者姓名`。
+最多堆叠 3 条：新条目出现在最下面一行，已有条目整体平滑上移一行；满 3 条时最上面一条被移除。
+每条各自 2.5 秒后消失，消失时其余条目保持原位。不使用图标，避免占用视野。
+
+`W_EliminationConfirmation` 与信息流共用 `UArenaEliminationFeedWidget`，不新增消息或 RPC，
+只通过类默认值改变行为：
+
+| 类默认值 | 值 | 作用 |
+| --- | --- | --- |
+| `bOnlyOwningPlayerEliminations` | true | 只接受攻击者等于 `GetOwningPlayerState()` 的消息；他人之间的击杀、环境死亡都不显示 |
+| `bIncludeOwningPlayerDeaths` | true | 在上一项基础上，额外接受本地玩家被其他玩家击杀的消息；没有击杀者的环境死亡仍不显示 |
+| `MaxEntries` | 3 | 堆叠行数；超出时移除最早（最上面）一条 |
+| `bNewestFirst` | false | 新条目追加在列表末尾（最下面）；上移效果只在为 false 时生效 |
+| `StackRiseRowPitch` | 36 | 行高 30 px 加列表 `VerticalEntrySpacing` 6 px；大于 0 时开启底部对齐与上移效果 |
+| `StackRiseSpeed` | 14 | 上移插值速度（`FMath::FInterpTo`），约 0.2 秒基本到位 |
+| `EntryLifetime` | 2.5 秒 | 与条目 WBP 的 `IntroWithTimedOutro`（100 fps，250 帧）一致 |
+
+上移效果由原生层实现：列表 `ToastListWidget` 高度容纳 `MaxEntries` 行，控件把整个列表的渲染位移 Y
+设为"空行数 × 行距"，让条目贴底；新增条目后目标位移减少一行，`NativeTick` 将当前位移插值到目标，
+表现为已有条目整体上移、新条目从下方升入。移除列表头部条目（满员淘汰或到期）时，
+原生层先把位移加上同样的行数抵消列表重排，因此其余条目不会跳动。
+所有条目存活时间相同，到期总是从头部开始，这一抵消规则才成立。
+
+信息流快照 `UArenaEliminationFeedItem::bOwningPlayerEliminated` 标记"攻击者有效、不是本人，且被击杀者是本控件的本地玩家"。
+自杀不属于此情况，仍按 Self 显示。HUD 只在角色重生时重建（`AArenaCharacter::InitAbilityActorInfo`），
+死亡期间保持存在；若重生早于 2.5 秒，提示会随 HUD 重建提前消失。
+
+在 `WBP_CharacterOverlay` 中，控件锚定屏幕中心、水平居中，顶边位于中心下方 176 px，尺寸 560 × 116
+（3 行 × 36 px 加 8 px 余量）。最新一条固定落在中心下方约 248–278 px，较早的条目在其上方；
+顶边避开手雷冷却环（中心 ±128 px），上方的 `W_AccoladeHostWidget` 不会与其重叠。
+HUD 中放置的实例不得单独覆盖上表中的类默认值：实例上的值会优先于类默认值，
+若保留旧值（例如 `MaxEntries` = 8），条目会排到可见区域之外。自动化测试会检查这一点。
+
+列表行 `W_EliminationConfirmationEntry` 继承 `UArenaEliminationFeedEntry`（`MaxNameLength` = 12，与信息流一致）。
+普通击杀走 `PresentElimination`；本地玩家被他人击杀时原生层改为调用 `PresentOwningPlayerEliminated`
+（BlueprintNativeEvent，参数为击杀者姓名与队伍、被击杀者姓名与队伍、分类、计数）。
+它的原生默认实现会转调 `PresentElimination`，因此右侧信息流行 `W_EliminationFeedEntryWidget` 不受影响；
+`W_EliminationConfirmationEntry` 覆盖该事件。表现全部在 WBP 中：
+
+- 布局：`类型文案 | 被击杀者姓名 ×N`，高 30 px，卡片随内容宽度居中。
+  文案和强调色按分类切换：Enemy 为青色 `ELIMINATED`，Ally 为橙色 `TEAMMATE KILLED`，
+  Self 为蓝色 `SELF-ELIMINATED`（自杀不重复显示本人姓名）。文字使用降低饱和度的颜色和 0.88 不透明度。
+- 被击杀：`ELIMINATED BY | 击杀者姓名`，文案与姓名均为灰白色（不按队伍着色），
+  面板与分隔线使用灰色的 `MI_UI_EliminationConfirm_Panel_Victim` / `Divider_Victim`，不显示计数。
+- 姓名按被击杀者队伍着色（与信息流一致）。`×N` 显示权威计数（敌人连杀、累计友杀或累计自杀），
+  只在计数至少为 2 时显示，达到上限显示 `6+` / `30+` / `10+`。
+- 卡片材质 `M_UI_EliminationConfirm_Tron` 用 UV 导数换算像素尺寸，卡片宽度随内容变化时 45° 切角保持清晰。
+  `Layer` 0 为半透明玻璃面板（`MI_UI_EliminationConfirm_Panel_*`，中部略实、两端淡出，仅切角带细描边），
+  1 为分隔线（`Divider_*`）。扫描光束复用 `EliminationFeedTron` 下的 `MI_UI_EliminationFeed_Sweep`。
+- 动效：入场约 0.1 秒内由下方轻移、纵向展开并有一次轻微闪烁，扫描光束低亮度横扫一次，姓名稍后显现；
+  静止时整体不透明度 0.85；最后 0.3 秒纵向收缩淡出。
+- `ResetEliminationPresentation` 停止动画并恢复不透明度，供行控件复用。
+
+### 5.3 中间连杀播报
 
 `W_AccoladeHostWidget`（`UArenaAccoladeHostWidget`）在 `NativeConstruct` 中监听 `Arena.AddNotification.Message`：
 
@@ -233,6 +293,9 @@ GameState 是全局单例，处理器只在服务端维护一份数据，不按�
 | 播报样式与动画 | `W_AccoladeToast`、`W_AccoladeHostWidget` |
 | 信息流条数、存活时间 | `W_EliminationFeed` 类默认值（同步调整条目 WBP 的 `IntroWithTimedOutro` 动画） |
 | 信息流行样式、图标 | `W_EliminationFeedEntryWidget` |
+| 个人击杀确认条数、存活时间、排序、上移速度 | `W_EliminationConfirmation` 类默认值（改存活时间需同步条目 WBP 的 `IntroWithTimedOutro`；改行高或列表间距需同步 `StackRiseRowPitch` 与 HUD 插槽高度） |
+| 个人击杀确认文案、颜色、图标、动效 | `W_EliminationConfirmationEntry`；卡片几何在 `M_UI_EliminationConfirm_Tron`，配色在其材质实例 |
+| 个人击杀确认位置 | `WBP_CharacterOverlay` 中 `W_EliminationConfirmation` 的画布插槽（调大 `MaxNameLength` 时同步加宽） |
 | 计数封顶或清零规则 | `UElimStreakProcessor::OnEliminationMessage`（信息流计数与播报同时受影响） |
 | 新的击杀上下文（如武器） | 在 `BroadcastEliminationMessage` 写入可按路径解析的资产到 `ContextObject`，再由信息流读取 |
 
@@ -255,7 +318,8 @@ GameState 是全局单例，处理器只在服务端维护一份数据，不按�
 | `Source/Arena/Private/Messages/ArenaEliminationFeedRelay.cpp` | 信息流服务端转发 |
 | `Source/Arena/Private/GameState/ArenaGameState.cpp` | 多播 RPC 与客户端重新广播 |
 | `Source/Arena/Private/Player/ArenaPlayerState.cpp` | 播报 Client RPC 与客户端重新广播 |
-| `Source/Arena/Private/UI/Widget/ArenaEliminationFeedWidget.cpp` | 信息流快照、列表与到期 |
-| `Source/Arena/Private/UI/ArenaEliminationFeedEntry.cpp` | 信息流行绑定与姓名裁剪 |
+| `Source/Arena/Private/UI/Widget/ArenaEliminationFeedWidget.cpp` | 信息流与个人击杀确认的快照、过滤、排序、列表与到期 |
+| `Source/Arena/Private/UI/ArenaEliminationFeedEntry.cpp` | 信息流与个人击杀确认的行绑定与姓名裁剪 |
+| `Source/ArenaEditor/Private/Tests/ArenaEliminationConfirmationTests.cpp` | 个人击杀确认自动化测试 `Arena.UI.EliminationFeed.PersonalConfirmation` |
 | `Source/Arena/Private/Accolades/ArenaAccoladeHostWidget.cpp` | 播报查表、保序、互斥与逐条显示 |
 | `Source/Arena/Public/Messages/ArenaVerbMessage.h`、`ArenaNotificationMessage.h` | 消息结构 |

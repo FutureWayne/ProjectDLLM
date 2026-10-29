@@ -52,6 +52,10 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Arena|EliminationFeed")
 	TObjectPtr<const UArenaGrenadeDefinitionData> GrenadeDefinition = nullptr;
 
+	/** True when another player eliminated the local player that owns the receiving widget. */
+	UPROPERTY(BlueprintReadOnly, Category = "Arena|EliminationFeed")
+	bool bOwningPlayerEliminated = false;
+
 	double ExpirationTime = 0.0;
 };
 
@@ -80,6 +84,13 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|EliminationFeed|Presentation")
 	void PresentElimination(const FText& AttackerName, const FText& VictimName, int32 AttackerTeamId, int32 VictimTeamId, EArenaEliminationType EliminationType, int32 EliminationStreak);
+
+	/**
+	 * Called instead of PresentElimination when another player eliminated the local player.
+	 * The native fallback forwards to PresentElimination, so entries that do not override it keep their usual row.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category = "Arena|EliminationFeed|Presentation")
+	void PresentOwningPlayerEliminated(const FText& KillerName, int32 KillerTeamId, const FText& VictimName, int32 VictimTeamId, EArenaEliminationType EliminationType, int32 EliminationStreak);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|EliminationFeed|Presentation")
 	void ResetEliminationPresentation();

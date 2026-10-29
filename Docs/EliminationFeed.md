@@ -48,6 +48,11 @@ C++ 将攻击者和被击杀者解析为 PlayerState，复制当时的姓名和�
 信息流按接收顺序追加，默认保留最多 8 条，每条存活 6 个游戏秒。
 `MaxEntries` 和 `EntryLifetime` 可在 WBP 类默认值中配置；修改存活时间时需同步调整
 条目 WBP 的 `IntroWithTimedOutro` 动画。运行时将条数限制为至少 1，非法存活时间回退为 6 秒。
+同一原生类还提供 `bOnlyOwningPlayerEliminations`（只显示本地玩家造成的击杀）、
+`bIncludeOwningPlayerDeaths`（配合前者，额外显示本地玩家被其他玩家击杀）、
+`bNewestFirst`（新条目显示在列表顶部，淘汰与到期仍按到达顺序），以及
+`StackRiseRowPitch` / `StackRiseSpeed`（条目贴底、新条目加入时整体平滑上移一行）。这些选项默认关闭，
+右侧信息流行为不变；它们供屏幕中下方的个人击杀确认 `W_EliminationConfirmation` 使用，见 `Docs/EliminationNotifications.md` 第 5.2 节。
 由信息流根据条目各自的绝对到期时间调度一个计时器，不由可复用的行控件删除列表数据。
 移除最早条目不会提前删除后来条目；控件销毁或重建会清空列表、计时器和旧监听。
 专用服务器不注册 UI 监听。
@@ -69,6 +74,8 @@ C++ 将攻击者和被击杀者解析为 PlayerState，复制当时的姓名和�
   通过 `M_UI_EliminationFeed_IconTint` 的动态材质参数 `Icon` / `Tint` 设置。
   测试依赖的控件名 `AttackerName`、`WeaponIconSwitcher`、`EnemyKill`、`StreakBadge`、`StreakText` 保持不变。
 - `ResetEliminationPresentation`：复用或释放行控件时停止旧动画。
+- `PresentOwningPlayerEliminated`：本地玩家被其他玩家击杀时代替 `PresentElimination` 调用；
+  信息流行不覆盖它，原生默认实现转调 `PresentElimination`，显示与以前相同。
 - 信息流的 `OnFeedEntriesChanged`：WBP 根据是否有条目切换容器可见性。
 
 布局、颜色、材质、图标资源、动画和插值全部保留在 WBP 中。
@@ -85,6 +92,14 @@ C++ 将攻击者和被击杀者解析为 PlayerState，复制当时的姓名和�
   加载正式连杀处理器、转发器与 WBP，经 GameState RPC 检查各端每条只接收一次、
   连杀数与徽记一致、正式手雷定义 `DA_NormalGrenadeDef` 到达各端条目、列表行文字和图标、各端到期。
   使用隔离编辑器与临时测试地图，测试后恢复网络驱动和 GameInstance 配置。
+- `Arena.UI.EliminationFeed.PersonalConfirmation`：正式 `W_EliminationConfirmation` 与正式连杀处理器，
+  检查只确认本地玩家造成的击杀（他人之间的击杀、环境死亡均忽略）、最多 3 条且新条目追加在最下面、
+  首条从下方升入并停在最下面一行、新条目加入时已有条目不跳动而是平滑上移一行、满员时淘汰最上面一条后其余条目原位再上移、
+  较早条目先到期且剩余条目保持原位，
+  敌人连杀递增、友杀与自杀各自计数、2.5 秒到期与容器折叠，正式行 WBP 的姓名（较早行保留各自姓名）、各类型文案、
+  连杀数字仅在 2 次及以上显示、行内无类型图标与勋章，自杀行隐藏姓名，
+  被敌人或队友击杀时显示 `ELIMINATED BY`、击杀者姓名为灰白色且不显示计数，以及 `WBP_CharacterOverlay` 中的挂载、屏幕中下方锚点，
+  且 HUD 实例未覆盖条数、存活时间、排序、本人过滤、被击杀显示和上移参数的类默认值。
 
 网络测试使用回环 IP 驱动，不覆盖 Steam、多账号、多进程或丢包环境。
 无渲染测试中的文字和图标绑定断言不能代替视觉效果验收。
