@@ -95,11 +95,6 @@ void UArenaEliminationFeedWidget::HandleEliminationMessage(FGameplayTag Channel,
 
 	const float Lifetime = FMath::IsFinite(EntryLifetime) && EntryLifetime > 0.0f ? EntryLifetime : 6.0f;
 	Item->ExpirationTime = GetWorld()->GetTimeSeconds() + Lifetime;
-	if (Entries.IsEmpty())
-	{
-		// Start from the empty-stack position so the first entry rises in from below like the rest.
-		StackOffset = GetStackRiseTarget();
-	}
 	// Entries stays chronological for eviction and expiry; only the displayed order changes.
 	Entries.Add(Item);
 	if (bNewestFirst)
@@ -117,7 +112,7 @@ void UArenaEliminationFeedWidget::HandleEliminationMessage(FGameplayTag Channel,
 		Entries.RemoveAt(0);
 		++Evicted;
 	}
-	CompensateStackForRemovedHead(Evicted);
+	OnFeedItemsUpdated(Entries.Num(), Evicted, false);
 	OnFeedEntriesChanged(true);
 	ScheduleExpiration();
 }
@@ -136,7 +131,7 @@ void UArenaEliminationFeedWidget::ExpireEntries()
 			++Expired;
 		}
 	}
-	CompensateStackForRemovedHead(Expired);
+	OnFeedItemsUpdated(Entries.Num(), Expired, false);
 	OnFeedEntriesChanged(!Entries.IsEmpty());
 	ScheduleExpiration();
 }
@@ -168,65 +163,8 @@ void UArenaEliminationFeedWidget::ClearFeed()
 	{
 		ToastListWidget->ClearListItems();
 	}
-	StackOffset = GetStackRiseTarget();
-	ApplyStackOffset();
+	OnFeedItemsUpdated(0, 0, true);
 	OnFeedEntriesChanged(false);
-}
-
-void UArenaEliminationFeedWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
-{
-	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (!IsStackRiseEnabled())
-	{
-		return;
-	}
-	const float Target = GetStackRiseTarget();
-	if (StackOffset != Target)
-	{
-		StackOffset = FMath::FInterpTo(StackOffset, Target, InDeltaTime, StackRiseSpeed);
-		if (FMath::Abs(StackOffset - Target) < 0.25f)
-		{
-			StackOffset = Target;
-		}
-		ApplyStackOffset();
-	}
-}
-
-bool UArenaEliminationFeedWidget::IsStackRiseEnabled() const
-{
-	return StackRiseRowPitch > 0.0f && !bNewestFirst && ToastListWidget;
-}
-
-float UArenaEliminationFeedWidget::GetStackRiseTarget() const
-{
-	// Empty rows sit above the entries, so the newest entry always settles on the bottom row.
-	return IsStackRiseEnabled() ? static_cast<float>(FMath::Max(1, MaxEntries) - Entries.Num()) * StackRiseRowPitch : 0.0f;
-}
-
-void UArenaEliminationFeedWidget::CompensateStackForRemovedHead(int32 Count)
-{
-	if (!IsStackRiseEnabled())
-	{
-		return;
-	}
-	if (Entries.IsEmpty())
-	{
-		StackOffset = GetStackRiseTarget();
-	}
-	else
-	{
-		// Remaining entries move up one list slot each; offset them back down so only the tick animates them.
-		StackOffset += static_cast<float>(Count) * StackRiseRowPitch;
-	}
-	ApplyStackOffset();
-}
-
-void UArenaEliminationFeedWidget::ApplyStackOffset()
-{
-	if (IsStackRiseEnabled())
-	{
-		ToastListWidget->SetRenderTranslation(FVector2D(0.0f, StackOffset));
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

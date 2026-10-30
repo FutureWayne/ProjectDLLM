@@ -92,7 +92,7 @@ namespace ArenaEliminationConfirmationTests
 		return static_cast<float>(List->GetRenderTransform().Translation.Y);
 	}
 
-	/** Drives the widget's native tick, which animates the stack rise, without painting a viewport. */
+	/** Drives the production WBP tick and its stack animation without painting a viewport. */
 	void TickSlate(const TSharedRef<SWidget>& Widget, float Seconds)
 	{
 		const int32 Steps = FMath::Max(1, FMath::CeilToInt(Seconds / 0.016f));
@@ -172,11 +172,11 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("An empty confirmation stack is collapsed"), VisibilityOverlay->GetVisibility() == ESlateVisibility::Collapsed);
 
 	int32 MaxEntries = 0;
-	float Pitch = 0.0f;
+	double Pitch = 0.0;
 	bool bNewestFirst = true;
 	if (!TestTrue(TEXT("Read confirmation stack configuration"),
 		ReadDefault<FIntProperty>(ConfirmationClass, TEXT("MaxEntries"), MaxEntries)
-		&& ReadDefault<FFloatProperty>(ConfirmationClass, TEXT("StackRiseRowPitch"), Pitch)
+		&& ReadDefault<FDoubleProperty>(ConfirmationClass, TEXT("StackRiseRowPitch"), Pitch)
 		&& ReadDefault<FBoolProperty>(ConfirmationClass, TEXT("bNewestFirst"), bNewestFirst)))
 	{
 		return false;
@@ -274,6 +274,11 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TickWorld(World, 1.0f);
 	TestEqual(TEXT("Confirmation expires after its short lifetime"), List->GetNumItems(), 0);
 	TestTrue(TEXT("Confirmation collapses after expiry"), VisibilityOverlay->GetVisibility() == ESlateVisibility::Collapsed);
+	TestTrue(TEXT("An expired stack resets its entry position"), FMath::IsNearlyEqual(GetStackOffset(List), MaxEntries * Pitch, 0.5f));
+	SendElimination(World, Local, Enemy, TEXT("Gameplay.Damage.FromEnemy"));
+	TestTrue(TEXT("A new confirmation after expiry starts below the bottom row"), List->GetNumItems() == 1 && FMath::IsNearlyEqual(GetStackOffset(List), MaxEntries * Pitch, 0.5f));
+	TickSlate(SlateConfirmation.ToSharedRef(), 1.0f);
+	TestTrue(TEXT("The restarted stack settles on the bottom row"), FMath::IsNearlyEqual(GetStackOffset(List), (MaxEntries - 1) * Pitch, 0.5f));
 
 	const UWidgetBlueprintGeneratedClass* OverlayClass = LoadObject<UWidgetBlueprintGeneratedClass>(nullptr, OverlayPath);
 	const UWidgetTree* OverlayTree = OverlayClass ? OverlayClass->GetWidgetTreeArchetype() : nullptr;

@@ -59,7 +59,8 @@ UGameplayMessageSubsystem::Get(this).BroadcastMessage(Message.Verb, Message);
 
 `UArenaEliminationFeedWidget` 接收本地消息，保存姓名、队伍、分类和计数等显示快照，加入列表。
 列表行 `UArenaEliminationFeedEntry` 绑定条目后调用 WBP 的展示事件；文字、颜色、图标和动画由 WBP 处理。
-控件负责条数上限、到期移除，以及销毁时清理监听和计时器。
+C++ 负责条数上限、到期移除，以及销毁时清理监听和计时器；通过 `OnFeedItemsUpdated` 通知条目数量、移除数量和重置状态。
+个人击杀确认 WBP 根据这些数据完成列表上移、移除补偿与位置重置，行距和动画速度也由 WBP 维护。
 
 同一条客户端消息可以同时驱动两个 UI，不需要再发一次 RPC：
 
