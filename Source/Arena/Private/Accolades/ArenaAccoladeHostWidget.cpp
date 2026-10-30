@@ -4,6 +4,7 @@
 
 #include "DataRegistrySubsystem.h"
 #include "ArenaLogChannels.h"
+#include "Engine/World.h"
 #include "Messages/ArenaNotificationMessage.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
@@ -20,6 +21,8 @@ static FName NAME_AccoladeRegistryID("Accolades");
 void UArenaAccoladeHostWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+	ResetAccolades();
+	bAcceptingNotifications = true;
 
 	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
 	ListenerHandle = MessageSubsystem.RegisterListener(TAG_Arena_AddNotification_Message, this, &ThisClass::OnNotificationMessage);
@@ -27,19 +30,40 @@ void UArenaAccoladeHostWidget::NativeConstruct()
 
 void UArenaAccoladeHostWidget::NativeDestruct()
 {
-	UGameplayMessageSubsystem& MessageSubsystem = UGameplayMessageSubsystem::Get(this);
-	MessageSubsystem.UnregisterListener(ListenerHandle);
-
-	CancelAsyncLoading();
-
+	ResetAccolades();
 	Super::NativeDestruct();
+}
+
+void UArenaAccoladeHostWidget::ResetAccolades()
+{
+	bAcceptingNotifications = false;
+	++LoadGeneration;
+	ListenerHandle.Unregister();
+	CancelAsyncLoading();
+	CancelLatentActions();
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(NextTimeToReconsiderHandle);
+	}
+
+	TArray<FPendingAccoladeEntry> PreviousDisplays = MoveTemp(PendingAccoladeDisplays);
+	PendingAccoladeLoads.Reset();
+	NextDisplaySequenceID = 0;
+	AllocatedSequenceID = 0;
+	for (const FPendingAccoladeEntry& Entry : PreviousDisplays)
+	{
+		if (UUserWidget* Widget = Entry.AllocatedWidget)
+		{
+			DestroyAccoladeWidget(Widget);
+		}
+	}
 }
 
 void UArenaAccoladeHostWidget::OnNotificationMessage(FGameplayTag Channel, const FArenaNotificationMessage& Notification)
 {
-	if (Notification.TargetChannel == TAG_Arena_Accolade)
+	if (bAcceptingNotifications && Notification.TargetChannel == TAG_Arena_Accolade)
 	{
-		// Ignore notifications for other players
+		// Every local player sees accolades; the earner's identity scopes cancellation, not delivery.
 		if (Notification.TargetPlayer != nullptr)
 		{
 			APlayerController* PC = GetOwningPlayer();
@@ -49,49 +73,93 @@ void UArenaAccoladeHostWidget::OnNotificationMessage(FGameplayTag Channel, const
 			}
 		}
 
-		// Load the data registry row for this accolade
-		const int32 NextID = AllocatedSequenceID;
-		++AllocatedSequenceID;
-
-		const FString TargetPlayerName = Notification.TargetPlayer ? Notification.TargetPlayer->GetPlayerName() : TEXT("");
+		// Reserve a queue entry before acquiring: registry completion can be synchronous or out of order.
+		const int32 NextID = AllocatedSequenceID++;
+		FPendingAccoladeEntry& PendingEntry = PendingAccoladeLoads.AddDefaulted_GetRef();
+		PendingEntry.SequenceID = NextID;
+		PendingEntry.TargetPlayer = Notification.TargetPlayer.Get();
+		PendingEntry.TargetPlayerName = Notification.TargetPlayer ? Notification.TargetPlayer->GetPlayerName() : TEXT("");
 
 		FDataRegistryId ItemID(NAME_AccoladeRegistryID, Notification.PayloadTag.GetTagName());
-		if (!UDataRegistrySubsystem::Get()->AcquireItem(ItemID, FDataRegistryItemAcquiredCallback::CreateUObject(this, &ThisClass::OnRegistryLoadCompleted, NextID, TargetPlayerName)))
+		UDataRegistrySubsystem* Registry = UDataRegistrySubsystem::Get();
+		if (!Registry || !Registry->AcquireItem(ItemID, FDataRegistryItemAcquiredCallback::CreateUObject(this, &ThisClass::OnRegistryLoadCompleted, NextID, LoadGeneration)))
 		{
-			UE_LOG(LogArena, Error, TEXT("Failed to find accolade registry for tag %s, accolades will not appear"), *Notification.PayloadTag.GetTagName().ToString());
-			--AllocatedSequenceID;
+			UE_LOG(LogArena, Warning, TEXT("Failed to acquire accolade %s; skipping this notification"), *Notification.PayloadTag.ToString());
+			FailPendingAccolade(NextID);
 		}
 	}
 }
 
-void UArenaAccoladeHostWidget::OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, FString TargetPlayerName)
+void UArenaAccoladeHostWidget::OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, uint32 Generation)
 {
+	if (!bAcceptingNotifications || Generation != LoadGeneration)
+	{
+		return;
+	}
+	FPendingAccoladeEntry* PendingEntry = PendingAccoladeLoads.FindByPredicate([SequenceID](const FPendingAccoladeEntry& Entry)
+	{
+		return Entry.SequenceID == SequenceID;
+	});
+	if (!PendingEntry || PendingEntry->bFinishedLoading)
+	{
+		return;
+	}
+
 	if (const FArenaAccoladeDefinitionRow* AccoladeRow = AccoladeHandle.GetItem<FArenaAccoladeDefinitionRow>())
 	{
-		FPendingAccoladeEntry& PendingEntry = PendingAccoladeLoads.AddDefaulted_GetRef();
-		PendingEntry.Row = *AccoladeRow;
-		PendingEntry.SequenceID = SequenceID;
-		PendingEntry.TargetPlayerName = TargetPlayerName;
+		PendingEntry->Row = *AccoladeRow;
 
 		TArray<FSoftObjectPath> AssetsToLoad;
-		AssetsToLoad.Add(AccoladeRow->Sound.ToSoftObjectPath());
-		AssetsToLoad.Add(AccoladeRow->Icon.ToSoftObjectPath());
-		AsyncLoad(AssetsToLoad, [this, SequenceID]
+		if (!AccoladeRow->Sound.IsNull())
 		{
+			AssetsToLoad.Add(AccoladeRow->Sound.ToSoftObjectPath());
+		}
+		if (!AccoladeRow->Icon.IsNull())
+		{
+			AssetsToLoad.Add(AccoladeRow->Icon.ToSoftObjectPath());
+		}
+		auto OnAssetsLoaded = [this, SequenceID, Generation]
+		{
+			if (!bAcceptingNotifications || Generation != LoadGeneration)
+			{
+				return;
+			}
 			FPendingAccoladeEntry* EntryThatFinishedLoading = PendingAccoladeLoads.FindByPredicate([SequenceID](const FPendingAccoladeEntry& Entry) { return Entry.SequenceID == SequenceID; });
-			if (ensure(EntryThatFinishedLoading))
+			if (EntryThatFinishedLoading && !EntryThatFinishedLoading->bFinishedLoading)
 			{
 				EntryThatFinishedLoading->Sound = EntryThatFinishedLoading->Row.Sound.Get();
 				EntryThatFinishedLoading->Icon = EntryThatFinishedLoading->Row.Icon.Get();
 				EntryThatFinishedLoading->bFinishedLoading = true;
 				ConsiderLoadedAccolades();
 			}
-		});
-		StartAsyncLoading();
+		};
+		if (AssetsToLoad.IsEmpty())
+		{
+			OnAssetsLoaded();
+		}
+		else
+		{
+			AsyncLoad(AssetsToLoad, MoveTemp(OnAssetsLoaded));
+			StartAsyncLoading();
+		}
 	}
 	else
 	{
-		ensure(false);
+		UE_LOG(LogArena, Warning, TEXT("Failed to load accolade %s; skipping this notification"), *AccoladeHandle.ItemId.ToString());
+		FailPendingAccolade(SequenceID);
+	}
+}
+
+void UArenaAccoladeHostWidget::FailPendingAccolade(int32 SequenceID)
+{
+	if (FPendingAccoladeEntry* Entry = PendingAccoladeLoads.FindByPredicate([SequenceID](const FPendingAccoladeEntry& Pending)
+	{
+		return Pending.SequenceID == SequenceID;
+	}))
+	{
+		Entry->bLoadFailed = true;
+		Entry->bFinishedLoading = true;
+		ConsiderLoadedAccolades();
 	}
 }
 
@@ -106,8 +174,11 @@ void UArenaAccoladeHostWidget::ConsiderLoadedAccolades()
 			FPendingAccoladeEntry Entry = MoveTemp(PendingAccoladeLoads[PendingIndexToDisplay]);
 			PendingAccoladeLoads.RemoveAtSwap(PendingIndexToDisplay);
 
-			ProcessLoadedAccolade(Entry);
 			++NextDisplaySequenceID;
+			if (!Entry.bLoadFailed)
+			{
+				ProcessLoadedAccolade(Entry);
+			}
 		}
 	} while (PendingIndexToDisplay != INDEX_NONE);
 }
@@ -119,8 +190,10 @@ void UArenaAccoladeHostWidget::ProcessLoadedAccolade(const FPendingAccoladeEntry
 		bool bRecreateWidget = PendingAccoladeDisplays.Num() == 0;
 		for (int32 Index = 0; Index < PendingAccoladeDisplays.Num(); )
 		{
-			if (PendingAccoladeDisplays[Index].Row.AccoladeTags.HasAny(Entry.Row.CancelAccoladesWithTag))
+			if (PendingAccoladeDisplays[Index].TargetPlayer.HasSameIndexAndSerialNumber(Entry.TargetPlayer) &&
+				PendingAccoladeDisplays[Index].Row.AccoladeTags.HasAny(Entry.Row.CancelAccoladesWithTag))
 			{
+				bRecreateWidget |= Index == 0;
 				if (UUserWidget* OldWidget = PendingAccoladeDisplays[Index].AllocatedWidget)
 				{
 					DestroyAccoladeWidget(OldWidget);

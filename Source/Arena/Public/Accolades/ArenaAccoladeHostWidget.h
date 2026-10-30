@@ -10,6 +10,7 @@
 #include "ArenaAccoladeHostWidget.generated.h"
 
 class UObject;
+class APlayerState;
 class USoundBase;
 class UUserWidget;
 struct FDataRegistryAcquireResult;
@@ -32,12 +33,17 @@ struct FPendingAccoladeEntry
 	UPROPERTY(BlueprintReadOnly)
 	FString TargetPlayerName;
 
+	/** Identity used for cancellation, even if the player leaves before this entry is displayed. */
+	UPROPERTY()
+	TWeakObjectPtr<APlayerState> TargetPlayer;
+
 	UPROPERTY()
 	TObjectPtr<UUserWidget> AllocatedWidget = nullptr;
 
 	int32 SequenceID = 0;
 
 	bool bFinishedLoading = false;
+	bool bLoadFailed = false;
 
 	void CancelDisplay();
 };
@@ -46,7 +52,7 @@ struct FPendingAccoladeEntry
  * 
  */
 UCLASS(BlueprintType)
-class UArenaAccoladeHostWidget : public UCommonUserWidget, public FAsyncMixin
+class ARENA_API UArenaAccoladeHostWidget : public UCommonUserWidget, public FAsyncMixin
 {
 	GENERATED_BODY()
 
@@ -66,10 +72,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	UUserWidget* CreateAccoladeWidget(const FPendingAccoladeEntry& Entry);
 private:
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FArenaAccoladeHostTestAccess;
+#endif
+
 	FGameplayMessageListenerHandle ListenerHandle;
 
 	int32 NextDisplaySequenceID = 0;
 	int32 AllocatedSequenceID = 0;
+	uint32 LoadGeneration = 0;
+	bool bAcceptingNotifications = false;
 
 	FTimerHandle NextTimeToReconsiderHandle;
 
@@ -83,7 +95,9 @@ private:
 
 
 	void OnNotificationMessage(FGameplayTag Channel, const FArenaNotificationMessage& Notification);
-	void OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, FString TargetPlayerName);
+	void OnRegistryLoadCompleted(const FDataRegistryAcquireResult& AccoladeHandle, int32 SequenceID, uint32 Generation);
+	void FailPendingAccolade(int32 SequenceID);
+	void ResetAccolades();
 
 	void ConsiderLoadedAccolades();
 	void PopDisplayedAccolade();

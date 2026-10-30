@@ -47,9 +47,23 @@ void UArenaEliminationFeedEntry::NativeOnListItemObjectSet(UObject* ListItemObje
 	if (const UArenaEliminationFeedItem* Item = Cast<UArenaEliminationFeedItem>(ListItemObject))
 	{
 		// The item keeps the full snapshot; only the presented text is shortened.
-		PresentElimination(ClampDisplayName(Item->AttackerName, MaxNameLength), ClampDisplayName(Item->VictimName, MaxNameLength),
-			Item->AttackerTeamId, Item->VictimTeamId, Item->EliminationType, Item->EliminationStreak);
+		const FText AttackerName = ClampDisplayName(Item->AttackerName, MaxNameLength);
+		const FText VictimName = ClampDisplayName(Item->VictimName, MaxNameLength);
+		if (Item->bOwningPlayerEliminated)
+		{
+			PresentOwningPlayerEliminated(AttackerName, Item->AttackerTeamId, VictimName, Item->VictimTeamId, Item->EliminationType, Item->EliminationStreak);
+		}
+		else
+		{
+			PresentElimination(AttackerName, VictimName, Item->AttackerTeamId, Item->VictimTeamId, Item->EliminationType, Item->EliminationStreak);
+		}
 	}
+}
+
+void UArenaEliminationFeedEntry::PresentOwningPlayerEliminated_Implementation(const FText& KillerName, int32 KillerTeamId, const FText& VictimName,
+	int32 VictimTeamId, EArenaEliminationType EliminationType, int32 EliminationStreak)
+{
+	PresentElimination(KillerName, VictimName, KillerTeamId, VictimTeamId, EliminationType, EliminationStreak);
 }
 
 void UArenaEliminationFeedEntry::NativeOnEntryReleased()

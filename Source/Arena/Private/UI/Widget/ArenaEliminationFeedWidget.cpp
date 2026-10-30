@@ -53,16 +53,19 @@ void UArenaEliminationFeedWidget::HandleEliminationMessage(FGameplayTag Channel,
 	}
 
 	APlayerState* Attacker = UArenaVerbMessageHelpers::GetPlayerStateFromObject(Message.Instigator);
+	const APlayerState* LocalPlayerState = GetOwningPlayerState();
+	const bool bOwningPlayerEliminated = IsValid(LocalPlayerState) && IsValid(Attacker) && Attacker != Victim && Victim == LocalPlayerState;
 	if (bOnlyOwningPlayerEliminations)
 	{
-		const APlayerState* LocalPlayerState = GetOwningPlayerState();
-		if (!IsValid(LocalPlayerState) || !IsValid(Attacker) || Attacker != LocalPlayerState)
+		const bool bOwningPlayerAttacker = IsValid(LocalPlayerState) && IsValid(Attacker) && Attacker == LocalPlayerState;
+		if (!bOwningPlayerAttacker && !(bIncludeOwningPlayerDeaths && bOwningPlayerEliminated))
 		{
 			return;
 		}
 	}
 
 	UArenaEliminationFeedItem* Item = NewObject<UArenaEliminationFeedItem>(this);
+	Item->bOwningPlayerEliminated = bOwningPlayerEliminated;
 	Item->AttackerName = IsValid(Attacker) ? FText::FromString(Attacker->GetPlayerName()) : LOCTEXT("Environment", "Environment");
 	Item->VictimName = FText::FromString(Victim->GetPlayerName());
 	if (const UArenaTeamSubsystem* Teams = GetWorld()->GetSubsystem<UArenaTeamSubsystem>())
@@ -92,28 +95,43 @@ void UArenaEliminationFeedWidget::HandleEliminationMessage(FGameplayTag Channel,
 
 	const float Lifetime = FMath::IsFinite(EntryLifetime) && EntryLifetime > 0.0f ? EntryLifetime : 6.0f;
 	Item->ExpirationTime = GetWorld()->GetTimeSeconds() + Lifetime;
+	// Entries stays chronological for eviction and expiry; only the displayed order changes.
 	Entries.Add(Item);
-	ToastListWidget->AddItem(Item);
+	if (bNewestFirst)
+	{
+		ToastListWidget->AddItemAt(Item, 0);
+	}
+	else
+	{
+		ToastListWidget->AddItem(Item);
+	}
+	int32 Evicted = 0;
 	while (Entries.Num() > FMath::Max(1, MaxEntries))
 	{
 		ToastListWidget->RemoveItem(Entries[0]);
 		Entries.RemoveAt(0);
+		++Evicted;
 	}
+	OnFeedItemsUpdated(Entries.Num(), Evicted, false);
 	OnFeedEntriesChanged(true);
 	ScheduleExpiration();
 }
 
 void UArenaEliminationFeedWidget::ExpireEntries()
 {
+	// One lifetime for every entry keeps expirations in arrival order, so expired entries form the head.
 	const double Now = GetWorld()->GetTimeSeconds();
+	int32 Expired = 0;
 	for (int32 Index = Entries.Num() - 1; Index >= 0; --Index)
 	{
 		if (Entries[Index]->ExpirationTime <= Now)
 		{
 			ToastListWidget->RemoveItem(Entries[Index]);
 			Entries.RemoveAt(Index);
+			++Expired;
 		}
 	}
+	OnFeedItemsUpdated(Entries.Num(), Expired, false);
 	OnFeedEntriesChanged(!Entries.IsEmpty());
 	ScheduleExpiration();
 }
@@ -145,6 +163,7 @@ void UArenaEliminationFeedWidget::ClearFeed()
 	{
 		ToastListWidget->ClearListItems();
 	}
+	OnFeedItemsUpdated(0, 0, true);
 	OnFeedEntriesChanged(false);
 }
 

@@ -24,19 +24,34 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|EliminationFeed|Presentation")
 	void OnFeedEntriesChanged(bool bHasEntries);
 
-	UPROPERTY(meta = (BindWidget))
+	/** Reports completed list mutations; RemovedCount excludes entries discarded by a reset. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|EliminationFeed")
+	void OnFeedItemsUpdated(int32 EntryCount, int32 RemovedCount, bool bReset);
+
+	UPROPERTY(BlueprintReadOnly, Category = "Arena|EliminationFeed", meta = (BindWidget))
 	TObjectPtr<UListView> ToastListWidget;
 
 	/** Lifetime in game seconds, matching the WBP's timed outro. */
 	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed", meta = (ClampMin = "0.01"))
 	float EntryLifetime = 6.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed", meta = (ClampMin = "1"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|EliminationFeed", meta = (ClampMin = "1"))
 	int32 MaxEntries = 8;
 
 	/** Restricts personal confirmations to eliminations attributed to this widget's local player. */
 	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed")
 	bool bOnlyOwningPlayerEliminations = false;
+
+	/**
+	 * With bOnlyOwningPlayerEliminations, also accepts the local player being eliminated by another player,
+	 * so the same widget can name the killer. Environment deaths have no killer and stay filtered.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed")
+	bool bIncludeOwningPlayerDeaths = false;
+
+	/** Inserts new entries at the top of the list so the latest confirmation stays closest to the reticle. */
+	UPROPERTY(EditDefaultsOnly, Category = "Arena|EliminationFeed")
+	bool bNewestFirst = false;
 
 private:
 	void HandleEliminationMessage(FGameplayTag Channel, const FArenaVerbMessage& Message);
