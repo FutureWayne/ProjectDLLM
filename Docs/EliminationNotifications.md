@@ -9,18 +9,23 @@
 
 准星上的命中/击杀反馈走 `ClientNotifyEnemyHit`，是独立链路，不在本文范围，见 `Docs/HitFeedback.md`。
 
+全文按服务端负责权威计算、客户端负责 UI 展示来组织。`UGameplayMessageSubsystem::BroadcastMessage`
+只通知当前运行实例内的监听者；跨网络传输由 RPC 完成。客户端收到 RPC 后，把传来的结果分发给自己的本地监听者，
+不重新计算击杀或连杀。
+
 ## 1. 总体数据流
 
 ```mermaid
 flowchart TD
-    subgraph Server["服务端（Authority，含监听服务器主机与单机）"]
+    subgraph Server["服务端（Authority：权威计算与本地消息分发）"]
         HS["UArenaHealthSet::PostGameplayEffectExecute<br/>Health 由正变为 ≤ 0"]
         HC["UArenaHealthComponent::HandleOutOfHealth<br/>BroadcastEliminationMessage"]
-        EM[/"Arena.Elimination.Message<br/>原始击杀消息"/]
+        Death["死亡技能"]
+        EM[/"Arena.Elimination.Message<br/>服务端本地消息"/]
         Other["计分 B_ArenaDeathMatchScoring 等"]
         SP["B_ElimStreakProcessor<br/>UElimStreakProcessor<br/>分类 + 权威计数"]
-        AM[/"Arena.Accolade.*<br/>仅计数命中档位时"/]
-        FM[/"Arena.Elimination.Feed<br/>每次有效死亡"/]
+        AM[/"Arena.Accolade.*<br/>服务端本地消息 · 命中播报档位"/]
+        FM[/"Arena.Elimination.Feed<br/>服务端本地消息 · 每次有效死亡"/]
         AR["B_AccoladeRelay<br/>UArenaAccoladeRelay"]
         FR["B_EliminationFeedRelay<br/>UArenaEliminationFeedRelay"]
     end
@@ -29,47 +34,47 @@ flowchart TD
         MRPC["AArenaGameState::MulticastReliableMessageToClients<br/>NetMulticast · Reliable · 所有客户端"]
     end
 
-    subgraph Client["客户端 UI（WBP_CharacterOverlay）"]
-        AM2[/"Arena.Accolade.*<br/>客户端本地重新广播"/]
-        AR2["B_AccoladeRelay<br/>（每台机器各一个）"]
+    subgraph Client["客户端（本地消息分发与 UI）"]
+        Receive["AArenaGameState RPC 客户端回调<br/>BroadcastMessage 分发收到的结果"]
+        AM2[/"Arena.Accolade.*<br/>客户端本地消息"/]
+        AR2["B_AccoladeRelay<br/>客户端通知转换"]
         NM[/"Arena.AddNotification.Message<br/>FArenaNotificationMessage"/]
         Host["W_AccoladeHostWidget<br/>中间连杀播报"]
-        FM2[/"Arena.Elimination.Feed<br/>客户端本地重新广播"/]
+        FM2[/"Arena.Elimination.Feed<br/>客户端本地消息"/]
         Feed["W_EliminationFeed<br/>右侧击杀信息流"]
         Confirm["W_EliminationConfirmation<br/>个人击杀确认"]
     end
 
     HS -- "OnOutOfHealth(Instigator, Causer, EffectSpec)" --> HC
-    HC -- "GameplayEvent.Death" --> Death["死亡技能"]
+    HC -- "GameplayEvent.Death" --> Death
     HC --> EM
     EM --> Other
     EM --> SP
     SP --> AM --> AR --> MRPC
     SP --> FM --> FR --> MRPC
-    MRPC --> AM2 --> AR2 --> NM --> Host
-    MRPC --> FM2
+    MRPC -- "跨网络传输消息数据" --> Receive
+    Receive --> AM2 --> AR2 --> NM --> Host
+    Receive --> FM2
     FM2 --> Feed
     FM2 -- "仅本地玩家相关" --> Confirm
-    AR -. "主机/单机直接生成通知" .-> NM
-    FM -. "主机/单机直接收到本地消息" .-> Feed
-    FM -. "主机/单机直接收到本地消息" .-> Confirm
 ```
 
 三个系统共用同一个服务端起点（`Arena.Elimination.Message`）、同一份连杀计数（`UElimStreakProcessor`）和同一条网络通道，
-到客户端后才分开：
+客户端按消息标签将收到的数据交给各自的本地监听者：
 
 | | 击杀信息流 | 个人击杀确认 | 中间连杀播报 |
 | --- | --- | --- | --- |
-| 服务端消息 | `Arena.Elimination.Feed` | 与信息流相同 | `Arena.Accolade.*` |
+| 服务端本地消息 | `Arena.Elimination.Feed` | 与信息流相同 | `Arena.Accolade.*` |
 | 网络通道 | GameState `NetMulticast, Reliable` | 与信息流相同，不新增 RPC | 与信息流相同 |
 | 接收者 | 所有客户端 | 所有客户端收到，控件只保留本地玩家相关条目 | 所有客户端 |
-| 客户端消息 | `Arena.Elimination.Feed`（`FArenaVerbMessage`） | 同左 | `Arena.AddNotification.Message`（`FArenaNotificationMessage`） |
+| 客户端本地消息 | `Arena.Elimination.Feed`（`FArenaVerbMessage`） | 同左 | `Arena.AddNotification.Message`（`FArenaNotificationMessage`） |
 | C++ 父类 | `UArenaEliminationFeedWidget` + `UArenaEliminationFeedEntry` | 同左（类默认值不同） | `UArenaAccoladeHostWidget` |
 | UI 数据单元 | `UArenaEliminationFeedItem` | 同左 | `FPendingAccoladeEntry`（含 `FArenaAccoladeDefinitionRow`） |
 | 触发条件 | 每次被击杀者可解析为 PlayerState 的死亡 | 本地玩家造成的击杀（敌人、队友、自己），或本地玩家被他人击杀 | 计数命中处理器配置的档位 |
 
-播报和信息流走同一个 Actor 上的可靠多播，同一 Actor 的可靠 RPC 按发送顺序到达。处理器先发播报、后发信息流，
-所以同一次击杀在各端都是先收到播报，再收到信息流条目；播报也不会因丢包丢失。
+播报和信息流走同一个 Actor 上的可靠多播，连接有效期间，同一 Actor 的可靠 RPC 按发送顺序传递。
+当一次击杀命中播报档位时，处理器先发播报、后发信息流，因此客户端先接收播报消息，再接收信息流消息。
+两个 UI 各自处理资源加载和排队，实际开始显示的时刻由各自控件决定。
 
 ## 2. 公共起点：构建权威击杀信息
 
@@ -164,27 +169,33 @@ flowchart TD
 
 客户端不自行累计计数，三个系统显示的数字都来自这一份权威历史。
 
-### 2.5 网络分发
+### 2.5 网络分发：服务端本地消息 → RPC → 客户端本地消息
 
-**信息流 / 个人击杀确认 / 连杀播报：GameState 可靠多播**
+两端出现同名消息，是因为服务端和客户端各有自己的 `UGameplayMessageSubsystem`。
+本地 `BroadcastMessage` 只通知本端订阅者，不自动发送网络数据；RPC 把结果传到客户端后，还需要一次客户端本地分发才能通知 UI。
 
-1. `UArenaEliminationFeedRelay` 仅在 Authority 上监听 `Arena.Elimination.Feed`（重复 `StartListening` 会先注销旧监听），
-   收到后调用 `AArenaGameState::MulticastReliableMessageToClients(Message)`。
-2. `MulticastReliableMessageToClients_Implementation` 转调 `MulticastMessageToClients_Implementation`，
-   只有 `NM_Client` 才在本地重新广播同一条消息。
-3. 监听服务器主机和单机不经 RPC 重新广播，直接收到处理器在本地发出的原消息，因此每端每条只处理一次。
+| 阶段 | 执行方 | 行为 |
+| --- | --- | --- |
+| 生成结果并通知转发器 | 服务端 | 连杀处理器广播本地 `Arena.Elimination.Feed` 或 `Arena.Accolade.*`，由对应 Relay 接收 |
+| 网络传输 | 服务端 → 客户端 | Relay 调用 GameState 的 `MulticastReliableMessageToClients`，通过可靠 RPC 发送同一份消息数据 |
+| 通知本地 UI | 客户端 | GameState 的 RPC 客户端回调调用 `BroadcastMessage(Message.Verb, Message)`，把收到的数据交给客户端监听者 |
+
+**信息流与个人击杀确认**：服务端的 `UArenaEliminationFeedRelay` 监听 `Arena.Elimination.Feed` 并调用多播 RPC。
+客户端收到 RPC 后，在自己的消息子系统中分发 `Arena.Elimination.Feed`；信息流控件与个人确认控件分别接收，
+各自执行快照、过滤与显示逻辑，个人确认不额外发送网络消息。
+
+**连杀播报**：`UArenaAccoladeRelay` 在服务端与客户端分别实例化，均以 `PartialMatch` 监听本端的 `Arena.Accolade`：
+
+- **服务端实例**：收到连杀处理器的本地消息，调用 `MulticastReliableMessageToClients(Message)`，发给所有客户端。
+- **客户端实例**：收到 GameState RPC 回调分发的本地消息，转换为 `FArenaNotificationMessage`，
+  再分发到本地 `Arena.AddNotification.Message`，供播报 Host 控件消费（见 4.1）。
+
+Relay 重复 `StartListening` 会先注销旧监听。网络转发只在 Authority 路径执行，客户端的本地分发不会再次发送 RPC，
+因此不会形成循环。服务端只计算一次权威结果，每个客户端收到结果后只完成本地展示。
 
 `FArenaVerbMessage` 作为 RPC 参数复制时，对象字段按 NetGUID 解析：`Instigator`、`Target` 是已复制的 PlayerState，
 `ContextObject` 是资产。新增对象字段时必须可网络寻址（已复制的 Actor 或资产），否则客户端得到空指针。
 
-播报由 `UArenaAccoladeRelay`（`B_AccoladeRelay` 的父类）走同一条多播。它挂在 GameState 类上，每台机器各有一个实例，
-在 `StartListening` 中以 `PartialMatch` 监听 `Arena.Accolade`（重复调用会先注销旧监听）：
-
-- **Authority**：调用 `MulticastReliableMessageToClients(Message)`，发给所有客户端。
-- **非专用服务器**（远程客户端收到多播后的本地重新广播，或监听服务器主机/单机上处理器发出的原消息）：
-  转换为 `FArenaNotificationMessage` 广播到 `Arena.AddNotification.Message`（见 4.1）。专用服务器不生成通知。
-
-每台机器每次播报只生成一次通知：客户端只收到多播重新广播的那一条，主机和单机不经 RPC 重新广播。
 `AArenaPlayerState::ClientBroadcastMessage`（`Client, Unreliable`）仍保留，但播报不再使用它。
 
 ## 3. 击杀信息流
@@ -201,8 +212,8 @@ flowchart LR
     R -- "PresentElimination" --> B["W_EliminationFeedEntryWidget<br/>布局 / 颜色 / 图标 / 动画"]
 ```
 
-`W_EliminationFeed`（`UArenaEliminationFeedWidget`）在 `NativeConstruct` 中监听 `Arena.Elimination.Feed`
-（专用服务器不注册），收到消息后把网络消息转换为一份不可变的显示快照 `UArenaEliminationFeedItem`：
+客户端的 `W_EliminationFeed`（`UArenaEliminationFeedWidget`）在 `NativeConstruct` 中监听本地 `Arena.Elimination.Feed`，
+收到 RPC 回调分发的消息后，将其转换为一份不可变的显示快照 `UArenaEliminationFeedItem`：
 
 | 快照字段 | 来源 | 说明 |
 | --- | --- | --- |
@@ -257,7 +268,7 @@ WBP 中的表现约定（布局、颜色、材质、图标、动画和插值都�
 
 ```mermaid
 flowchart LR
-    V[/"Arena.Accolade.*<br/>FArenaVerbMessage"/] --> AR["UArenaAccoladeRelay<br/>非专用服务器"]
+    V[/"Arena.Accolade.*<br/>客户端本地 FArenaVerbMessage"/] --> AR["UArenaAccoladeRelay<br/>客户端实例"]
     AR --> N[/"FArenaNotificationMessage<br/>TargetChannel / PayloadTag / TargetPlayer"/]
     N --> H["UArenaAccoladeHostWidget"]
     H -- "DataRegistry: Accolades / PayloadTag" --> Row["FArenaAccoladeDefinitionRow<br/>DT_Accolades"]
@@ -269,7 +280,7 @@ flowchart LR
 播报的数据组织与信息流不同：**计数编码在标签里，而不是数值里**。处理器按档位表把计数映射为标签，
 UI 用标签查表得到文案、图标、音效和时长，`Magnitude` 在客户端不再使用。
 
-`UArenaAccoladeRelay` 在每台非专用服务器上构造的通知：
+客户端的 `UArenaAccoladeRelay` 构造以下本地通知：
 
 | 字段 | 值 |
 | --- | --- |
@@ -441,8 +452,8 @@ HUD 只在角色重生时重建（`AArenaCharacter::InitAbilityActorInfo`），�
   条数上限、无可见行时到期、监听与计时器清理、非法配置；共享连杀历史、6+ 封顶、友杀与自杀各自计数、
   环境死亡无计数与死亡重置；姓名裁剪（中日韩字符、代理对、尾随空格、非法上限）；经真实 GAS 死亡路径的手雷归因，
   以及非手雷上下文对象被忽略。
-- `Arena.UI.EliminationFeed.Network.ReliableDelivery`：真实 PIE 主机和两个远程客户端，加载正式连杀处理器、转发器与 WBP，
-  经 GameState RPC 检查各端每条只接收一次、连杀数与徽记一致、正式手雷定义 `DA_NormalGrenadeDef` 到达各端条目、
+- `Arena.UI.EliminationFeed.Network.ReliableDelivery`：通过真实 PIE 网络连接加载正式连杀处理器、转发器与 WBP，
+  经 GameState RPC 检查消息只接收一次、连杀数与徽记一致、正式手雷定义 `DA_NormalGrenadeDef` 到达接收端条目、
   列表行文字和图标、各端到期。同时加载正式 `B_AccoladeRelay`，检查击杀者、被击杀者和旁观者三端都各收到一次
   双杀与三杀通知、顺序正确且带击杀者姓名。使用隔离编辑器与临时测试地图，测试后恢复网络驱动和 GameInstance 配置。
 - `Arena.UI.EliminationFeed.PersonalConfirmation`：正式 `W_EliminationConfirmation` 与连杀处理器，检查本人过滤、
@@ -466,8 +477,8 @@ HUD 只在角色重生时重建（`AArenaCharacter::InitAbilityActorInfo`），�
 | `Source/Arena/Private/Character/ArenaHealthComponent.cpp` | 生成 `Arena.Elimination.Message`、手雷归因 |
 | `Source/Arena/Private/Messages/ElimStreakProcessor.cpp` | 权威计数、播报与信息流消息 |
 | `Source/Arena/Private/Messages/ArenaEliminationFeedRelay.cpp` | 信息流服务端转发 |
-| `Source/Arena/Private/Messages/ArenaAccoladeRelay.cpp` | 播报服务端多播转发与各端通知转换 |
-| `Source/Arena/Private/GameState/ArenaGameState.cpp` | 多播 RPC 与客户端重新广播 |
+| `Source/Arena/Private/Messages/ArenaAccoladeRelay.cpp` | 播报服务端多播转发与客户端本地通知转换 |
+| `Source/Arena/Private/GameState/ArenaGameState.cpp` | 多播 RPC 与客户端本地消息分发 |
 | `Source/Arena/Private/UI/Widget/ArenaEliminationFeedWidget.cpp` | 信息流与个人确认的快照、过滤、排序、列表与到期 |
 | `Source/Arena/Private/UI/ArenaEliminationFeedEntry.cpp` | 行绑定与姓名裁剪 |
 | `Source/Arena/Private/Accolades/ArenaAccoladeHostWidget.cpp` | 播报查表、保序、互斥与逐条显示 |
