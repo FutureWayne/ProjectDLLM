@@ -4,7 +4,9 @@
 
 #include "CommonLocalPlayer.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "GameFramework/HUD.h"
+#include "GameState/ArenaGameState.h"
 #include "GameUIPolicy.h"
 #include "PrimaryGameLayout.h"
 
@@ -39,6 +41,9 @@ bool UArenaUIManagerSubsystem::Tick(float DeltaTime)
 
 void UArenaUIManagerSubsystem::SyncRootLayoutVisibilityToShowHUD()
 {
+	const AArenaGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AArenaGameState>() : nullptr;
+	const bool bFinaleActive = GameState && (GameState->GetMatchFinaleData().bActive || GameState->GetMatchFinaleStage() != EArenaMatchFinaleStage::None);
+
 	if (const UGameUIPolicy* Policy = GetCurrentUIPolicy())
 	{
 		for (ULocalPlayer* LocalPlayer : GetGameInstance()->GetLocalPlayers())
@@ -49,7 +54,8 @@ void UArenaUIManagerSubsystem::SyncRootLayoutVisibilityToShowHUD()
 			{
 				const AHUD* HUD = PC->GetHUD();
 
-				if (HUD && !HUD->bShowHUD)
+				// The finale hides the gameplay layer separately; menu and modal layers still need the root layout.
+				if (HUD && !HUD->bShowHUD && !bFinaleActive)
 				{
 					bShouldShowUI = false;
 				}

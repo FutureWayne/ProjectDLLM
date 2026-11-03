@@ -7,6 +7,7 @@
 | 规范 | 文件 | 何时必须阅读 |
 | --- | --- | --- |
 | 代码规范 | `Docs/CodingStandards.md` | 新增、修改或审查任何 C++ 源码、`.Build.cs` / `.Target.cs`、插件源码、自动化测试之前 |
+| UI 配色规则 | `Rule.md` | 新增、修改或审查 UI、Widget Blueprint（WBP）、HUD 和 UI 材质之前；必须严格遵守其中的颜色与用途约束 |
 | 功能设计与维护说明 | `Docs/*.md` | 修改对应功能（如 `GroundAreaEffects`、`HealthBar`、`RoundRestartNetworking` 等）之前 |
 | 插件补丁说明 | `Plugins/OnlineSubsystemSteam/README.md`、`Plugins/SteamSockets/README.md`、`Plugins/CommonUser/Tests/README.md` | 修改或升级对应插件之前 |
 
