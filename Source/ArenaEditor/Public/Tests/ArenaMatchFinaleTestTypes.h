@@ -4,6 +4,7 @@
 
 #include "AbilitySystem/Phases/ArenaGamePhaseAbility_MatchFinale.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/ArenaPlayerController.h"
 #include "ArenaMatchFinaleTestTypes.generated.h"
 
 /** The native half of the post-match phase, driven directly so tests choose when each stage starts. */
@@ -26,4 +27,15 @@ UCLASS(Transient)
 class UArenaMatchFinaleTestHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
+};
+
+/** Production input handlers without the experience's input asset setup. */
+UCLASS(Transient)
+class AArenaMatchFinaleInputTestController : public AArenaPlayerController
+{
+	GENERATED_BODY()
+
+protected:
+	virtual void BeginPlay() override { ACommonPlayerController::BeginPlay(); }
+	virtual void SetupInputComponent() override { ACommonPlayerController::SetupInputComponent(); }
 };

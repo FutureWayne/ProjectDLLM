@@ -27,8 +27,8 @@ enum class EArenaMatchOutcome : uint8
 /**
  * Post-match finale screen. Follows the stage AArenaGameState receives from the post-match phase's GameplayCues,
  * resolves the local outcome, pushes the replicated scores, personal stats and countdowns into bound text widgets,
- * keeps the rest of the in-game HUD hidden while it exists, and handles the PlayerStats exit request. The scoreboard
- * keeps using the existing GA_ShowScoreBoard input path; this widget only leaves menu layers visible so it can appear.
+ * keeps the rest of the in-game HUD hidden while it exists, and handles post-score exit requests. The scoreboard
+ * keeps using the existing GA_ShowScoreBoard input path; this widget leaves menu layers visible so it can appear.
  *
  * The Widget Blueprint owns every layout, color, font, animation and sound decision and reacts to
  * OnFinaleStageChanged / OnOutcomeResolved / OnResultRevealed.
@@ -62,6 +62,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
 	int32 GetWinningTeamId() const;
 
+	/** Owning local player's team: 1 = red, 2 = blue, -1 = not assigned. */
+	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
+	int32 GetLocalTeamId() const;
+
 	/** Elapsed fraction of the current stage in [0, 1]. */
 	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
 	float GetStageProgress() const;
@@ -69,6 +73,10 @@ public:
 	/** Real seconds left in the current stage. */
 	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
 	float GetStageRemainingSeconds() const;
+
+	/** Real seconds elapsed in the current stage, independent of gameplay time dilation. */
+	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
+	float GetStageElapsedSeconds() const;
 
 protected:
 	//~UUserWidget interface
@@ -79,7 +87,7 @@ protected:
 
 	/**
 	 * Raised for every stage the screen enters. bSnap is true when the screen joins an already running stage
-	 * (late construction or late replication) and should jump to that stage's final pose without transitions.
+	 * (late construction or late replication). The WBP resumes its timeline at GetStageElapsedSeconds().
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|Finale|Presentation")
 	void OnFinaleStageChanged(EArenaMatchFinaleStage NewStage, EArenaMatchFinaleStage OldStage, bool bSnap);
@@ -116,7 +124,7 @@ protected:
 	TObjectPtr<UTextBlock> NextMatchCountdownText;
 
 	/** Real seconds after the Result stage starts before the result is revealed; matches the slow-motion lead-in. */
-	UPROPERTY(EditDefaultsOnly, Category = "Arena|Finale", meta = (ClampMin = "0.0", Units = "s"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Arena|Finale", meta = (ClampMin = "0.0", Units = "s"))
 	float ResultRevealDelaySeconds = 2.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Arena|Finale", meta = (Categories = "Score"))

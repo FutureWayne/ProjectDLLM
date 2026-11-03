@@ -13,8 +13,13 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "AbilitySystem/Phases/ArenaGamePhaseAbility.h"
 #include "AbilitySystem/Phases/ArenaGamePhaseSubsystem.h"
+#include "Animation/WidgetAnimation.h"
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetBlueprintGeneratedClass.h"
+#include "Blueprint/GameViewportSubsystem.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
+#include "CommonGameInstance.h"
+#include "CommonLocalPlayer.h"
 #include "Components/ActorComponent.h"
 #include "Components/TextBlock.h"
 #include "Editor.h"
@@ -24,6 +29,7 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/WorldSettings.h"
@@ -31,23 +37,36 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "GameplayEffectTypes.h"
 #include "GameState/ArenaGameState.h"
 #include "HAL/IConsoleManager.h"
+#include "InputActionValue.h"
+#include "InputCoreTypes.h"
+#include "Input/CommonUIActionRouterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/OutputDeviceNull.h"
+#include "MovieScene.h"
 #include "Messaging/CommonMessagingSubsystem.h"
 #include "PlayInEditorDataTypes.h"
 #include "Player/ArenaPlayerState.h"
+#include "PrimaryGameLayout.h"
 #include "Settings/LevelEditorPlaySettings.h"
 #include "Teams/ArenaTeamInfo.h"
 #include "Teams/ArenaTeamSubsystem.h"
 #include "Tests/ArenaEliminationFeedTestTypes.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "UI/Widget/ArenaMatchFinaleWidget.h"
+#include "UI/ArenaUIManagerSubsystem.h"
+#include "UI/ArenaConfirmationScreen.h"
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
+#include "Widgets/CommonActivatableWidgetContainer.h"
 
 struct FArenaMatchFinaleWidgetTestAccess
 {
+	static void Tick(UArenaMatchFinaleWidget* Widget)
+	{
+		Widget->NativeTick(FGeometry(), 0.1f);
+	}
+
 	static FUIActionBindingHandle EscapeBinding(const UArenaMatchFinaleWidget* Widget)
 	{
 		return Widget->EscapeBindingHandle;
@@ -128,9 +147,9 @@ namespace ArenaMatchFinaleTests
 		FGameplayTag EliminationTag;
 		FGameplayTag DeathTag;
 
-		bool Create(FAutomationTestBase& Test)
+		bool Create(FAutomationTestBase& Test, bool bUseCommonUI = false)
 		{
-			Instance = NewObject<UGameInstance>(GEngine);
+			Instance = bUseCommonUI ? NewObject<UCommonGameInstance>(GEngine) : NewObject<UGameInstance>(GEngine);
 			Instance->InitializeStandalone();
 			World = Instance->GetWorld();
 			World->InitializeActorsForPlay(FURL());
@@ -161,8 +180,8 @@ namespace ArenaMatchFinaleTests
 			ViewportClient->Init(*Instance->GetWorldContext(), Instance, false);
 			Instance->GetWorldContext()->GameViewport = ViewportClient;
 
-			Controller = World->SpawnActor<APlayerController>();
-			ULocalPlayer* Player = NewObject<ULocalPlayer>(GEngine);
+			Controller = bUseCommonUI ? World->SpawnActor<AArenaMatchFinaleInputTestController>() : World->SpawnActor<APlayerController>();
+			ULocalPlayer* Player = bUseCommonUI ? NewObject<UCommonLocalPlayer>(GEngine) : NewObject<ULocalPlayer>(GEngine);
 			Instance->AddLocalPlayer(Player, FPlatformUserId::CreateFromInternalId(0));
 			Controller->SetPlayer(Player);
 			if (!Test.TestEqual(TEXT("Local player is registered with the game instance"), Player->GetIndexInGameInstance(), 0))
@@ -548,17 +567,23 @@ bool FArenaMatchFinaleWidgetSnapshotTest::RunTest(const FString& Parameters)
 	Ability->BeginForTest(BlueTeamId);
 	Ability->EnterForTest(EArenaMatchFinaleStage::Result);
 	TestTrue(TEXT("Screen follows the stage cue into Result"), Widget->GetCurrentStage() == EArenaMatchFinaleStage::Result);
+	Widget->HandleEscapeAction();
+	TestTrue(TEXT("ESC is available during Result"), Widget->bExitConfirmationOpen);
+	Widget->HandleExitConfirmationResult(ECommonMessagingResult::Declined);
 	TestEqual(TEXT("Blue frozen score"), TextOf(Widget->BlueScoreText), FString(TEXT("30")));
 	TestEqual(TEXT("Red frozen score"), TextOf(Widget->RedScoreText), FString(TEXT("18")));
-	AdvanceRealTime(World, 1.0);
+	AdvanceRealTime(World, Widget->ResultRevealDelaySeconds * 0.5);
 	Tick(Widget);
 	TestFalse(TEXT("Result stays hidden during the slow-motion lead-in"), Widget->IsResultRevealed());
-	AdvanceRealTime(World, 1.6);
+	AdvanceRealTime(World, Widget->ResultRevealDelaySeconds * 0.5 + 0.1);
 	Tick(Widget);
 	TestTrue(TEXT("Result is revealed after the lead-in"), Widget->IsResultRevealed());
 
 	Ability->EnterForTest(EArenaMatchFinaleStage::FinalScore);
 	TestTrue(TEXT("Screen follows FinalScore"), Widget->GetCurrentStage() == EArenaMatchFinaleStage::FinalScore);
+	Widget->HandleEscapeAction();
+	TestTrue(TEXT("ESC is available during FinalScore"), Widget->bExitConfirmationOpen);
+	Widget->HandleExitConfirmationResult(ECommonMessagingResult::Declined);
 	Ability->EnterForTest(EArenaMatchFinaleStage::PlayerStats);
 	AdvanceRealTime(World, 1.2);
 	Tick(Widget);
@@ -601,7 +626,8 @@ bool FArenaMatchFinaleWidgetSnapshotTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("NextMatch countdown uses two digits"), TextOf(Widget->NextMatchCountdownText), FString(TEXT("03")));
 	TestEqual(TEXT("Stats countdown hides after PlayerStats"), TextOf(Widget->StatsCountdownText), FString(TEXT("--")));
 	Widget->HandleEscapeAction();
-	TestFalse(TEXT("ESC outside PlayerStats is swallowed without a dialog"), Widget->bExitConfirmationOpen);
+	TestTrue(TEXT("ESC remains available during NextMatch"), Widget->bExitConfirmationOpen);
+	Widget->HandleExitConfirmationResult(ECommonMessagingResult::Declined);
 	AdvanceRealTime(World, 3.0);
 	Tick(Widget);
 	TestEqual(TEXT("An overrun NextMatch countdown stops at zero"), TextOf(Widget->NextMatchCountdownText), FString(TEXT("00")));
@@ -645,6 +671,286 @@ bool FArenaMatchFinaleWidgetSnapshotTest::RunTest(const FString& Parameters)
 	LateWidget->NativeDestruct();
 	TestFalse(TEXT("Destruct releases the GameState"), Widget->FinaleGameState.IsValid());
 	TestFalse(TEXT("Destruct releases the ESC binding"), Widget->EscapeBindingHandle.IsValid());
+	Fixture.Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaMatchFinaleStageEntryTest, "Arena.UI.MatchFinale.StageEntry",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaMatchFinaleStageEntryTest::RunTest(const FString& Parameters)
+{
+	using namespace ArenaMatchFinaleTests;
+
+	FStandaloneFixture Fixture;
+	if (!Fixture.Create(*this))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+
+	UClass* WidgetClass = LoadClass<UArenaMatchFinaleWidget>(nullptr, FinaleWidgetPath);
+	UWidgetBlueprintGeneratedClass* BlueprintClass = Cast<UWidgetBlueprintGeneratedClass>(WidgetClass);
+	UArenaMatchFinaleTestAbility* Ability = ActivateTestAbility(Fixture.GameState);
+	if (!TestNotNull(TEXT("Production finale Blueprint"), BlueprintClass) || !TestNotNull(TEXT("Finale ability"), Ability))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+
+	auto FindAnimation = [BlueprintClass](FName Name) -> UWidgetAnimation*
+	{
+		for (UWidgetAnimation* Animation : BlueprintClass->Animations)
+		{
+			if (Animation != nullptr && Animation->GetMovieScene() != nullptr && Animation->GetMovieScene()->GetFName() == Name)
+			{
+				return Animation;
+			}
+		}
+		return nullptr;
+	};
+	UWidgetAnimation* ResultAnimation = FindAnimation(TEXT("Stage_Result"));
+	UWidgetAnimation* RevealAnimation = FindAnimation(TEXT("ResultReveal"));
+	UWidgetAnimation* ScoreAnimation = FindAnimation(TEXT("Stage_FinalScore"));
+	if (!TestNotNull(TEXT("Result entry timeline"), ResultAnimation) || !TestNotNull(TEXT("Result reveal timeline"), RevealAnimation)
+		|| !TestNotNull(TEXT("Score timeline"), ScoreAnimation))
+	{
+		Ability->EndForTest();
+		Fixture.Destroy();
+		return false;
+	}
+
+	AArenaPlayerState* PlayerState = Fixture.World->SpawnActor<AArenaPlayerState>();
+	Fixture.Controller->PlayerState = PlayerState;
+	PlayerState->SetGenericTeamId(FGenericTeamId(BlueTeamId));
+	Ability->BeginForTest(BlueTeamId);
+	Ability->EnterForTest(EArenaMatchFinaleStage::Result);
+	AdvanceRealTime(Fixture.World, 0.2);
+
+	// The production cue starts before Slate constructs its screen in normal play as well as on late join.
+	UArenaMatchFinaleWidget* Widget = CreateWidget<UArenaMatchFinaleWidget>(Fixture.Controller, WidgetClass);
+	TSharedRef<SWidget> SlateWidget = Widget->TakeWidget();
+	Widget->FlushAnimations();
+	TestTrue(TEXT("Creating the screen after the cue preserves its entry animation"), Widget->IsAnimationPlaying(ResultAnimation));
+	TestTrue(TEXT("Result entry resumes at the elapsed stage time instead of its final frame"),
+		FMath::IsNearlyEqual(Widget->GetAnimationCurrentTime(ResultAnimation), 0.2f, 0.02f));
+	TestTrue(TEXT("Widget exposes the real stage clock"), FMath::IsNearlyEqual(Widget->GetStageElapsedSeconds(), 0.2f, 0.001f));
+
+	// Simulate a render hitch without ticking UMG; the next ordinary widget tick must catch up.
+	Fixture.World->GetWorldSettings()->SetTimeDilation(0.12f);
+	AdvanceRealTime(Fixture.World, 0.45);
+	FArenaMatchFinaleWidgetTestAccess::Tick(Widget);
+	Widget->FlushAnimations();
+	TestTrue(TEXT("The entry animation catches up to real time during slow motion"),
+		FMath::IsNearlyEqual(Widget->GetAnimationCurrentTime(ResultAnimation), 0.65f, 0.02f));
+
+	const FFloatProperty* RevealDelay = FindFProperty<FFloatProperty>(WidgetClass, TEXT("ResultRevealDelaySeconds"));
+	const float DelaySeconds = RevealDelay->GetPropertyValue_InContainer(Widget);
+	AdvanceRealTime(Fixture.World, FMath::Max(0.0f, DelaySeconds + 0.25f - Widget->GetStageElapsedSeconds()));
+	UArenaMatchFinaleWidget* LateWidget = CreateWidget<UArenaMatchFinaleWidget>(Fixture.Controller, WidgetClass);
+	TSharedRef<SWidget> LateSlateWidget = LateWidget->TakeWidget();
+	FArenaMatchFinaleWidgetTestAccess::Tick(LateWidget);
+	LateWidget->FlushAnimations();
+	TestTrue(TEXT("A screen created during the reveal resumes the reveal timeline"),
+		FMath::IsNearlyEqual(LateWidget->GetAnimationCurrentTime(RevealAnimation), 0.25f, 0.02f));
+	TestFalse(TEXT("The reveal stops the entry timeline before sharing its tracks"), LateWidget->IsAnimationPlaying(ResultAnimation));
+
+	Ability->EnterForTest(EArenaMatchFinaleStage::FinalScore);
+	Widget->FlushAnimations();
+	LateWidget->FlushAnimations();
+	TestFalse(TEXT("Entering FinalScore stops the earlier result animation"), Widget->IsAnimationPlaying(ResultAnimation));
+	TestFalse(TEXT("Entering FinalScore stops an active reveal"), LateWidget->IsAnimationPlaying(RevealAnimation));
+	TestTrue(TEXT("The score transition starts normally"), Widget->IsAnimationPlaying(ScoreAnimation));
+	AdvanceRealTime(Fixture.World, 0.2);
+	UArenaMatchFinaleWidget* ScoreWidget = CreateWidget<UArenaMatchFinaleWidget>(Fixture.Controller, WidgetClass);
+	TSharedRef<SWidget> ScoreSlateWidget = ScoreWidget->TakeWidget();
+	ScoreWidget->FlushAnimations();
+	TestTrue(TEXT("Joining FinalScore resumes its transition instead of skipping it"),
+		FMath::IsNearlyEqual(ScoreWidget->GetAnimationCurrentTime(ScoreAnimation), 0.2f, 0.02f));
+	TestFalse(TEXT("Joining FinalScore cannot restart the result reveal"), ScoreWidget->IsAnimationPlaying(RevealAnimation));
+
+	Ability->EndForTest();
+	Widget->RemoveFromParent();
+	LateWidget->RemoveFromParent();
+	ScoreWidget->RemoveFromParent();
+	Fixture.World->GetWorldSettings()->SetTimeDilation(1.0f);
+	Fixture.Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaMatchFinaleLayersTest, "Arena.UI.MatchFinale.Layers",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaMatchFinaleLayersTest::RunTest(const FString& Parameters)
+{
+	using namespace ArenaMatchFinaleTests;
+	FStandaloneFixture Fixture;
+	if (!Fixture.Create(*this, true))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+
+	APlayerController* Controller = Fixture.Controller;
+	Controller->ClientSetHUD(AHUD::StaticClass());
+	UPrimaryGameLayout* RootLayout = UPrimaryGameLayout::GetPrimaryGameLayout(Controller);
+	UArenaUIManagerSubsystem* UIManager = Fixture.Instance->GetSubsystem<UArenaUIManagerSubsystem>();
+	UArenaMatchFinaleTestAbility* Ability = ActivateTestAbility(Fixture.GameState);
+	if (!TestNotNull(TEXT("Production UI policy creates the root layout"), RootLayout)
+		|| !TestNotNull(TEXT("Production UI manager"), UIManager) || !TestNotNull(TEXT("Finale ability"), Ability))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+
+	AHUD* HUD = Controller->GetHUD();
+	HUD->bShowHUD = false;
+	UIManager->Tick(0.0f);
+	TestTrue(TEXT("Outside a finale, hidden HUD still collapses the root"), RootLayout->GetVisibility() == ESlateVisibility::Collapsed);
+	Ability->BeginForTest(BlueTeamId);
+	UIManager->Tick(0.0f);
+	TestTrue(TEXT("Active finale data preserves the root before the stage cue"), RootLayout->IsVisible());
+	HUD->bShowHUD = true;
+
+	AArenaPlayerState* PlayerState = Fixture.World->SpawnActor<AArenaPlayerState>();
+	Controller->PlayerState = PlayerState;
+	PlayerState->SetOwner(Controller);
+	UClass* FinaleClass = LoadClass<UArenaMatchFinaleWidget>(nullptr, FinaleWidgetPath);
+	UArenaMatchFinaleWidget* Finale = CreateWidget<UArenaMatchFinaleWidget>(Controller, FinaleClass);
+	Finale->AddToPlayerScreen();
+	Ability->EnterForTest(EArenaMatchFinaleStage::PlayerStats);
+	UIManager->Tick(0.0f);
+	TestFalse(TEXT("Finale still hides the native HUD"), HUD->bShowHUD);
+	TestTrue(TEXT("The root remains visible after the production manager ticks"), RootLayout->IsVisible());
+	const FGameplayTag GameLayerTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Game"));
+	const FGameplayTag GameMenuTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.GameMenu"));
+	const FGameplayTag ModalTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Modal"));
+	TestTrue(TEXT("Only the gameplay layer is collapsed"), RootLayout->GetLayerWidget(GameLayerTag)->GetVisibility() == ESlateVisibility::Collapsed);
+	UGameViewportSubsystem* Viewport = UGameViewportSubsystem::Get();
+	TestTrue(TEXT("Menu root is above the opaque finale in the viewport"), Viewport->GetWidgetSlot(RootLayout).ZOrder > Viewport->GetWidgetSlot(Finale).ZOrder);
+
+	UClass* ScoreboardClass = LoadClass<UCommonActivatableWidget>(nullptr,
+		TEXT("/Game/UI/Scoreboard/W_MatchScoreBoard_Elimination.W_MatchScoreBoard_Elimination_C"));
+	UCommonActivatableWidget* Scoreboard = RootLayout->PushWidgetToLayerStack(GameMenuTag, ScoreboardClass);
+	if (TestNotNull(TEXT("Production scoreboard opens on GameMenu"), Scoreboard))
+	{
+		FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
+		UIManager->Tick(0.0f);
+		TestTrue(TEXT("The scoreboard is active and visible over the finale"), Scoreboard->IsActivated() && Scoreboard->IsVisible()
+			&& RootLayout->GetLayerWidget(GameMenuTag)->IsVisible() && RootLayout->IsVisible());
+		Scoreboard->DeactivateWidget();
+	}
+
+	UCommonUIActionRouterBase* Router = Controller->GetLocalPlayer()->GetSubsystem<UCommonUIActionRouterBase>();
+	Router->ProcessInput(EKeys::Escape, IE_Pressed);
+	Router->ProcessInput(EKeys::Escape, IE_Released);
+	FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
+	UIManager->Tick(0.0f);
+	UCommonActivatableWidget* Dialog = RootLayout->GetLayerWidget(ModalTag)->GetActiveWidget();
+	if (TestNotNull(TEXT("ESC routes to the real exit confirmation"), Dialog))
+	{
+		TestTrue(TEXT("ESC opens the production confirmation class"), Dialog->IsA<UArenaConfirmationScreen>());
+		TestTrue(TEXT("The confirmation remains visible after suppression and UI manager ticks"), Dialog->IsActivated() && Dialog->IsVisible()
+			&& RootLayout->GetLayerWidget(ModalTag)->IsVisible() && RootLayout->IsVisible());
+		Dialog->DeactivateWidget();
+	}
+
+	Ability->EndForTest();
+	UIManager->Tick(0.0f);
+	TestTrue(TEXT("Cancellation restores HUD and root visibility"), HUD->bShowHUD && RootLayout->IsVisible());
+	HUD->bShowHUD = false;
+	UIManager->Tick(0.0f);
+	TestTrue(TEXT("Ordinary HUD hiding works again after cancellation"), RootLayout->GetVisibility() == ESlateVisibility::Collapsed);
+	HUD->bShowHUD = true;
+	Fixture.Destroy();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaMatchFinaleInputTest, "Arena.GameFlow.MatchFinale.Input",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaMatchFinaleInputTest::RunTest(const FString& Parameters)
+{
+	using namespace ArenaMatchFinaleTests;
+	FStandaloneFixture Fixture;
+	if (!Fixture.Create(*this))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+
+	AArenaMatchFinaleInputTestController* Controller = Fixture.World->SpawnActor<AArenaMatchFinaleInputTestController>();
+	Controller->SetPlayer(Fixture.Controller->Player);
+	AArenaPlayerState* PlayerState = Fixture.World->SpawnActor<AArenaPlayerState>();
+	Controller->PlayerState = PlayerState;
+	APawn* Pawn = Fixture.World->SpawnActor<APawn>();
+	Controller->Possess(Pawn);
+	UArenaAbilitySystemComponent* AbilitySystem = PlayerState->GetArenaAbilitySystemComponent();
+	AbilitySystem->InitAbilityActorInfo(PlayerState, Pawn);
+
+	const FGameplayTag FireTag = FGameplayTag::RequestGameplayTag(TEXT("InputTag.Fire"));
+	const FGameplayTag JumpTag = FGameplayTag::RequestGameplayTag(TEXT("InputTag.Jump"));
+	const FGameplayTag ScoreboardTag = FGameplayTag::RequestGameplayTag(TEXT("InputTag.ShowScoreboard"));
+	auto GrantInput = [AbilitySystem](FGameplayTag Tag)
+	{
+		FGameplayAbilitySpec Spec(UArenaGameplayAbility::StaticClass(), 1);
+		Spec.GetDynamicSpecSourceTags().AddTag(Tag);
+		return AbilitySystem->GiveAbility(Spec);
+	};
+	const FGameplayAbilitySpecHandle Fire = GrantInput(FireTag);
+	const FGameplayAbilitySpecHandle Jump = GrantInput(JumpTag);
+	const FGameplayAbilitySpecHandle Scoreboard = GrantInput(ScoreboardTag);
+	UArenaMatchFinaleTestAbility* Ability = ActivateTestAbility(Fixture.GameState);
+	if (!TestNotNull(TEXT("Finale ability"), Ability))
+	{
+		Fixture.Destroy();
+		return false;
+	}
+	Ability->BeginForTest(BlueTeamId);
+	Ability->EnterForTest(EArenaMatchFinaleStage::FinalScore);
+	TestFalse(TEXT("FinalScore preserves gameplay input"), Fixture.GameState->IsMatchFinaleGameplayInputBlocked());
+	Controller->Input_Move(FInputActionValue(FVector2D(1.0f, 1.0f)));
+	TestFalse(TEXT("Movement reaches the pawn before PlayerStats"), Pawn->ConsumeMovementInputVector().IsZero());
+	Controller->Input_LookMouse(FInputActionValue(FVector2D(1.0f, 1.0f)));
+	TestFalse(TEXT("Look reaches the controller before PlayerStats"), Controller->RotationInput.IsZero());
+	Controller->RotationInput = FRotator::ZeroRotator;
+	Controller->Input_AbilityInputTagPressed(FireTag);
+	AbilitySystem->ProcessAbilityInput(0.0f, false);
+	TestTrue(TEXT("Fire is held before the transition"), AbilitySystem->IsAbilityInputActive(FireTag));
+	Controller->Input_AbilityInputTagPressed(JumpTag);
+
+	for (const EArenaMatchFinaleStage Stage : { EArenaMatchFinaleStage::PlayerStats, EArenaMatchFinaleStage::NextMatch })
+	{
+		Ability->EnterForTest(Stage);
+		TestTrue(TEXT("Post-score stages block gameplay input"), Fixture.GameState->IsMatchFinaleGameplayInputBlocked());
+		Controller->Input_Move(FInputActionValue(FVector2D(1.0f, 1.0f)));
+		TestTrue(TEXT("Post-score movement does not reach the pawn"), Pawn->ConsumeMovementInputVector().IsZero());
+		Controller->Input_LookMouse(FInputActionValue(FVector2D(1.0f, 1.0f)));
+		TestTrue(TEXT("Post-score mouse input does not rotate the view"), Controller->RotationInput.IsZero());
+		Controller->Input_AbilityInputTagPressed(FireTag);
+		Controller->Input_AbilityInputTagPressed(JumpTag);
+		Controller->Input_AbilityInputTagPressed(ScoreboardTag);
+		AbilitySystem->ProcessAbilityInput(0.0f, false);
+		TestFalse(TEXT("Previously held fire is released"), AbilitySystem->FindAbilitySpecFromHandle(Fire)->InputPressed);
+		TestFalse(TEXT("Fire cannot remain held behind the results"), AbilitySystem->IsAbilityInputActive(FireTag));
+		TestFalse(TEXT("Queued and new gameplay presses do not activate"), AbilitySystem->FindAbilitySpecFromHandle(Jump)->IsActive());
+		TestTrue(TEXT("Scoreboard input still activates"), AbilitySystem->IsAbilityInputActive(ScoreboardTag));
+		Controller->Input_AbilityInputTagReleased(ScoreboardTag);
+		AbilitySystem->ProcessAbilityInput(0.0f, false);
+		TestFalse(TEXT("Scoreboard release still reaches the ability"), AbilitySystem->FindAbilitySpecFromHandle(Scoreboard)->InputPressed);
+		AbilitySystem->CancelAbilityHandle(Scoreboard);
+	}
+
+	Ability->EndForTest();
+	TestFalse(TEXT("Ending the phase restores input without a widget"), Fixture.GameState->IsMatchFinaleGameplayInputBlocked());
+	AbilitySystem->CancelAbilityHandle(Fire);
+	AbilitySystem->ProcessAbilityInput(0.0f, false);
+	TestFalse(TEXT("Blocked presses cannot replay after the phase ends"), AbilitySystem->FindAbilitySpecFromHandle(Jump)->IsActive());
+	Controller->Input_Move(FInputActionValue(FVector2D(1.0f, 1.0f)));
+	TestFalse(TEXT("Movement works again after cancellation"), Pawn->ConsumeMovementInputVector().IsZero());
+	Controller->Input_AbilityInputTagPressed(JumpTag);
+	AbilitySystem->ProcessAbilityInput(0.0f, false);
+	TestTrue(TEXT("Fresh ability input works again after cancellation"), AbilitySystem->FindAbilitySpecFromHandle(Jump)->IsActive());
 	Fixture.Destroy();
 	return true;
 }

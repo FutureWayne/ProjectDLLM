@@ -64,6 +64,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
 	EArenaMatchFinaleStage GetMatchFinaleStage() const { return LocalFinaleStage; }
 
+	/** Gameplay input is blocked after the final score, while scoreboard and UI actions remain available. */
+	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
+	bool IsMatchFinaleGameplayInputBlocked() const
+	{
+		return LocalFinaleStage == EArenaMatchFinaleStage::PlayerStats || LocalFinaleStage == EArenaMatchFinaleStage::NextMatch;
+	}
+
 	/** Real seconds since the current stage arrived on this machine; 0 when no finale is running. */
 	UFUNCTION(BlueprintPure, Category = "Arena|Finale")
 	float GetMatchFinaleStageElapsedSeconds() const;

@@ -1,6 +1,18 @@
 # 比赛结算生命周期
 
-`Phase_PostGame` 继承 `UArenaGamePhaseAbility_MatchFinale`。蓝图负责阶段顺序、等待与时间膨胀；原生基类发布冻结比分和阶段 GameplayCue，`AArenaGameState` 将 Cue 转为本地阶段，`UArenaMatchFinaleWidget` 消费阶段和结算数据。布局、动画和视觉参数仍由 WBP 维护。
+`Phase_PostGame` 继承 `UArenaGamePhaseAbility_MatchFinale`。蓝图负责阶段顺序、等待与时间膨胀；原生基类发布冻结比分和阶段 GameplayCue，`AArenaGameState` 将 Cue 转为本地阶段，`UArenaMatchFinaleWidget` 消费阶段和结算数据。布局、动画和视觉参数仍由 WBP 维护。WBP 通过 `GetLocalTeamId` 选择本地玩家的 Primary 阵营色，未分配阵营时回退到共用文字色与低饱和辅色。
+
+## 阶段展示时间
+
+`Phase_PostGame` 的 `FinaleTiming` 配置为：结果揭示 3.5 秒、最终比分 5.5 秒、个人数据 25 秒、下一局倒计时 8 秒。结果揭示延迟由结算 WBP 的 `ResultRevealDelaySeconds` 配置，当前为 1 秒。个人数据阶段允许玩家阅读完整统计，下一局倒计时仍提供明确的离场准备时间。客户端中途加入时从服务器阶段时间戳扣除已流逝时间，不会重新获得完整时长。
+
+## 界面时钟与阶段接管
+
+`UArenaMatchFinaleWidget::GetStageElapsedSeconds` 只提供 GameState 当前阶段已流逝的真实秒数。WBP 负责把阶段时间映射到自己的动画轨道；C++ 不控制布局、动画位置或播放参数。
+
+`OnFinaleStageChanged` 的 `bSnap` 表示控件接管已经开始的阶段。正常 GameplayCue 流程也可能先开始阶段、后构建控件，因此不能把它解释为无条件跳到动画最后一帧。阶段动画从已流逝时间继续播放，超出动画范围时定位到结束状态。结果揭示动画使用阶段时间减去同一份 `ResultRevealDelaySeconds`；已经进入后续阶段时不会重播揭示。
+
+WBP 在普通界面 Tick 中校准活动阶段动画的播放位置，避免 Slate 帧间隔被限制或渲染卡顿后落后于真实阶段时钟。接管新阶段时先停止旧动画，揭示开始时停止入场动画，避免不同轨道继续改写同一控件。
 
 ## 中途加入的计时
 
@@ -9,6 +21,12 @@
 首次直接进入 `FinalScore`、`PlayerStats` 或 `NextMatch` 的客户端，需要用服务器阶段开始时间扣除已经过去的秒数。`FArenaMatchFinaleData.TimingStage` 标识时间戳所属阶段，防止 Cue 与数据分开到达时使用上一阶段的时间戳。GameState 必须收到首个服务器时间样本及匹配阶段的数据后才执行一次校准；Cue、数据和时间 RepNotify 的到达顺序不构成前置条件。下一阶段或结束结算会撤销未完成的校准。
 
 ## 结束和取消
+
+`FinalScore` 展示结束、进入 `PlayerStats` 后，`AArenaGameState::IsMatchFinaleGameplayInputBlocked` 在本机屏蔽移动、视角和游戏技能输入，并持续到 `NextMatch` 结束。输入限制直接读取阶段状态，不依赖结算控件是否已经构建；取消结算后自动恢复。ASC 丢弃已缓存的游戏按下/持续输入，并为此前按住的输入发送释放事件，避免遮挡后继续开火或恢复时重放。`InputTag.ShowScoreboard` 保留原来的按下/松开链路。
+
+整个活动结算阶段均允许 ESC 打开退出确认；确认框打开时将 ESC 交给对话框返回操作，关闭确认框后恢复绑定。
+
+结算控件通过 `bShowHUD = false` 隐藏原生 HUD，并单独折叠 `UI.Layer.Game`。结算数据或阶段仍有效时，`UArenaUIManagerSubsystem` 必须保留根布局，供 `UI.Layer.GameMenu` 中的比分板和 `UI.Layer.Modal` 中的退出确认继续显示；不能仅根据 `bShowHUD` 折叠整个根布局。结算结束后恢复通常的 HUD 可见性同步规则。
 
 结束阶段技能时清空结算数据，并移除评分组件在启动阶段前添加的 `GameplayCue.UserMessage.MatchDecided`。该 Cue 不属于技能自动清理的阶段 Cue 列表，需要单独移除。
 
@@ -32,10 +50,13 @@ Arena.MatchFinale 2
 独立编辑器、无活动 PIE 时运行 `Arena.GameFlow.MatchFinale` 和 `Arena.UI.MatchFinale`。
 
 - `Stages`：阶段 Cue、冻结分数、真实时间计时、重复及过期事件、技能结束与中途阶段定位。
+- `Input`：通过正式玩家控制器和 ASC 输入入口，检查比分后屏蔽移动、视角、技能，释放已按住的输入，保留比分板按下/松开，并在取消后恢复且不重放被屏蔽的按键。
 - `ConsoleCommand`：通过注册的控制台命令验证胜负参数、正式结算入口、无评分组件及非法参数处理、重复输入与取消。
 - `LateJoin`：阶段开始两秒后，通过编辑器正式 Late Join 入口建立新客户端连接，检查初次复制后的倒计时及后续时间样本。
 - `InitialSync`：故障注入覆盖 Cue、时间戳及首个时钟样本的不同到达顺序，拒绝其他阶段的时间戳，并检查重复样本和取消后的迟到样本。
 - `Network`：阶段网络同步和慢动作交接；通过主机的 `Arena.MatchFinale` 命令调用正式评分流程，确认客户端不能自行触发，创建真实结算界面后取消阶段，检查主机与远端的界面、HUD、覆盖层、Cue 和原始 ESC 绑定均已清理。
 - `Snapshot`：WBP 数据绑定、个人统计、阶段显示，以及控件被保留时的结束清理和迟到确认回调。
+- `StageEntry`：通过正式阶段 Cue 后构建结算 WBP，检查入场恢复位置、慢动作与渲染间断后的时间校准、揭示中途接管，以及比分阶段不会被旧揭示动画覆盖。
+- `Layers`：使用正式 UI 策略、根布局、比分板和退出确认，检查结算期间隐藏 HUD 仍保留菜单/模态层，取消后恢复普通 HUD 显隐规则。
 
 本地 NULL/IP、单进程 PIE 和 NullRHI 回归不能替代打包版 Steam 多账号及视觉验证。

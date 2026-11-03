@@ -8,10 +8,12 @@
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
+#include "GameState/ArenaGameState.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ArenaAbilitySystemComponent)
 
 UE_DEFINE_GAMEPLAY_TAG(TAG_Gameplay_AbilityInputBlocked, "Gameplay.AbilityInputBlocked");
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_Input_ShowScoreboard, "InputTag.ShowScoreboard");
 
 UArenaAbilitySystemComponent::UArenaAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 {
@@ -160,6 +162,24 @@ void UArenaAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGa
 
 	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
 	AbilitiesToActivate.Reset();
+
+	const AArenaGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AArenaGameState>() : nullptr;
+	if (GameState && GameState->IsMatchFinaleGameplayInputBlocked())
+	{
+		// Keep the scoreboard's existing press/release path, and release gameplay inputs already held at the transition.
+		for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
+		{
+			if (!Spec.GetDynamicSpecSourceTags().HasTagExact(TAG_Input_ShowScoreboard))
+			{
+				InputPressedSpecHandles.Remove(Spec.Handle);
+				InputHeldSpecHandles.Remove(Spec.Handle);
+				if (Spec.InputPressed)
+				{
+					InputReleasedSpecHandles.AddUnique(Spec.Handle);
+				}
+			}
+		}
+	}
 
 	//
 	// Process all abilities that activate when the input is held.

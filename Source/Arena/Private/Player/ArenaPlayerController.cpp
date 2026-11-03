@@ -8,9 +8,11 @@
 #include "ArenaLogChannels.h"
 #include "AbilitySystem/ArenaAbilitySystemComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Engine/World.h"
 #include "Camera/ArenaPlayerCameraManager.h"
 #include "Equipment/ArenaQuickBarComponent.h"
 #include "Input/ArenaInputComponent.h"
+#include "GameState/ArenaGameState.h"
 #include "Inventory/ArenaInventoryManagerComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "NativeGameplayTags.h"
@@ -56,6 +58,12 @@ void AArenaPlayerController::Input_AbilityInputTagReleased(FGameplayTag InputTag
 
 void AArenaPlayerController::Input_Move(const FInputActionValue& InputActionValue)
 {
+	const AArenaGameState* GameState = GetWorld()->GetGameState<AArenaGameState>();
+	if (GameState && GameState->IsMatchFinaleGameplayInputBlocked())
+	{
+		return;
+	}
+
 	APawn* ControlledPawn = GetPawn<APawn>();
 
 	AController* Controller = ControlledPawn ? ControlledPawn->GetController() : nullptr;
@@ -80,6 +88,12 @@ void AArenaPlayerController::Input_Move(const FInputActionValue& InputActionValu
 
 void AArenaPlayerController::Input_LookMouse(const FInputActionValue& InputActionValue)
 {
+	const AArenaGameState* GameState = GetWorld()->GetGameState<AArenaGameState>();
+	if (GameState && GameState->IsMatchFinaleGameplayInputBlocked())
+	{
+		return;
+	}
+
 	APawn* ControlledPawn = GetPawn<APawn>();
 
 	if (!ControlledPawn)

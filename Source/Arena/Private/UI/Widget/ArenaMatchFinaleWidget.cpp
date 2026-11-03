@@ -100,6 +100,12 @@ float UArenaMatchFinaleWidget::GetStageRemainingSeconds() const
 	return GameState ? GameState->GetMatchFinaleStageRemainingSeconds() : 0.0f;
 }
 
+float UArenaMatchFinaleWidget::GetStageElapsedSeconds() const
+{
+	const AArenaGameState* GameState = FinaleGameState.Get();
+	return GameState ? GameState->GetMatchFinaleStageElapsedSeconds() : 0.0f;
+}
+
 void UArenaMatchFinaleWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
@@ -502,8 +508,8 @@ void UArenaMatchFinaleWidget::UnregisterEscapeBinding()
 
 void UArenaMatchFinaleWidget::HandleEscapeAction()
 {
-	// ESC is swallowed in the other stages so the pause menu cannot open over the finale.
-	if (CurrentStage != EArenaMatchFinaleStage::PlayerStats || bExitConfirmationOpen)
+	// Keep the exit action available whenever the finale's input hints are visible.
+	if (CurrentStage == EArenaMatchFinaleStage::None || bExitConfirmationOpen)
 	{
 		return;
 	}
@@ -560,6 +566,15 @@ int32 UArenaMatchFinaleWidget::GetWinningTeamId() const
 	}
 
 	return CueWinningTeamId == INDEX_NONE ? INDEX_NONE : FMath::Max(0, CueWinningTeamId);
+}
+
+int32 UArenaMatchFinaleWidget::GetLocalTeamId() const
+{
+	const APlayerController* PlayerController = GetOwningPlayer();
+	const AArenaPlayerState* PlayerState = PlayerController != nullptr
+		? PlayerController->GetPlayerState<AArenaPlayerState>()
+		: nullptr;
+	return PlayerState != nullptr ? PlayerState->GetTeamId() : INDEX_NONE;
 }
 
 #undef LOCTEXT_NAMESPACE

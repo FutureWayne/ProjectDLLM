@@ -11,7 +11,7 @@ class FSubsystemCollectionBase;
 class UObject;
 
 UCLASS()
-class UArenaUIManagerSubsystem : public UGameUIManagerSubsystem
+class ARENA_API UArenaUIManagerSubsystem : public UGameUIManagerSubsystem
 {
 	GENERATED_BODY()
 
@@ -23,6 +23,8 @@ public:
 	virtual void Deinitialize() override;
 
 private:
+	friend class FArenaMatchFinaleLayersTest;
+
 	bool Tick(float DeltaTime);
 	void SyncRootLayoutVisibilityToShowHUD();
 	
