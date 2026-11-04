@@ -29,6 +29,12 @@ class ARENA_API AArenaPlayerController : public ACommonPlayerController, public 
 public:
 	AArenaPlayerController(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	/** Authority entry for the owning player's death view. */
+	void BeginKillCamera(APawn* Victim, APawn* Killer);
+
+	UFUNCTION(Client, Reliable)
+	void ClientStartKillCamera(APawn* Victim, APawn* Killer);
+
 	UFUNCTION(Client, Unreliable)
 	void ClientNotifyEnemyHit(EArenaHitFeedbackType FeedbackType);
 
