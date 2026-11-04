@@ -4,8 +4,16 @@
 
 #include "AbilitySystem/Phases/ArenaGamePhaseAbility_MatchFinale.h"
 #include "Blueprint/UserWidget.h"
+#include "CommonGameInstance.h"
 #include "Player/ArenaPlayerController.h"
 #include "ArenaMatchFinaleTestTypes.generated.h"
+
+/** Concrete CommonGame host for isolated tests that use the production UI policy and messaging subsystem. */
+UCLASS(Transient)
+class UArenaMatchFinaleTestGameInstance : public UCommonGameInstance
+{
+	GENERATED_BODY()
+};
 
 /** The native half of the post-match phase, driven directly so tests choose when each stage starts. */
 UCLASS(Transient)
