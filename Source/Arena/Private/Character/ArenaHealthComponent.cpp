@@ -11,6 +11,8 @@
 #include "Messages/ArenaVerbMessageHelpers.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerState.h"
+#include "Player/ArenaPlayerController.h"
+#include "GameFramework/Pawn.h"
 #include "Net/UnrealNetwork.h"
 #include "Teams/ArenaTeamSubsystem.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
@@ -259,6 +261,29 @@ void UArenaHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* 
 {
 	if (AbilitySystemComponent && DamageEffectSpec)
 	{
+		// Resolve the original killer before the death ability can unpossess either pawn.
+		APawn* Victim = Cast<APawn>(AbilitySystemComponent->GetAvatarActor());
+		if (GetOwner()->HasAuthority() && Victim)
+		{
+			if (AArenaPlayerController* VictimController = Cast<AArenaPlayerController>(Victim->GetController()))
+			{
+				APawn* Killer = Cast<APawn>(DamageInstigator);
+				if (const AController* InstigatorController = Cast<AController>(DamageInstigator))
+				{
+					Killer = InstigatorController->GetPawn();
+				}
+				else if (const APlayerState* InstigatorState = Cast<APlayerState>(DamageInstigator))
+				{
+					Killer = InstigatorState->GetPawn();
+				}
+				if (Killer == Victim)
+				{
+					Killer = nullptr;
+				}
+				VictimController->BeginKillCamera(Victim, Killer);
+			}
+		}
+
 		// Send the "GameplayEvent.Death" gameplay event through the owner's ability system.  This can be used to trigger a death gameplay ability.
 		{
 			FGameplayEventData Payload;

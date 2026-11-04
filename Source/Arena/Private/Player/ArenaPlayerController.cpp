@@ -32,6 +32,25 @@ AArenaPlayerController::AArenaPlayerController(const FObjectInitializer& ObjectI
 	PlayerCameraManagerClass = AArenaPlayerCameraManager::StaticClass();
 }
 
+void AArenaPlayerController::BeginKillCamera(APawn* Victim, APawn* Killer)
+{
+	if (!HasAuthority() || !IsValid(Victim) || Victim != GetPawn())
+	{
+		return;
+	}
+	// Keep a distant killer relevant to this connection throughout the death view.
+	SetViewTarget(IsValid(Killer) && Killer != Victim ? Killer : Victim);
+	ClientStartKillCamera(Victim, Killer);
+}
+
+void AArenaPlayerController::ClientStartKillCamera_Implementation(APawn* Victim, APawn* Killer)
+{
+	if (AArenaPlayerCameraManager* CameraManager = Cast<AArenaPlayerCameraManager>(PlayerCameraManager))
+	{
+		CameraManager->StartKillCamera(Victim, Killer);
+	}
+}
+
 void AArenaPlayerController::ClientNotifyEnemyHit_Implementation(EArenaHitFeedbackType FeedbackType)
 {
 	if (AArenaHUD* ArenaHUD = Cast<AArenaHUD>(GetHUD()))
