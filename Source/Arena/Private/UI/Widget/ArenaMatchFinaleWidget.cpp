@@ -133,10 +133,12 @@ void UArenaMatchFinaleWidget::NativeConstruct()
 	RevealAtRealTime = (World ? World->GetRealTimeSeconds() : 0.0) + ResultRevealDelaySeconds;
 
 	SuppressOtherUI();
+
 	if (UCommonUIActionRouterBase* Router = UCommonUIActionRouterBase::Get(*this))
 	{
 		InputModeChangedHandle = Router->OnActiveInputModeChanged().AddUObject(this, &ThisClass::HandleInputModeChanged);
 	}
+
 	RegisterEscapeBinding();
 	BindFinaleGameState();
 	ResolveOutcome();
@@ -154,10 +156,12 @@ void UArenaMatchFinaleWidget::ReleaseFinaleUI()
 {
 	bWidgetConstructed = false;
 	UnbindFinaleGameState();
+
 	if (UCommonUIActionRouterBase* Router = UCommonUIActionRouterBase::Get(*this))
 	{
 		Router->OnActiveInputModeChanged().Remove(InputModeChangedHandle);
 	}
+
 	InputModeChangedHandle.Reset();
 	UnregisterEscapeBinding();
 	RestoreSuppressedUI();
