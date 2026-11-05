@@ -21,6 +21,7 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "CommonGameInstance.h"
 #include "CommonLocalPlayer.h"
 #include "Components/ActorComponent.h"
+#include "Components/DynamicEntryBox.h"
 #include "Components/TextBlock.h"
 #include "Editor.h"
 #include "Engine/Engine.h"
@@ -49,6 +50,7 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "Player/ArenaPlayerState.h"
 #include "PrimaryGameLayout.h"
 #include "Settings/LevelEditorPlaySettings.h"
+#include "Slate/SceneViewport.h"
 #include "Teams/ArenaTeamInfo.h"
 #include "Teams/ArenaTeamSubsystem.h"
 #include "Tests/ArenaEliminationFeedTestTypes.h"
@@ -59,6 +61,7 @@ UArenaMatchFinaleTestAbility::UArenaMatchFinaleTestAbility()
 #include "UObject/StrongObjectPtr.h"
 #include "UObject/UnrealType.h"
 #include "Widgets/CommonActivatableWidgetContainer.h"
+#include "Widgets/SViewport.h"
 
 struct FArenaMatchFinaleWidgetTestAccess
 {
@@ -75,7 +78,7 @@ struct FArenaMatchFinaleWidgetTestAccess
 	static bool IsReleased(const UArenaMatchFinaleWidget* Widget)
 	{
 		return !Widget->bWidgetConstructed && !Widget->bUISuppressed && !Widget->FinaleGameState.IsValid()
-			&& !Widget->EscapeBindingHandle.IsValid();
+			&& !Widget->EscapeBindingHandle.IsValid() && !Widget->InputModeChangedHandle.IsValid();
 	}
 };
 
@@ -144,12 +147,14 @@ namespace ArenaMatchFinaleTests
 		AArenaGameState* GameState = nullptr;
 		UArenaTeamSubsystem* Teams = nullptr;
 		APlayerController* Controller = nullptr;
+		TSharedPtr<SViewport> ViewportWidget;
+		TSharedPtr<FSceneViewport> SceneViewport;
 		FGameplayTag EliminationTag;
 		FGameplayTag DeathTag;
 
 		bool Create(FAutomationTestBase& Test, bool bUseCommonUI = false)
 		{
-			Instance = bUseCommonUI ? NewObject<UCommonGameInstance>(GEngine) : NewObject<UGameInstance>(GEngine);
+			Instance = bUseCommonUI ? NewObject<UArenaMatchFinaleTestGameInstance>(GEngine) : NewObject<UGameInstance>(GEngine);
 			Instance->InitializeStandalone();
 			World = Instance->GetWorld();
 			World->InitializeActorsForPlay(FURL());
@@ -179,6 +184,13 @@ namespace ArenaMatchFinaleTests
 			UGameViewportClient* ViewportClient = NewObject<UGameViewportClient>(GEngine);
 			ViewportClient->Init(*Instance->GetWorldContext(), Instance, false);
 			Instance->GetWorldContext()->GameViewport = ViewportClient;
+			if (bUseCommonUI)
+			{
+				// A null viewport is treated as a closed game window and removes the player on the next engine tick.
+				ViewportWidget = SNew(SViewport);
+				SceneViewport = FSceneViewport::Create(ViewportClient, ViewportWidget);
+				ViewportClient->Viewport = SceneViewport.Get();
+			}
 
 			Controller = bUseCommonUI ? World->SpawnActor<AArenaMatchFinaleInputTestController>() : World->SpawnActor<APlayerController>();
 			ULocalPlayer* Player = bUseCommonUI ? NewObject<UCommonLocalPlayer>(GEngine) : NewObject<ULocalPlayer>(GEngine);
@@ -200,6 +212,12 @@ namespace ArenaMatchFinaleTests
 			{
 				if (FWorldContext* Context = Instance->GetWorldContext())
 				{
+					if (Context->GameViewport != nullptr && SceneViewport.IsValid())
+					{
+						Context->GameViewport->Viewport = nullptr;
+					}
+					SceneViewport.Reset();
+					ViewportWidget.Reset();
 					Context->GameViewport = nullptr;
 				}
 				Instance->Shutdown();
@@ -784,12 +802,21 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaMatchFinaleLayersTest, "Arena.UI.MatchFin
 bool FArenaMatchFinaleLayersTest::RunTest(const FString& Parameters)
 {
 	using namespace ArenaMatchFinaleTests;
-	FStandaloneFixture Fixture;
+	struct FLayersFixture
+	{
+		FStandaloneFixture WorldFixture;
+		TStrongObjectPtr<UGameInstance> Instance;
+		TSharedPtr<SWidget> RootSlate;
+		TSharedPtr<SWidget> FinaleSlate;
+	};
+	const TSharedRef<FLayersFixture> State = MakeShared<FLayersFixture>();
+	FStandaloneFixture& Fixture = State->WorldFixture;
 	if (!Fixture.Create(*this, true))
 	{
 		Fixture.Destroy();
 		return false;
 	}
+	State->Instance.Reset(Fixture.Instance);
 
 	APlayerController* Controller = Fixture.Controller;
 	Controller->ClientSetHUD(AHUD::StaticClass());
@@ -804,6 +831,9 @@ bool FArenaMatchFinaleLayersTest::RunTest(const FString& Parameters)
 	}
 
 	AHUD* HUD = Controller->GetHUD();
+	TestEqual(TEXT("The UI manager uses the fixture world"), UIManager->GetWorld(), Fixture.World);
+	TestEqual(TEXT("The UI manager sees the fixture GameState"), UIManager->GetWorld()->GetGameState<AArenaGameState>(), Fixture.GameState);
+	State->RootSlate = RootLayout->TakeWidget();
 	HUD->bShowHUD = false;
 	UIManager->Tick(0.0f);
 	TestTrue(TEXT("Outside a finale, hidden HUD still collapses the root"), RootLayout->GetVisibility() == ESlateVisibility::Collapsed);
@@ -817,52 +847,103 @@ bool FArenaMatchFinaleLayersTest::RunTest(const FString& Parameters)
 	PlayerState->SetOwner(Controller);
 	UClass* FinaleClass = LoadClass<UArenaMatchFinaleWidget>(nullptr, FinaleWidgetPath);
 	UArenaMatchFinaleWidget* Finale = CreateWidget<UArenaMatchFinaleWidget>(Controller, FinaleClass);
+	// The isolated viewport has no game window to construct Slate on the next frame.
+	State->FinaleSlate = Finale->TakeWidget();
 	Finale->AddToPlayerScreen();
-	Ability->EnterForTest(EArenaMatchFinaleStage::PlayerStats);
-	UIManager->Tick(0.0f);
-	TestFalse(TEXT("Finale still hides the native HUD"), HUD->bShowHUD);
-	TestTrue(TEXT("The root remains visible after the production manager ticks"), RootLayout->IsVisible());
 	const FGameplayTag GameLayerTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Game"));
 	const FGameplayTag GameMenuTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.GameMenu"));
 	const FGameplayTag ModalTag = FGameplayTag::RequestGameplayTag(TEXT("UI.Layer.Modal"));
-	TestTrue(TEXT("Only the gameplay layer is collapsed"), RootLayout->GetLayerWidget(GameLayerTag)->GetVisibility() == ESlateVisibility::Collapsed);
+	RootLayout->GetLayerWidget(GameMenuTag)->SetTransitionDuration(0.0f);
+	RootLayout->GetLayerWidget(ModalTag)->SetTransitionDuration(0.0f);
 	UGameViewportSubsystem* Viewport = UGameViewportSubsystem::Get();
 	TestTrue(TEXT("Menu root is above the opaque finale in the viewport"), Viewport->GetWidgetSlot(RootLayout).ZOrder > Viewport->GetWidgetSlot(Finale).ZOrder);
 
 	UClass* ScoreboardClass = LoadClass<UCommonActivatableWidget>(nullptr,
 		TEXT("/Game/UI/Scoreboard/W_MatchScoreBoard_Elimination.W_MatchScoreBoard_Elimination_C"));
-	UCommonActivatableWidget* Scoreboard = RootLayout->PushWidgetToLayerStack(GameMenuTag, ScoreboardClass);
-	if (TestNotNull(TEXT("Production scoreboard opens on GameMenu"), Scoreboard))
-	{
-		FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
-		UIManager->Tick(0.0f);
-		TestTrue(TEXT("The scoreboard is active and visible over the finale"), Scoreboard->IsActivated() && Scoreboard->IsVisible()
-			&& RootLayout->GetLayerWidget(GameMenuTag)->IsVisible() && RootLayout->IsVisible());
-		Scoreboard->DeactivateWidget();
-	}
-
 	UCommonUIActionRouterBase* Router = Controller->GetLocalPlayer()->GetSubsystem<UCommonUIActionRouterBase>();
-	Router->ProcessInput(EKeys::Escape, IE_Pressed);
-	Router->ProcessInput(EKeys::Escape, IE_Released);
-	FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
-	UIManager->Tick(0.0f);
-	UCommonActivatableWidget* Dialog = RootLayout->GetLayerWidget(ModalTag)->GetActiveWidget();
-	if (TestNotNull(TEXT("ESC routes to the real exit confirmation"), Dialog))
+	for (const EArenaMatchFinaleStage Stage : FullSequence())
 	{
-		TestTrue(TEXT("ESC opens the production confirmation class"), Dialog->IsA<UArenaConfirmationScreen>());
-		TestTrue(TEXT("The confirmation remains visible after suppression and UI manager ticks"), Dialog->IsActivated() && Dialog->IsVisible()
-			&& RootLayout->GetLayerWidget(ModalTag)->IsVisible() && RootLayout->IsVisible());
-		Dialog->DeactivateWidget();
+		const FString StageName = UEnum::GetValueAsString(Stage);
+		// CommonUI registers newly constructed widgets and their input bindings on the next core tick.
+		ADD_LATENT_AUTOMATION_COMMAND(FDelayedFunctionLatentCommand([this, State, Ability, Stage, StageName, Finale, UIManager, HUD, RootLayout, GameLayerTag, GameMenuTag, ScoreboardClass]()
+		{
+			Ability->EnterForTest(Stage);
+			FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
+			UIManager->Tick(0.0f);
+			TestFalse(StageName + TEXT(": finale hides the native HUD"), HUD->bShowHUD);
+			TestTrue(StageName + TEXT(": the root remains visible"), RootLayout->IsVisible());
+			TestTrue(StageName + TEXT(": only the gameplay layer is collapsed"),
+				RootLayout->GetLayerWidget(GameLayerTag)->GetVisibility() == ESlateVisibility::Collapsed);
+			TestNotNull(StageName + TEXT(": production scoreboard opens on GameMenu"),
+				RootLayout->PushWidgetToLayerStack(GameMenuTag, ScoreboardClass));
+		}));
+
+		for (int32 Attempt = 0; Attempt < 2; ++Attempt)
+		{
+			ADD_LATENT_AUTOMATION_COMMAND(FDelayedFunctionLatentCommand([this, State, StageName, Router, Finale, UIManager, RootLayout, GameMenuTag]()
+			{
+				FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
+				UIManager->Tick(0.0f);
+				UCommonActivatableWidget* Scoreboard = RootLayout->GetLayerWidget(GameMenuTag)->GetActiveWidget();
+				TestTrue(StageName + TEXT(": scoreboard remains visible over the finale"), Scoreboard && Scoreboard->IsActivated() && Scoreboard->IsVisible()
+					&& RootLayout->GetLayerWidget(GameMenuTag)->IsVisible() && RootLayout->IsVisible());
+				const FUIActionBindingHandle Binding = FArenaMatchFinaleWidgetTestAccess::EscapeBinding(Finale);
+				TestTrue(StageName + TEXT(": ESC binding is registered before input"), Router->GatherActiveBindings().Contains(Binding));
+				Router->ProcessInput(EKeys::Escape, IE_Pressed);
+				Router->ProcessInput(EKeys::Escape, IE_Released);
+			}));
+			ADD_LATENT_AUTOMATION_COMMAND(FDelayedFunctionLatentCommand([this, State, StageName, Finale, UIManager, RootLayout, GameMenuTag, ModalTag]()
+			{
+				FArenaMatchFinaleWidgetTestAccess::Tick(Finale);
+				UIManager->Tick(0.0f);
+				UCommonActivatableWidget* Dialog = RootLayout->GetLayerWidget(ModalTag)->GetActiveWidget();
+				if (!TestNotNull(StageName + TEXT(": ESC opens the real exit confirmation"), Dialog))
+				{
+					return;
+				}
+				TestTrue(StageName + TEXT(": confirmation is visible above the scoreboard"), Dialog->IsA<UArenaConfirmationScreen>()
+					&& Dialog->IsActivated() && Dialog->IsVisible() && RootLayout->GetLayerWidget(ModalTag)->IsVisible() && RootLayout->IsVisible());
+				UDynamicEntryBox* Buttons = Cast<UDynamicEntryBox>(Dialog->GetWidgetFromName(TEXT("EntryBox_Buttons")));
+				if (!TestNotNull(TEXT("Production dialog button entries"), Buttons) || !TestEqual(TEXT("Confirmation has Yes and No buttons"), Buttons->GetAllEntries().Num(), 2))
+				{
+					return;
+				}
+				UUserWidget* DeclineButton = Buttons->GetAllEntries()[1];
+				UFunction* Click = DeclineButton->FindFunction(TEXT("HandleButtonClicked"));
+				if (!TestNotNull(TEXT("Production button click handler"), Click))
+				{
+					return;
+				}
+				DeclineButton->ProcessEvent(Click, nullptr);
+				TestFalse(StageName + TEXT(": declining closes the confirmation"), Dialog->IsActivated());
+				TestTrue(StageName + TEXT(": declining restores the finale ESC binding"), FArenaMatchFinaleWidgetTestAccess::EscapeBinding(Finale).IsValid());
+				UCommonActivatableWidget* Scoreboard = RootLayout->GetLayerWidget(GameMenuTag)->GetActiveWidget();
+				TestTrue(StageName + TEXT(": closing the dialog preserves the scoreboard"), Scoreboard && Scoreboard->IsActivated() && Scoreboard->IsVisible());
+			}));
+		}
+		ADD_LATENT_AUTOMATION_COMMAND(FDelayedFunctionLatentCommand([State, RootLayout, GameMenuTag]()
+		{
+			if (UCommonActivatableWidget* Scoreboard = RootLayout->GetLayerWidget(GameMenuTag)->GetActiveWidget())
+			{
+				Scoreboard->DeactivateWidget();
+			}
+		}));
 	}
 
-	Ability->EndForTest();
-	UIManager->Tick(0.0f);
-	TestTrue(TEXT("Cancellation restores HUD and root visibility"), HUD->bShowHUD && RootLayout->IsVisible());
-	HUD->bShowHUD = false;
-	UIManager->Tick(0.0f);
-	TestTrue(TEXT("Ordinary HUD hiding works again after cancellation"), RootLayout->GetVisibility() == ESlateVisibility::Collapsed);
-	HUD->bShowHUD = true;
-	Fixture.Destroy();
+	ADD_LATENT_AUTOMATION_COMMAND(FDelayedFunctionLatentCommand([this, State, Ability, Finale, UIManager, HUD, RootLayout]()
+	{
+		Ability->EndForTest();
+		UIManager->Tick(0.0f);
+		TestTrue(TEXT("Cancellation releases the input mode listener and ESC binding"), FArenaMatchFinaleWidgetTestAccess::IsReleased(Finale));
+		TestTrue(TEXT("Cancellation restores HUD and root visibility"), HUD->bShowHUD && RootLayout->IsVisible());
+		HUD->bShowHUD = false;
+		UIManager->Tick(0.0f);
+		TestTrue(TEXT("Ordinary HUD hiding works again after cancellation"), RootLayout->GetVisibility() == ESlateVisibility::Collapsed);
+		HUD->bShowHUD = true;
+		State->FinaleSlate.Reset();
+		State->RootSlate.Reset();
+		State->WorldFixture.Destroy();
+	}));
 	return true;
 }
 

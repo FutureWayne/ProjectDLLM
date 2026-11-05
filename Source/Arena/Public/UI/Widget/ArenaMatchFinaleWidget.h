@@ -159,6 +159,7 @@ private:
 
 	void RegisterEscapeBinding();
 	void UnregisterEscapeBinding();
+	void HandleInputModeChanged(ECommonInputMode InputMode);
 	void HandleEscapeAction();
 	void HandleExitConfirmationResult(ECommonMessagingResult Result);
 
@@ -171,6 +172,7 @@ private:
 	TWeakObjectPtr<AArenaGameState> FinaleGameState;
 	FDelegateHandle StageChangedHandle;
 	FUIActionBindingHandle EscapeBindingHandle;
+	FDelegateHandle InputModeChangedHandle;
 
 	TArray<FSuppressedWidget> SuppressedWidgets;
 	TWeakObjectPtr<AHUD> SuppressedHUD;

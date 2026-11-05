@@ -13,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameState/ArenaGameState.h"
 #include "Input/CommonUIInputTypes.h"
+#include "Input/CommonUIActionRouterBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Messaging/CommonGameDialog.h"
 #include "Messaging/CommonMessagingSubsystem.h"
@@ -132,6 +133,12 @@ void UArenaMatchFinaleWidget::NativeConstruct()
 	RevealAtRealTime = (World ? World->GetRealTimeSeconds() : 0.0) + ResultRevealDelaySeconds;
 
 	SuppressOtherUI();
+
+	if (UCommonUIActionRouterBase* Router = UCommonUIActionRouterBase::Get(*this))
+	{
+		InputModeChangedHandle = Router->OnActiveInputModeChanged().AddUObject(this, &ThisClass::HandleInputModeChanged);
+	}
+
 	RegisterEscapeBinding();
 	BindFinaleGameState();
 	ResolveOutcome();
@@ -149,6 +156,13 @@ void UArenaMatchFinaleWidget::ReleaseFinaleUI()
 {
 	bWidgetConstructed = false;
 	UnbindFinaleGameState();
+
+	if (UCommonUIActionRouterBase* Router = UCommonUIActionRouterBase::Get(*this))
+	{
+		Router->OnActiveInputModeChanged().Remove(InputModeChangedHandle);
+	}
+
+	InputModeChangedHandle.Reset();
 	UnregisterEscapeBinding();
 	RestoreSuppressedUI();
 }
@@ -489,9 +503,12 @@ void UArenaMatchFinaleWidget::RegisterEscapeBinding()
 
 	// Persistent bindings are routed before the activatable tree, so ESC reaches the finale instead of
 	// opening the pause menu from the hidden HUD layout. Displayed persistent actions skip the reachability check.
+	const UCommonUIActionRouterBase* Router = UCommonUIActionRouterBase::Get(*this);
+	const ECommonInputMode InputMode = Router ? Router->GetActiveInputMode() : ECommonInputMode::All;
+	// All is the active router mode that accepts both binding types, not a wildcard on an individual binding.
 	FBindUIActionArgs BindArgs(FUIActionTag::ConvertChecked(TAG_UI_ACTION_ESCAPE_FINALE), true, FSimpleDelegate::CreateUObject(this, &ThisClass::HandleEscapeAction));
 	BindArgs.bIsPersistent = true;
-	BindArgs.InputMode = ECommonInputMode::All;
+	BindArgs.InputMode = InputMode == ECommonInputMode::All ? ECommonInputMode::Menu : InputMode;
 	EscapeBindingHandle = RegisterUIActionBinding(BindArgs);
 }
 
@@ -504,6 +521,15 @@ void UArenaMatchFinaleWidget::UnregisterEscapeBinding()
 		RemoveActionBinding(EscapeBindingHandle);
 	}
 	EscapeBindingHandle = FUIActionBindingHandle();
+}
+
+void UArenaMatchFinaleWidget::HandleInputModeChanged(ECommonInputMode InputMode)
+{
+	if (bWidgetConstructed && !bExitConfirmationOpen)
+	{
+		UnregisterEscapeBinding();
+		RegisterEscapeBinding();
+	}
 }
 
 void UArenaMatchFinaleWidget::HandleEscapeAction()
