@@ -24,6 +24,7 @@ public class Arena : ModuleRules
             "ApplicationCore",
             "AsyncMixin",
             "DataRegistry",
+			"DeveloperSettings",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -42,7 +43,6 @@ public class Arena : ModuleRules
             "GameSettings",
             "AudioModulation",
             "AudioMixer",
-            "DeveloperSettings",
             "RHI",
 		});
 

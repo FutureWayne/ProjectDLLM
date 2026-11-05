@@ -28,6 +28,12 @@ Keep GAS queries, health-source subscriptions and health calculations in C++.
 Keep widget layout, materials, numeric interpolation and animation timing in the
 Blueprint. Health values remain authoritative in the existing GAS health set.
 
+The WBP reads the shared UI palette through `UArenaUIColorLibrary` and owns a
+cancelable `ObserveTeam` subscription to its owning controller. Late team
+assignment, team changes and widget reconstruction refresh the palette inputs
+on its own dynamic material instances; destruction cancels the subscription.
+The palette source and integration contract are documented in `UIColors.md`.
+
 `Arena.UI.HealthBar.Lifecycle` exercises the native widget through possession and
 real instant GameplayEffects, including a maximum health of 200, damage, healing,
 lethal damage, respawn, unpossess and widget reconstruction.

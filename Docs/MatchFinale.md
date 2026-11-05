@@ -1,6 +1,6 @@
 # 比赛结算生命周期
 
-`Phase_PostGame` 继承 `UArenaGamePhaseAbility_MatchFinale`。蓝图负责阶段顺序、等待与时间膨胀；原生基类发布冻结比分和阶段 GameplayCue，`AArenaGameState` 将 Cue 转为本地阶段，`UArenaMatchFinaleWidget` 消费阶段和结算数据。布局、动画和视觉参数仍由 WBP 维护。WBP 通过 `GetLocalTeamId` 选择本地玩家的 Primary 阵营色，未分配阵营时回退到共用文字色与低饱和辅色。
+`Phase_PostGame` 继承 `UArenaGamePhaseAbility_MatchFinale`。蓝图负责阶段顺序、等待与时间膨胀；原生基类发布冻结比分和阶段 GameplayCue，`AArenaGameState` 将 Cue 转为本地阶段，`UArenaMatchFinaleWidget` 消费阶段和结算数据。布局、动画和视觉参数仍由 WBP 维护。WBP 通过共享调色板查询本地玩家及比分双方的颜色，未分配阵营时使用统一的共用中性色回退；阵营观察与材质参数更新由 WBP 管理，接口约定见 `UIColors.md`。
 
 ## 阶段展示时间
 

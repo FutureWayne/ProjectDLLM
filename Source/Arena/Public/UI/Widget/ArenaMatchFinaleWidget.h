@@ -100,27 +100,27 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Arena|Finale|Presentation")
 	void OnResultRevealed(EArenaMatchOutcome RevealedOutcome, bool bSnap);
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> BlueScoreText;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> RedScoreText;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> KillsText;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> DeathsText;
 
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> KDText;
 
 	/** Whole seconds left in PlayerStats, i.e. until the NextMatch countdown begins. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> StatsCountdownText;
 
 	/** Two-digit seconds left in NextMatch. */
-	UPROPERTY(meta = (BindWidgetOptional))
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> NextMatchCountdownText;
 
 	/** Real seconds after the Result stage starts before the result is revealed; matches the slow-motion lead-in. */

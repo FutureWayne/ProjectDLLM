@@ -5,6 +5,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/ListView.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -14,10 +15,13 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/WorldSettings.h"
 #include "Messages/ArenaVerbMessage.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/ScopeExit.h"
 #include "Player/ArenaPlayerState.h"
+#include "Settings/ArenaUIColorSettings.h"
 #include "UI/ArenaEliminationFeedEntry.h"
+#include "UI/ArenaUIColorLibrary.h"
 #include "UI/Widget/ArenaEliminationFeedWidget.h"
 
 namespace ArenaEliminationConfirmationTests
@@ -73,6 +77,29 @@ namespace ArenaEliminationConfirmationTests
 	{
 		const UTextBlock* Text = Row ? Cast<UTextBlock>(Row->GetWidgetFromName(WidgetName)) : nullptr;
 		return Text ? Text->GetText().ToString() : FString();
+	}
+
+	void CheckPalette(FAutomationTestBase& Test, UArenaEliminationFeedEntry* Row, int32 DisplayedTeamId)
+	{
+		for (const TCHAR* Name : { TEXT("CardPanel"), TEXT("NameDividerLine"), TEXT("ScanSweep") })
+		{
+			UImage* Image = Row ? Cast<UImage>(Row->GetWidgetFromName(Name)) : nullptr;
+			UMaterialInstanceDynamic* Material = Image ? Image->GetDynamicMaterial() : nullptr;
+			if (!Test.TestNotNull(Name, Material))
+			{
+				continue;
+			}
+			FLinearColor Value;
+			Test.TestTrue(TEXT("Confirmation accent parameter exists"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Accent")), Value));
+			Test.TestEqual(TEXT("Confirmation accent uses the displayed participant's team"), Value,
+				UArenaUIColorLibrary::GetTeamColor(DisplayedTeamId, EArenaFactionColorRole::Primary));
+			Test.TestTrue(TEXT("Confirmation surface parameter exists"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Surface")), Value));
+			Test.TestEqual(TEXT("Confirmation surface uses the same displayed participant"), Value,
+				UArenaUIColorLibrary::GetTeamColor(DisplayedTeamId, EArenaFactionColorRole::Surface));
+			Test.TestTrue(TEXT("Confirmation core parameter exists"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("PaletteCore")), Value));
+			Test.TestEqual(TEXT("Confirmation core follows the displayed participant's palette"), Value,
+				UArenaUIColorLibrary::GetTeamColor(DisplayedTeamId, EArenaFactionColorRole::Core));
+		}
 	}
 
 	bool IsRowWidgetShown(const UArenaEliminationFeedEntry* Row, const TCHAR* WidgetName)
@@ -222,6 +249,7 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Row shows the streak count from two kills"), IsRowWidgetShown(EnemyRow, TEXT("StreakBadge")));
 	TestNull(TEXT("Row carries no type icon"), EnemyRow->GetWidgetFromName(TEXT("TypeIconSwitcher")));
 	TestNull(TEXT("Row carries no streak emblem"), EnemyRow->GetWidgetFromName(TEXT("StreakEmblem")));
+	CheckPalette(*this, EnemyRow, 2);
 
 	SendElimination(World, Local, Teammate, TEXT("Gameplay.Damage.FromAlly"));
 	const UArenaEliminationFeedItem* AllyKill = GetNewest(List);
@@ -230,6 +258,8 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Teammate row names the teammate"), GetRowText(AllyRow, TEXT("VictimName")), FString(TEXT("Teammate")));
 	TestTrue(TEXT("Teammate row uses its own type label"), !GetRowText(AllyRow, TEXT("TypeLabel")).IsEmpty() && GetRowText(AllyRow, TEXT("TypeLabel")) != EnemyLabel);
 	TestFalse(TEXT("A single kill shows no streak count"), IsRowWidgetShown(AllyRow, TEXT("StreakBadge")));
+	CheckPalette(*this, AllyRow, 1);
+	CheckPalette(*this, EnemyRow, 2);
 	TickSlate(SlateConfirmation.ToSharedRef(), 1.0f);
 	TestTrue(TEXT("A full stack fills every row"), List->GetNumItems() == MaxEntries && FMath::IsNearlyEqual(GetStackOffset(List), 0.0f, 0.5f));
 
@@ -245,6 +275,7 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Self row uses its own type label"), !GetRowText(SelfRow, TEXT("TypeLabel")).IsEmpty() && GetRowText(SelfRow, TEXT("TypeLabel")) != EnemyLabel);
 	TestFalse(TEXT("Self row does not repeat the local player's name"), IsRowWidgetShown(SelfRow, TEXT("VictimName")));
 	TestFalse(TEXT("Self elimination is not reported as being eliminated by another player"), SelfKill && SelfKill->bOwningPlayerEliminated);
+	CheckPalette(*this, SelfRow, 1);
 
 	SendElimination(World, Enemy, Local, TEXT("Gameplay.Damage.FromEnemy"));
 	const UArenaEliminationFeedItem* KilledBy = GetNewest(List);
@@ -255,10 +286,11 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Killed-by row names the killer"), GetRowText(KilledByRow, TEXT("VictimName")), FString(TEXT("Enemy")));
 	TestTrue(TEXT("Killed-by row shows the killer name"), IsRowWidgetShown(KilledByRow, TEXT("VictimName")));
 	TestFalse(TEXT("Killed-by row shows no streak count"), IsRowWidgetShown(KilledByRow, TEXT("StreakBadge")));
+	CheckPalette(*this, KilledByRow, 2);
 	const UTextBlock* KillerText = KilledByRow ? Cast<UTextBlock>(KilledByRow->GetWidgetFromName(TEXT("VictimName"))) : nullptr;
 	const FLinearColor KillerColor = KillerText ? KillerText->GetColorAndOpacity().GetSpecifiedColor() : FLinearColor::Black;
-	TestTrue(TEXT("Killer name is grey-white rather than a team colour"),
-		KillerColor.R > 0.6f && FMath::Abs(KillerColor.R - KillerColor.G) < 0.05f && FMath::Abs(KillerColor.G - KillerColor.B) < 0.05f);
+	TestEqual(TEXT("Killer name RGB uses shared text while animation owns opacity"),
+		KillerColor.CopyWithNewOpacity(1.0f), UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text));
 	TickSlate(SlateConfirmation.ToSharedRef(), 1.0f);
 
 	TickWorld(World, 1.0f);
@@ -275,8 +307,21 @@ bool FArenaEliminationConfirmationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Confirmation expires after its short lifetime"), List->GetNumItems(), 0);
 	TestTrue(TEXT("Confirmation collapses after expiry"), VisibilityOverlay->GetVisibility() == ESlateVisibility::Collapsed);
 	TestTrue(TEXT("An expired stack resets its entry position"), FMath::IsNearlyEqual(GetStackOffset(List), MaxEntries * Pitch, 0.5f));
-	SendElimination(World, Local, Enemy, TEXT("Gameplay.Damage.FromEnemy"));
-	TestTrue(TEXT("A new confirmation after expiry starts below the bottom row"), List->GetNumItems() == 1 && FMath::IsNearlyEqual(GetStackOffset(List), MaxEntries * Pitch, 0.5f));
+	Local->SetGenericTeamId(FGenericTeamId(2));
+	Enemy->SetGenericTeamId(FGenericTeamId(1));
+	UArenaUIColorPalette* Palette = const_cast<UArenaUIColorPalette*>(GetMutableDefault<UArenaUIColorSettings>()->GetPalette());
+	if (!TestNotNull(TEXT("Palette is available for the reused-row regression"), Palette))
+	{
+		return false;
+	}
+	{
+		TGuardValue<FLinearColor> PrimaryOverride(Palette->Orange.Primary, Palette->Shared.TextMuted);
+		TGuardValue<FLinearColor> SurfaceOverride(Palette->Orange.Surface, Palette->Shared.Panel);
+		TGuardValue<FLinearColor> CoreOverride(Palette->Orange.Core, Palette->Shared.Text);
+		SendElimination(World, Local, Enemy, TEXT("Gameplay.Damage.FromEnemy"));
+		TestTrue(TEXT("A new confirmation after expiry starts below the bottom row"), List->GetNumItems() == 1 && FMath::IsNearlyEqual(GetStackOffset(List), MaxEntries * Pitch, 0.5f));
+		CheckPalette(*this, RealizeRow(List, 0), 1);
+	}
 	TickSlate(SlateConfirmation.ToSharedRef(), 1.0f);
 	TestTrue(TEXT("The restarted stack settles on the bottom row"), FMath::IsNearlyEqual(GetStackOffset(List), (MaxEntries - 1) * Pitch, 0.5f));
 
