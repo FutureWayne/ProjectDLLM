@@ -191,7 +191,7 @@ bool FArenaUIColorWidgetLifecycleTest::RunTest(const FString& Parameters)
 	auto CheckPrimary = [this, Material](const TCHAR* Label, int32 TeamId)
 	{
 		FLinearColor Value;
-		TestTrue(TEXT("Material has Primary parameter"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Primary")), Value));
+		TestTrue(TEXT("Material has Primary parameter"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Primary")), Value));
 		TestEqual(Label, Value, UArenaUIColorLibrary::GetTeamColor(TeamId, EArenaFactionColorRole::Primary));
 		TestTrue(TEXT("Material has Highlight parameter"), Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Highlight")), Value));
 		TestEqual(TEXT("Energy highlight follows the same displayed team"), Value, UArenaUIColorLibrary::GetTeamColor(TeamId, EArenaFactionColorRole::Highlight));
@@ -228,7 +228,7 @@ bool FArenaUIColorWidgetLifecycleTest::RunTest(const FString& Parameters)
 	PlayerState->SetGenericTeamId(FGenericTeamId(2));
 	Material = Fill->GetDynamicMaterial();
 	FLinearColor RebuiltColor;
-	Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Primary")), RebuiltColor);
+	Material->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Primary")), RebuiltColor);
 	TestEqual(TEXT("Reconstructed widget follows its current team"), RebuiltColor, UArenaUIColorLibrary::GetTeamColor(2, EArenaFactionColorRole::Primary));
 	Widget->ReleaseSlateResources(true);
 	SlateWidget.Reset();
@@ -241,7 +241,7 @@ bool FArenaUIColorWidgetLifecycleTest::RunTest(const FString& Parameters)
 	{
 		const FArenaSharedPalette Shared = UArenaUIColorLibrary::GetSharedPalette();
 		TGuardValue<FLinearColor> PrimaryOverride(Palette->Cyan.Primary, Shared.TextMuted);
-		TGuardValue<FLinearColor> SurfaceOverride(Palette->Cyan.Surface, Shared.Panel);
+		TGuardValue<FLinearColor> DeepOverride(Palette->Cyan.Deep, Shared.Panel);
 		TGuardValue<FLinearColor> HighlightOverride(Palette->Cyan.Highlight, Shared.Text);
 		UArenaHealthBarWidget* Reopened = CreateWidget<UArenaHealthBarWidget>(Controller, WidgetClass);
 		if (!TestNotNull(TEXT("Reopen production health bar"), Reopened))
@@ -254,10 +254,10 @@ bool FArenaUIColorWidgetLifecycleTest::RunTest(const FString& Parameters)
 		if (TestNotNull(TEXT("Reopened fill material"), ReopenedMaterial))
 		{
 			FLinearColor Value;
-			ReopenedMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("Primary")), Value);
+			ReopenedMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Primary")), Value);
 			TestEqual(TEXT("Reopening reads the changed primary from the shared asset"), Value, Shared.TextMuted);
-			ReopenedMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Surface")), Value);
-			TestEqual(TEXT("Reopening reads the changed surface from the shared asset"), Value, Shared.Panel);
+			ReopenedMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Deep")), Value);
+			TestEqual(TEXT("Reopening reads the changed deep tone from the shared asset"), Value, Shared.Panel);
 			ReopenedMaterial->GetVectorParameterValue(FMaterialParameterInfo(TEXT("UIColor_Own_Highlight")), Value);
 			TestEqual(TEXT("Reopening reads the changed highlight from the shared asset"), Value, Shared.Text);
 			TestNotEqual(TEXT("Separate widgets have separate material instances"), ReopenedMaterial, Material);
