@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Mayhem UMG"
+  short_description: "Build and review Project Mayhem UMG with MVC and palette"
+  default_prompt: "使用 $project-mayhem-umg 设计、制作或审查 Project Mayhem 的 UMG 界面。"

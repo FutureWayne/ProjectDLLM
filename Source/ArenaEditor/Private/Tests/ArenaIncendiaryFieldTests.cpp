@@ -159,10 +159,10 @@ namespace
 		return Area ? Area->Settings : Missing;
 	}
 
-	constexpr EAutomationTestFlags Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+	constexpr EAutomationTestFlags IncendiaryTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireFlatTest, "Arena.Incendiary.Surface.FlatAndFrameBudget", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireFlatTest, "Arena.Incendiary.Surface.FlatAndFrameBudget", IncendiaryTestFlags)
 bool FFireFlatTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -183,7 +183,7 @@ bool FFireFlatTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireWallTest, "Arena.Incendiary.Surface.WallAndCapsuleEdge", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireWallTest, "Arena.Incendiary.Surface.WallAndCapsuleEdge", IncendiaryTestFlags)
 bool FFireWallTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -206,7 +206,7 @@ bool FFireWallTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireStepTest, "Arena.Incendiary.Surface.StairsAndCliff", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireStepTest, "Arena.Incendiary.Surface.StairsAndCliff", IncendiaryTestFlags)
 bool FFireStepTest::RunTest(const FString&)
 {
 	{
@@ -253,7 +253,7 @@ bool FFireStepTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireCeilingTest, "Arena.Incendiary.Surface.CeilingAndUnsupportedOrigin", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireCeilingTest, "Arena.Incendiary.Surface.CeilingAndUnsupportedOrigin", IncendiaryTestFlags)
 bool FFireCeilingTest::RunTest(const FString&)
 {
 	{
@@ -277,7 +277,7 @@ bool FFireCeilingTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireDamageTest, "Arena.Incendiary.Damage.TeamsImmunityAndCadence", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireDamageTest, "Arena.Incendiary.Damage.TeamsImmunityAndCadence", IncendiaryTestFlags)
 bool FFireDamageTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -326,7 +326,7 @@ bool FFireDamageTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireExplosionDamageTest, "Arena.Incendiary.Damage.ProductionExplosionDamage", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireExplosionDamageTest, "Arena.Incendiary.Damage.ProductionExplosionDamage", IncendiaryTestFlags)
 bool FFireExplosionDamageTest::RunTest(const FString&)
 {
 	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
@@ -396,7 +396,7 @@ bool FFireExplosionDamageTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSelfDamageTest, "Arena.Incendiary.Damage.ProductionSelfDamage", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSelfDamageTest, "Arena.Incendiary.Damage.ProductionSelfDamage", IncendiaryTestFlags)
 bool FFireSelfDamageTest::RunTest(const FString&)
 {
 	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
@@ -463,7 +463,7 @@ bool FFireSelfDamageTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireGrenadeTest, "Arena.Incendiary.Grenade.AirburstAndGroundProjection", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireGrenadeTest, "Arena.Incendiary.Grenade.AirburstAndGroundProjection", IncendiaryTestFlags)
 bool FFireGrenadeTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -520,7 +520,7 @@ bool FFireGrenadeTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireCookingFuseTest, "Arena.Incendiary.Grenade.CookingFuseAndHighAirburst", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireCookingFuseTest, "Arena.Incendiary.Grenade.CookingFuseAndHighAirburst", IncendiaryTestFlags)
 bool FFireCookingFuseTest::RunTest(const FString&)
 {
 	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
@@ -620,7 +620,7 @@ bool FFireCookingFuseTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireFallingTest, "Arena.Incendiary.Grenade.FallingContactAndLifetime", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireFallingTest, "Arena.Incendiary.Grenade.FallingContactAndLifetime", IncendiaryTestFlags)
 bool FFireFallingTest::RunTest(const FString&)
 {
 	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
@@ -681,7 +681,7 @@ bool FFireFallingTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAreaEffectLifecycleTest, "Arena.Incendiary.GroundArea.DurationAndInfiniteEffectLifecycle", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAreaEffectLifecycleTest, "Arena.Incendiary.GroundArea.DurationAndInfiniteEffectLifecycle", IncendiaryTestFlags)
 bool FAreaEffectLifecycleTest::RunTest(const FString&)
 {
 	UArenaGroundAreaTestSlowEffect* Effect = GetMutableDefault<UArenaGroundAreaTestSlowEffect>();
@@ -756,7 +756,7 @@ bool FAreaEffectLifecycleTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireAssetTest, "Arena.Incendiary.Integration.ProductionAsset", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireAssetTest, "Arena.Incendiary.Integration.ProductionAsset", IncendiaryTestFlags)
 bool FFireAssetTest::RunTest(const FString&)
 {
 	const UArenaGrenadeDefinitionData* Definition = LoadObject<UArenaGrenadeDefinitionData>(nullptr,
@@ -832,7 +832,7 @@ bool FFireAssetTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireDiagonalWallTest, "Arena.Incendiary.Surface.DiagonalWallAndRoundCapsule", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireDiagonalWallTest, "Arena.Incendiary.Surface.DiagonalWallAndRoundCapsule", IncendiaryTestFlags)
 bool FFireDiagonalWallTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -847,7 +847,7 @@ bool FFireDiagonalWallTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSourceDestroyedTest, "Arena.Incendiary.Damage.DestroyedInstigator", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireSourceDestroyedTest, "Arena.Incendiary.Damage.DestroyedInstigator", IncendiaryTestFlags)
 bool FFireSourceDestroyedTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -877,7 +877,7 @@ bool FFireSourceDestroyedTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFirePlayerStateContextTest, "Arena.Incendiary.Damage.PlayerStateAttribution", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFirePlayerStateContextTest, "Arena.Incendiary.Damage.PlayerStateAttribution", IncendiaryTestFlags)
 bool FFirePlayerStateContextTest::RunTest(const FString&)
 {
 	FFireWorld Scene;
@@ -920,7 +920,7 @@ bool FFirePlayerStateContextTest::RunTest(const FString&)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireAlternateParentTest, "Arena.Incendiary.Surface.AlternateConnectedParent", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFireAlternateParentTest, "Arena.Incendiary.Surface.AlternateConnectedParent", IncendiaryTestFlags)
 bool FFireAlternateParentTest::RunTest(const FString&)
 {
 	for (const int32 Budget : {1, 128})

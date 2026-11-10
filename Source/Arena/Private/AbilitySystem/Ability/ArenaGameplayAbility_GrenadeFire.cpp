@@ -6,6 +6,7 @@
 #include "ArenaLogChannels.h"
 #include "Character/ArenaCharacter.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
+#include "GameplayEffect.h"
 #include "Messages/ArenaInteractionDurationMessage.h"
 #include "System/ArenaSystemStatics.h"
 #include "Weapon/ArenaGrenadeDefinitionData.h"
@@ -88,21 +89,27 @@ bool UArenaGameplayAbility_GrenadeFire::CommitAbilityCooldown(const FGameplayAbi
 void UArenaGameplayAbility_GrenadeFire::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	// Set Cooldown Time Dynamically
-	TSubclassOf<UGameplayEffect> CooldownGameplayEffect = GetCooldownGameplayEffect()->GetClass();
-	check(CooldownGameplayEffect);
-	FGameplayEffectSpecHandle CooldownSpec = MakeOutgoingGameplayEffectSpec(CooldownGameplayEffect, 1.0f);
+	const UGameplayEffect* CooldownEffect = GetCooldownGameplayEffect();
+	if (CooldownEffect == nullptr)
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("Cannot apply grenade cooldown for %s: cooldown effect is not configured."), *GetPathName());
+		return;
+	}
+
+	const UArenaGrenadeDefinitionData* GrenadeDefinitionData = GetGrenadeDefinitionData();
+	if (GrenadeDefinitionData == nullptr || !GrenadeDefinitionData->GrenadeSlotCooldownTag.IsValid())
+	{
+		UE_LOG(LogArenaAbilitySystem, Error, TEXT("Cannot apply grenade cooldown for %s: grenade definition or slot cooldown tag is missing."), *GetPathName());
+		return;
+	}
+
+	FGameplayEffectSpecHandle CooldownSpec = MakeOutgoingGameplayEffectSpec(CooldownEffect->GetClass(), 1.0f);
 	if (CooldownSpec.IsValid())
 	{
 		FGameplayEffectSpec* CooldownSpecPtr = CooldownSpec.Data.Get();
-		const UArenaGrenadeDefinitionData* GrenadeDefinitionData = GetGrenadeDefinitionData();
-		if (CooldownSpecPtr && GrenadeDefinitionData)
-		{
-			FGameplayTagContainer CooldownTags;
-			CooldownTags.AddTag(GrenadeDefinitionData->GrenadeSlotCooldownTag);
-			CooldownSpecPtr->DynamicGrantedTags.AppendTags(CooldownTags);
-			CooldownSpecPtr->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Cooldown.Grenade")), GrenadeDefinitionData->GrenadeAbilityCooldownTime);
-		}
+		// The GE grants the shared cooldown marker; only this dynamic slot tag blocks this grenade.
+		CooldownSpecPtr->DynamicGrantedTags.AddTag(GrenadeDefinitionData->GrenadeSlotCooldownTag);
+		CooldownSpecPtr->SetSetByCallerMagnitude(FGameplayTag::RequestGameplayTag(FName("Cooldown.Grenade")), GrenadeDefinitionData->GrenadeAbilityCooldownTime);
 		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, CooldownSpec);
 	}
 }

@@ -43,6 +43,8 @@ FLinearColor FArenaSharedPalette::GetColor(EArenaSharedColorRole Role) const
 		return Text;
 	case EArenaSharedColorRole::TextMuted:
 		return TextMuted;
+	case EArenaSharedColorRole::Critical:
+		return Critical;
 	default:
 		return FLinearColor::Transparent;
 	}
@@ -98,6 +100,7 @@ EDataValidationResult UArenaUIColorPalette::IsDataValid(FDataValidationContext& 
 		Shared.Panel,
 		Shared.Text,
 		Shared.TextMuted,
+		Shared.Critical,
 	};
 
 	for (const FLinearColor& Color : Colors)
