@@ -4,7 +4,7 @@
 
 ## 类型与接口
 
-`FArenaFactionPalette` 保存 Primary、Highlight、Core、Secondary、Muted、Edge、Surface、Deep；`FArenaSharedPalette` 保存 Background、Panel、Text、TextMuted。字段均为线性 `FLinearColor`，蓝图只读，资产中可编辑。按色卡 sRGB 数值转换后录入，基础色 Alpha 固定为 1。
+`FArenaFactionPalette` 保存 Primary、Highlight、Core、Secondary、Muted、Edge、Surface、Deep；`FArenaSharedPalette` 保存 Background、Panel、Text、TextMuted、Critical。字段均为线性 `FLinearColor`，蓝图只读，资产中可编辑。按色卡 sRGB 数值转换后录入，基础色 Alpha 固定为 1。Critical 是与阵营无关的临界危险语义色，用于蓄雷剩余时间小于 1 秒时的数字与刻度。
 
 项目设置中的 Arena UI Colors 通过 `UArenaUIColorSettings` 配置唯一的调色板软引用。查询首次加载并持有资产，不依赖 World，支持设计器预览。缺失资产会输出错误并返回透明空值；配置和资产验证会报告失败，不生成备用色卡。
 
@@ -37,4 +37,4 @@ WBP 负责将查询结果应用到控件或独立的动态材质实例。自身 
 
 ## 验证入口
 
-`Arena.UI.Colors` 验证配置加载、20 个色值与规则表的一致性、线性转换、阵营映射、中性回退、反射查询与缺失配置处理；`Consumers` 检查计分板背景、富文本、等待提示入口、切队和准星材质。`Arena.UI.EliminationFeed.PersonalConfirmation` 同时检查真实列表条目的材质取色和复用。视觉、材质叠加、动画和双客户端阵营一致性还需要在实际界面验证。
+`Arena.UI.Colors` 验证配置加载、21 个色值与规则表的一致性、线性转换、阵营映射、中性回退、反射查询与缺失配置处理；`Consumers` 检查计分板背景、富文本、等待提示入口、切队和准星材质。`Arena.UI.EliminationFeed.PersonalConfirmation` 同时检查真实列表条目的材质取色和复用。视觉、材质叠加、动画和双客户端阵营一致性还需要在实际界面验证。

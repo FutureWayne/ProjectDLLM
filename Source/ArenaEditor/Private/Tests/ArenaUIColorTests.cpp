@@ -89,7 +89,7 @@ bool FArenaUIColorPaletteTest::RunTest(const FString& Parameters)
 			CheckedColors += 2;
 		}
 	}
-	TestEqual(TEXT("All twenty authoritative colors checked"), CheckedColors, 20);
+	TestEqual(TEXT("All twenty-one authoritative colors checked"), CheckedColors, 21);
 
 	const FArenaSharedPalette Shared = UArenaUIColorLibrary::GetSharedPalette();
 	const int32 NeutralTeamIds[] = { INDEX_NONE, 0, 3, 255 };

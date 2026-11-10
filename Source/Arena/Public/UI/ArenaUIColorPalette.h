@@ -57,7 +57,8 @@ enum class EArenaSharedColorRole : uint8
 	Background,
 	Panel,
 	Text,
-	TextMuted
+	TextMuted,
+	Critical
 };
 
 USTRUCT(BlueprintType)
@@ -76,6 +77,9 @@ struct ARENA_API FArenaSharedPalette
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI|Colors")
 	FLinearColor TextMuted = FLinearColor::Transparent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Arena|UI|Colors")
+	FLinearColor Critical = FLinearColor::Transparent;
 
 	FLinearColor GetColor(EArenaSharedColorRole Role) const;
 };
