@@ -1,6 +1,6 @@
 # UI 共享阵营调色板
 
-基础色值集中在 `/Game/UI/Foundation/Colors/DA_ArenaUIColorPalette`。修改颜色时同步维护 `Rule.md` 和 `Docs/Art/FactionColorPalette.png`，不要在 C++ 或各个 WBP 中增加另一套色值。
+基础色值集中在 `/Game/UI/Foundation/Colors/DA_ArenaUIColorPalette`。修改颜色时同步更新 [UI 配色参考](../Skills/project-mayhem-umg/references/ui-color-palette.md) 和 [项目色卡](Art/FactionColorPalette.png)。
 
 ## 类型与接口
 

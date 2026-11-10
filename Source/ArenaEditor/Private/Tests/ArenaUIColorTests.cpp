@@ -39,8 +39,9 @@ bool FArenaUIColorPaletteTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Palette load is retained"), Palette == Settings->GetPalette());
 
 	// Read the authoritative table so tests do not introduce another editable color list.
+	const FString PaletteRulesPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Skills/project-mayhem-umg/references/ui-color-palette.md"));
 	FString Rules;
-	if (!TestTrue(TEXT("Load project color rules"), FFileHelper::LoadFileToString(Rules, *FPaths::Combine(FPaths::ProjectDir(), TEXT("Rule.md")))))
+	if (!TestTrue(TEXT("Load project UI color palette reference"), FFileHelper::LoadFileToString(Rules, *PaletteRulesPath)))
 	{
 		return false;
 	}

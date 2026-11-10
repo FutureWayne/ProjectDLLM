@@ -14,7 +14,7 @@
 `B_ArenaPlayerController` 使用 `/Game/Camera/B_ArenaPlayerCameraManager`。
 相机蓝图负责击杀者显示网格的 CustomDepth 开关与 stencil，退出时恢复原值；持续更新发生在 Pawn Tick 之后，避免正常阵营描边覆盖。
 `/Game/Camera/M_KillCameraOutline` 根据独立 stencil 250（青蓝）、251（橙红）、252（中性）画轮廓，不使用 SceneDepth 遮挡判定。
-描边基础色来自 `Rule.md`，颜色与线宽保存在材质资源，C++ 只传递目标与启停状态。
+描边基础色沿用 [UI 配色参考](../Skills/project-mayhem-umg/references/ui-color-palette.md) 的阵营色，颜色与线宽保存在材质资源，C++ 只传递目标与启停状态。
 正式控制器须保留上述相机蓝图配置，原生相机类本身不定义描边表现。
 
 `Arena.Camera.KillCamera` 验证真实 GAS 致死伤害、只转向且保留原位与 FOV 变化、目标销毁、复活清理，以及真实 PIE 主机/远端客户端的 owner RPC、自杀和远距离同步。

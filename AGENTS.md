@@ -7,11 +7,12 @@
 | 规范 | 文件 | 何时必须阅读 |
 | --- | --- | --- |
 | 代码规范 | `Docs/CodingStandards.md` | 新增、修改或审查任何 C++ 源码、`.Build.cs` / `.Target.cs`、插件源码、自动化测试之前 |
-| UI 配色规则 | `Rule.md` | 新增、修改或审查 UI、Widget Blueprint（WBP）、HUD 和 UI 材质之前；必须严格遵守其中的颜色与用途约束 |
+| UMG 制作与配色 | [project-mayhem-umg](Skills/project-mayhem-umg/SKILL.md) | 设计、新增、修改或审查 UMG、Widget Blueprint（WBP）、HUD、菜单、UI 材质，以及为这些界面接入业务数据、交互、状态、配色或动画之前 |
 | 功能设计与维护说明 | `Docs/*.md` | 修改对应功能（如 `GroundAreaEffects`、`HealthBar`、`RoundRestartNetworking` 等）之前 |
 | 插件补丁说明 | `Plugins/OnlineSubsystemSteam/README.md`、`Plugins/SteamSockets/README.md`、`Plugins/CommonUser/Tests/README.md` | 修改或升级对应插件之前 |
 
 - 涉及代码修改时，先完整阅读 `Docs/CodingStandards.md` 再动手，不凭印象套用通用 UE 风格。
+- 命中 UMG 适用范围时，先读取 `Skills/project-mayhem-umg/SKILL.md` 并按其流程执行，包括只修改蓝图或材质的任务。
 
 ## 2. 工作方式
 
@@ -21,9 +22,8 @@
 
 - 资产命名延续同目录习惯：`DA_...` 数据资产、`GA_...` 技能、`GE_...` 效果，以及已有的 `B_...` / `BP_...` 蓝图家族；不批量重命名历史资源。
 - 修改 `.uasset` 通过 UE 编辑器或受支持的资产 API 完成，检查引用与加载结果，不将其作为普通文本修改。
-- 修改特效、UI 等表现内容时，C++ 层只处理业务逻辑和业务状态传递，不在 C++ 中编写或硬编码表现控制。
+- 修改特效表现时，C++ 层只处理业务逻辑和业务状态传递，不在 C++ 中编写或硬编码表现控制。
 - 特效的视觉表现与表现参数应固化在粒子系统资源中（如 Niagara 系统），由粒子系统自身定义和维护。
-- UI 的样式、布局、视觉参数与动画应固化在对应的 Widget Blueprint（WBP）中，由 WBP 定义和维护。
 
 ## 4. 版本管理与忽略规则
 
