@@ -4,6 +4,7 @@
 
 #include "Engine/DeveloperSettings.h"
 #include "UObject/SoftObjectPtr.h"
+#include "UObject/StrongObjectPtr.h"
 #include "ArenaUIColorSettings.generated.h"
 
 class UArenaUIColorPalette;
@@ -15,6 +16,8 @@ class ARENA_API UArenaUIColorSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
+	UArenaUIColorSettings();
+
 	UPROPERTY(Config, EditAnywhere, Category = "Arena|UI|Colors")
 	TSoftObjectPtr<UArenaUIColorPalette> Palette;
 
@@ -25,8 +28,8 @@ public:
 #endif
 
 private:
-	UPROPERTY(Transient)
-	TObjectPtr<UArenaUIColorPalette> LoadedPalette = nullptr;
+	// Packaged CDOs can be excluded from GC traversal; retain the asset independently.
+	TStrongObjectPtr<UArenaUIColorPalette> LoadedPalette;
 
 	FSoftObjectPath LastAttemptedPath;
 	bool bAttemptedLoad = false;

@@ -8,6 +8,8 @@
 
 项目设置中的 Arena UI Colors 通过 `UArenaUIColorSettings` 配置唯一的调色板软引用。查询首次加载并持有资产，不依赖 World，支持设计器预览。缺失资产会输出错误并返回透明空值；配置和资产验证会报告失败，不生成备用色卡。
 
+运行时缓存使用 `TStrongObjectPtr` 独立持有调色板，配置路径变化或清空时释放旧缓存。打包版本的设置默认对象可能位于 Disregard for GC 区域，不能依靠它的 `UPROPERTY` 强引用持有运行时加载的资产，否则切图或加载结束时的 GC 校验会导致崩溃。修改缓存所有权时，同时验证 GC 后仍可查询、替换后旧资产可回收，以及打包版本的大厅加载与 GC。
+
 `UArenaUIColorLibrary` 的 C++ 静态函数和蓝图纯节点统一位于 `Arena|UI|Colors`：
 
 - `GetTeamPalette(TeamId)`：完整阵营调色板。

@@ -9,6 +9,8 @@
 #include "Misc/DataValidation.h"
 #endif
 
+UArenaUIColorSettings::UArenaUIColorSettings() = default;
+
 const UArenaUIColorPalette* UArenaUIColorSettings::GetPalette()
 {
 	const FSoftObjectPath PalettePath = Palette.ToSoftObjectPath();
@@ -16,14 +18,14 @@ const UArenaUIColorPalette* UArenaUIColorSettings::GetPalette()
 	{
 		bAttemptedLoad = true;
 		LastAttemptedPath = PalettePath;
-		LoadedPalette = Palette.LoadSynchronous();
+		LoadedPalette.Reset(Palette.LoadSynchronous());
 		if (!LoadedPalette)
 		{
 			UE_LOG(LogArena, Error, TEXT("Failed to load the shared UI palette '%s'. Configure Arena UI Colors in Project Settings."), *PalettePath.ToString());
 		}
 	}
 
-	return LoadedPalette;
+	return LoadedPalette.Get();
 }
 
 #if WITH_EDITOR
