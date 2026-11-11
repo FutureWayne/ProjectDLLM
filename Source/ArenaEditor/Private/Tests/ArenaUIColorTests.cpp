@@ -19,6 +19,7 @@
 #include "Settings/ArenaUIColorSettings.h"
 #include "Tests/ArenaUIColorTestController.h"
 #include "UI/Widget/ArenaHealthBarWidget.h"
+#include "UObject/GarbageCollection.h"
 #include "UObject/StructOnScope.h"
 #include "UObject/UnrealType.h"
 
@@ -131,6 +132,48 @@ bool FArenaUIColorPaletteTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Queries read shared asset values instead of cached color copies"), UArenaUIColorLibrary::GetTeamColor(2, EArenaFactionColorRole::Primary), Shared.Text);
 	}
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FArenaUIColorPaletteGarbageCollectionTest, "Arena.UI.Colors.GarbageCollection", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FArenaUIColorPaletteGarbageCollectionTest::RunTest(const FString& Parameters)
+{
+	UArenaUIColorSettings* Settings = GetMutableDefault<UArenaUIColorSettings>();
+	const TSoftObjectPtr<UArenaUIColorPalette> OriginalPalette = Settings->Palette;
+	const FLinearColor OriginalText = UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text);
+	ON_SCOPE_EXIT
+	{
+		Settings->Palette = OriginalPalette;
+		Settings->GetPalette();
+	};
+
+	// A transient palette has no asset-editor or package references masking cache ownership.
+	UArenaUIColorPalette* TemporaryPalette = NewObject<UArenaUIColorPalette>();
+	TemporaryPalette->Shared.Text = OriginalText;
+	const TWeakObjectPtr<UArenaUIColorPalette> WeakPalette(TemporaryPalette);
+	Settings->Palette = TemporaryPalette;
+	TestEqual(TEXT("Production query loads the replacement palette"), UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text), OriginalText);
+	TestTrue(TEXT("Replacement palette is cached"), Settings->GetPalette() == TemporaryPalette);
+
+	CollectGarbage(RF_NoFlags, true);
+	if (!TestTrue(TEXT("Cached palette survives garbage collection"), WeakPalette.IsValid()))
+	{
+		return false;
+	}
+	TestTrue(TEXT("Query retains the same palette after GC"), Settings->GetPalette() == WeakPalette.Get());
+	TestEqual(TEXT("Production query still reads retained colors"), UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text), OriginalText);
+
+	Settings->Palette.Reset();
+	AddExpectedError(TEXT("Failed to load the shared UI palette"), EAutomationExpectedErrorFlags::Contains, 1);
+	TestEqual(TEXT("Clearing configuration clears the cached colors"), UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text), FLinearColor::Transparent);
+	TestNull(TEXT("Cleared configuration has no cached palette"), Settings->GetPalette());
+	CollectGarbage(RF_NoFlags, true);
+	TestFalse(TEXT("Replaced palette is released for garbage collection"), WeakPalette.IsValid());
+
+	Settings->Palette = OriginalPalette;
+	TestNotNull(TEXT("Production palette reloads after configuration is restored"), Settings->GetPalette());
+	TestEqual(TEXT("Restored configuration returns the original colors"), UArenaUIColorLibrary::GetSharedColor(EArenaSharedColorRole::Text), OriginalText);
 	return true;
 }
 
