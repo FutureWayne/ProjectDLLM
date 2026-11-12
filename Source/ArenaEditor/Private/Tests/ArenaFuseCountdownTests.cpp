@@ -114,6 +114,22 @@ bool FArenaFuseCountdownTest::RunTest(const FString& Parameters)
 					UArenaUIColorLibrary::GetTeamColor(TeamId, EArenaFactionColorRole::Primary));
 			}
 		}
+		{
+			// Measure the shaped UMG text; the legacy font measure API ignores monospacing.
+			const FText PreviousText = Seconds->GetText();
+			Seconds->SetText(FText::FromString(TEXT("1.11")));
+			Seconds->ForceLayoutPrepass();
+			const double NarrowDigitsWidth = Seconds->GetDesiredSize().X;
+			TestTrue(TEXT("Countdown font is measurable"), NarrowDigitsWidth > 0.0f);
+			for (const TCHAR* Sample : { TEXT("0.80"), TEXT("8.88"), TEXT("4.71") })
+			{
+				Seconds->SetText(FText::FromString(Sample));
+				Seconds->ForceLayoutPrepass();
+				TestEqual(TEXT("Countdown width is independent of the digits shown"), Seconds->GetDesiredSize().X, NarrowDigitsWidth);
+			}
+			Seconds->SetText(PreviousText);
+			Seconds->ForceLayoutPrepass();
+		}
 		FStructOnScope Release(ADS);
 		OnProperty->SetPropertyValue_InContainer(Release.GetStructMemory(), false);
 		Reticle->ProcessEvent(ADS, Release.GetStructMemory());
